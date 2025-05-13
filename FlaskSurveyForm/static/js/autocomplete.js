@@ -16,7 +16,7 @@
  * @param {string} [config.otherOptionText="Other (Manual Entry)"] - Text for the "Other" option.
  * @param {object} [config.otherOptionValue={id: 0, name: "Other (Manual Entry)"}] - Value for the "Other" option.
  */
-export function initAutocomplete({
+function initAutocomplete({
   inputId,
   resultsId,
   lookupUrl,
@@ -197,4 +197,7 @@ export function initAutocomplete({
       }
     }
   });
-} 
+}
+
+// At the end of the file, expose initAutocomplete globally
+window.initAutocomplete = initAutocomplete; 

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Step 3: Trainees & Attachments{% endblock %}
+
+{% block content %}
+<div class="card upgraded training-form-container">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="fs-4 mb-0">Training Form - Step 3</h2>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('form_step', step=3) }}" id="training-form" enctype="multipart/form-data">
+            {{ form.csrf_token }}
+            {{ form.trainees_data() }}
+
+            <!-- Trainees Section -->
+            <div class="col-md-12 mb-3">
+                <h3 class="fs-5 form-section-title">Add Trainees</h3>
+            </div>
+
+            <div class="col-md-12 mb-4">
+                <div class="trainee-search-container">
+                    <div class="trainee-search-box">
+                        <div class="input-group mb-3">
+                            <input type="text" id="trainee-search-input" class="form-control"
+                                placeholder="Search by name or email..." autocomplete="off" />
+                            <button class="btn btn-primary" type="button" id="add-trainee-btn">
+                                <i class="bi bi-plus-lg"></i> Add Trainee
+                            </button>
+                        </div>
+                        <div id="trainee-search-results" class="trainee-search-results hidden"></div>
+                    </div>
+                    <div id="no-trainees-message" class="no-trainees-message">
+                        <i class="bi bi-people fs-4 d-block mb-2"></i>
+                        No trainees have been added yet
+                    </div>
+                    <div id="trainees-list" class="trainees-list"></div>
+                    <button type="button" id="bulk-add-trainees-btn" class="btn btn-outline-primary mt-3">
+                        <i class="bi bi-people-fill me-1"></i> Bulk Add Trainees
+                    </button>
+                </div>
+            </div>
+
+            <!-- Attachments Section -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h3 class="fs-5 form-section-title">Attachments</h3>
+                    <div id="virtual-training-attachment-note" class="alert alert-info d-none mb-3" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        You must attach your completed virtual training certificate.
+                    </div>
+                    <div id="dropzone" class="dropzone border p-3 mb-3 text-center">
+                        <i class="bi bi-upload fs-1 text-primary"></i>
+                        <p>Drag and drop files here or click to browse</p>
+                        <input type="file" id="file-input" class="d-none" multiple />
+                    </div>
+                    <div id="attachment-previews"></div>
+                </div>
+            </div>
+
+            <div class="col-md-12 mt-4">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('form_step', step=2) }}" class="btn btn-secondary">Previous Step</a>
+                    <button type="submit" class="btn btn-success">Submit Form</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Add Modal -->
+<div class="modal fade" id="bulkAddModal" tabindex="-1" aria-labelledby="bulkAddModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkAddModalLabel">Bulk Add Trainees</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="form-floating">
+                        {{ form.trainee_emails(class="form-control auto-resize-textarea", placeholder="", rows=4, 
+                           style="min-height: 120px; max-height: 300px; overflow-y: auto;") }}
+                        {{ form.trainee_emails.label }}
+                    </div>
+                    <small class="form-text text-muted">
+                        Example: john@example.com, jane@domain.com
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="add-emails-btn" class="btn btn-primary">Add Emails</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Add Modal -->
+<div class="modal fade" id="manualAddModal" tabindex="-1" aria-labelledby="manualAddModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manualAddModalLabel">Add Trainee Manually</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="manual-first-name" class="form-label">First name</label>
+                    <input type="text" class="form-control" id="manual-first-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="manual-last-name" class="form-label">Last name</label>
+                    <input type="text" class="form-control" id="manual-last-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="manual-department" class="form-label">Department</label>
+                    <input type="text" class="form-control" id="manual-department" value="Engineering">
+                </div>
+                <div class="mb-3">
+                    <label for="manual-email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="manual-email" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="save-manual-trainee" class="btn btn-primary">Add Trainee</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/form_step3.js') }}"></script>
+<!-- <script src="{{ url_for('static', filename='js/employee_search.js') }}"></script> -->
+<script src="{{ url_for('static', filename='js/attachment.js') }}"></script>
+{% endblock %} 

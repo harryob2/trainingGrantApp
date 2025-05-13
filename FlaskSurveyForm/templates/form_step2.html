@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Step 2: Training Details{% endblock %}
+
+{% block content %}
+<div class="card upgraded training-form-container">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="fs-4 mb-0">Training Form - Step 2</h2>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('form_step', step=2) }}" id="training-form">
+            {{ form.csrf_token }}
+
+            <!-- Trainer/Supplier Name Fields -->
+            <div id="internal-trainer-container" class="col-md-12 mb-3 d-none">
+                {{ form.trainer_name.label(class="form-label") }}
+                <div class="trainee-search-box">
+                    <input type="text" class="form-control" id="trainer_name_search" name="trainer_name_search" 
+                           placeholder="Search by name or email..." autocomplete="off" />
+                    <div id="trainer-search-results" class="trainee-search-results hidden"></div>
+                </div>
+                {{ form.trainer_name(class="form-control d-none", id="trainer_name_hidden") }}
+                <div class="form-text trainer-search-hint">Type at least 2 characters to search for an employee</div>
+            </div>
+
+            <div id="external-supplier-container" class="col-md-12 mb-3 d-none">
+                <div class="form-floating">
+                    {{ form.supplier_name(class="form-control", placeholder=" ") }}
+                    {{ form.supplier_name.label }}
+                </div>
+            </div>
+
+            <!-- Training Dates -->
+            <div class="row g-3">
+                <div class="col-md-6 mb-3">
+                    <div class="form-floating">
+                        {{ form.start_date(class="form-control date-picker", placeholder=" ") }}
+                        {{ form.start_date.label }}
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="form-floating">
+                        {{ form.end_date(class="form-control date-picker", placeholder=" ") }}
+                        {{ form.end_date.label }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Training Description -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <div class="form-floating">
+                        {{ form.training_description(class="form-control", style="height: 120px", placeholder=" ") }}
+                        {{ form.training_description.label }}
+                    </div>
+                    <div class="form-text">Briefly describe the training delivered</div>
+                </div>
+            </div>
+
+            <!-- Hours -->
+            <div class="row g-3">
+                <div id="trainer-Hours-container" class="col-md-6 mb-3 d-none">
+                    <div class="form-floating">
+                        {{ form.trainer_hours(class="form-control", placeholder=" ") }}
+                        {{ form.trainer_hours.label }}
+                    </div>
+                    <div class="form-text">Enter the amount of time the trainer spent preparing and administering this training in hours</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-floating">
+                        {{ form.trainee_hours(class="form-control", placeholder=" ") }}
+                        {{ form.trainee_hours.label }}
+                    </div>
+                    <div class="form-text">How much time each trainee spent at the training, in working hours</div>
+                </div>
+            </div>
+
+            <!-- Expenses Section -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h3 class="fs-5 form-section-title">Expenses</h3>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                {{ form.travel_cost(class="form-control money", placeholder=" ") }}
+                                {{ form.travel_cost.label }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                {{ form.food_cost(class="form-control money", placeholder=" ") }}
+                                {{ form.food_cost.label }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                {{ form.materials_cost(class="form-control money", placeholder=" ") }}
+                                {{ form.materials_cost.label }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form.other_cost(class="form-control money", placeholder=" ") }}
+                                {{ form.other_cost.label }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form.concur_claim(class="form-control", placeholder=" ") }}
+                                {{ form.concur_claim.label }}
+                            </div>
+                            <div id="concur-required-message" class="form-text text-danger d-none mt-1" style="font-size: 0.85em">
+                                * Required when expenses are entered
+                            </div>
+                        </div>
+
+                        <div id="other-expense-description-container" class="col-md-12 mb-3 d-none">
+                            <div class="form-floating">
+                                {{ form.other_expense_description(class="form-control", style="height: 100px", placeholder=" ") }}
+                                {{ form.other_expense_description.label }}
+                            </div>
+                            <div class="form-text text-danger other-expense-required-text">
+                                * Required when other expenses are entered
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-12 mt-4">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('form_step', step=1) }}" class="btn btn-secondary">Previous Step</a>
+                    <button type="submit" class="btn btn-primary">Next Step</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/form_step2.js') }}"></script>
+<script src="{{ url_for('static', filename='js/other_expense.js') }}"></script>
+{% endblock %} 

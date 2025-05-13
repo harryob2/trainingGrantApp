@@ -25,6 +25,7 @@ from flask import (
     abort,
     send_file,
     render_template_string,
+    session,
 )
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, current_user, login_required
@@ -971,9 +972,11 @@ def my_submissions():
 @app.route("/new")
 @login_required
 def new_form():
-    """Display the training form"""
-    form = TrainingForm()
-    return render_template("index.html", form=form, now=datetime.now())
+    """Start a new form wizard"""
+    # Clear any existing form data from session
+    session.pop('step1_data', None)
+    session.pop('step2_data', None)
+    return redirect(url_for('form_step', step=1))
 
 
 @app.route("/leaderboard")
@@ -1011,6 +1014,119 @@ def leaderboard():
     names = [x[0] for x in leaderboard_data]
     hours = [x[1] for x in leaderboard_data]
     return render_template("leaderboard.html", names=names, hours=hours)
+
+
+@app.route("/form/step/<int:step>", methods=["GET", "POST"])
+@login_required
+def form_step(step):
+    """Handle each step of the wizard form"""
+    form = TrainingForm()
+    
+    if request.method == "POST":
+        if step == 1:
+            # Store step 1 data in session
+            session['step1_data'] = {
+                'training_type': request.form.get('training_type'),
+                'location_type': request.form.get('location_type'),
+                'location_details': request.form.get('location_details')
+            }
+            return redirect(url_for('form_step', step=2))
+            
+        elif step == 2:
+            # Store step 2 data in session
+            session['step2_data'] = {
+                'trainer_name': request.form.get('trainer_name'),
+                'supplier_name': request.form.get('supplier_name'),
+                'start_date': request.form.get('start_date'),
+                'end_date': request.form.get('end_date'),
+                'training_description': request.form.get('training_description'),
+                'trainer_hours': request.form.get('trainer_hours'),
+                'trainee_hours': request.form.get('trainee_hours'),
+                'travel_cost': request.form.get('travel_cost'),
+                'food_cost': request.form.get('food_cost'),
+                'materials_cost': request.form.get('materials_cost'),
+                'other_cost': request.form.get('other_cost'),
+                'other_expense_description': request.form.get('other_expense_description'),
+                'concur_claim': request.form.get('concur_claim')
+            }
+            return redirect(url_for('form_step', step=3))
+            
+        elif step == 3:
+            try:
+                # Combine all form data
+                form_data = {
+                    **session.get('step1_data', {}),
+                    **session.get('step2_data', {}),
+                    'trainees_data': request.form.get('trainees_data'),
+                    'submitter': current_user.email
+                }
+                
+                # Insert the form data into the database
+                form_id = insert_training_form(form_data)
+                
+                # Create a unique folder for attachments
+                unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
+                os.makedirs(unique_folder, exist_ok=True)
+                
+                # Process attachments
+                if "attachments" in request.files:
+                    new_files = request.files.getlist("attachments")
+                    descriptions = request.form.getlist("attachment_descriptions[]")
+                    
+                    if len(descriptions) < len(new_files):
+                        descriptions.extend([""] * (len(new_files) - len(descriptions)))
+                    
+                    with db_session() as db:
+                        for i, file in enumerate(new_files):
+                            if file and file.filename:
+                                filename = secure_filename(file.filename)
+                                file_path = os.path.join(unique_folder, filename)
+                                file.save(file_path)
+                                description = descriptions[i] if i < len(descriptions) else ""
+                                db.add(
+                                    Attachment(
+                                        form_id=form_id,
+                                        filename=filename,
+                                        description=description,
+                                    )
+                                )
+                
+                # Clear session data
+                session.pop('step1_data', None)
+                session.pop('step2_data', None)
+                
+                flash("Form submitted successfully!", "success")
+                return redirect(url_for("success"))
+                
+            except Exception as e:
+                logging.error(f"Error processing form submission: {e}", exc_info=True)
+                flash("An error occurred while submitting the form. Please try again.", "danger")
+                return render_template(f"form_step{step}.html", form=form)
+    
+    # GET request - render the appropriate step template
+    if step == 1:
+        return render_template("form_step1.html", form=form)
+    elif step == 2:
+        # Pre-populate form with step 1 data if available
+        step1_data = session.get('step1_data', {})
+        form.training_type.data = step1_data.get('training_type')
+        form.location_type.data = step1_data.get('location_type')
+        form.location_details.data = step1_data.get('location_details')
+        return render_template("form_step2.html", form=form)
+    elif step == 3:
+        # Pre-populate form with step 1 and 2 data if available
+        step1_data = session.get('step1_data', {})
+        step2_data = session.get('step2_data', {})
+        form.training_type.data = step1_data.get('training_type')
+        form.location_type.data = step1_data.get('location_type')
+        form.location_details.data = step1_data.get('location_details')
+        for key, value in step2_data.items():
+            if hasattr(form, key):
+                setattr(form, key, value)
+        return render_template("form_step3.html", form=form)
+    else:
+        flash("Invalid form step", "error")
+        return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

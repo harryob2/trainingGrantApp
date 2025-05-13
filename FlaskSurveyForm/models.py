@@ -163,6 +163,15 @@ def insert_training_form(form_data):
                 pass
         return None
 
+    def safe_float(val):
+        """Safely convert a value to float, returning 0.0 for empty/invalid values"""
+        if not val or not str(val).strip():
+            return 0.0
+        try:
+            return float(str(val))
+        except (ValueError, TypeError):
+            return 0.0
+
     with db_session() as session:
         form = TrainingForm(
             training_type=form_data["training_type"],
@@ -172,16 +181,16 @@ def insert_training_form(form_data):
             location_details=form_data.get("location_details"),
             start_date=parse_date(form_data["start_date"]),
             end_date=parse_date(form_data["end_date"]),
-            trainer_hours=form_data.get("trainer_hours"),
+            trainer_hours=safe_float(form_data.get("trainer_hours")),
             trainees_data=form_data.get("trainees_data"),
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
-            travel_cost=form_data.get("travel_cost", 0),
-            food_cost=form_data.get("food_cost", 0),
-            materials_cost=form_data.get("materials_cost", 0),
-            other_cost=form_data.get("other_cost", 0),
+            travel_cost=safe_float(form_data.get("travel_cost")),
+            food_cost=safe_float(form_data.get("food_cost")),
+            materials_cost=safe_float(form_data.get("materials_cost")),
+            other_cost=safe_float(form_data.get("other_cost")),
             other_expense_description=form_data.get("other_expense_description"),
-            trainee_hours=form_data.get("trainee_hours"),
+            trainee_hours=safe_float(form_data.get("trainee_hours")),
             training_description=form_data["training_description"],
             submitter=form_data.get("submitter"),
             training_catalog_id=form_data.get("training_catalog_id"),

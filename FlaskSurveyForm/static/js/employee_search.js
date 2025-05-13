@@ -1,10 +1,3 @@
-import { initAutocomplete } from './autocomplete.js';
-
-// Employee search and autocomplete functionality
-
-// Log that employee search script is loaded
-console.log("Employee search script loaded (v2 - refactored with autocomplete.js)");
-
 // Global variables for trainees management
 let trainees = [];
 

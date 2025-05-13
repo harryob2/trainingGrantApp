@@ -155,6 +155,31 @@ document.addEventListener("DOMContentLoaded", function () {
         const traineesData = form.elements["trainees_data"];
         const locationDetails = form.elements["location_details"];
 
+        // Debug: Log all required fields and their values
+        console.log("Field values:", {
+            trainingType: trainingType?.value,
+            locationType: locationType?.value,
+            startDate: startDate?.value,
+            endDate: endDate?.value,
+            travelCost: travelCost?.value,
+            foodCost: foodCost?.value,
+            materialsCost: materialsCost?.value,
+            otherCost: otherCost?.value,
+            concurClaim: concurClaim?.value,
+            otherDesc: otherDesc?.value,
+            trainerNameSearch: trainerNameSearch?.value,
+            trainerNameHidden: trainerNameHidden?.value,
+            traineesData: traineesData?.value,
+            locationDetails: locationDetails?.value
+        });
+
+        // Debug: Log validity of each required field
+        Array.from(form.elements).forEach(el => {
+            if (el.required) {
+                console.log(`Field '${el.name || el.id}' required:`, el.value, 'valid:', el.validity.valid, 'validationMessage:', el.validationMessage);
+            }
+        });
+
         let firstInvalidElement = null;
         let firstInvalidMessageElement = null;
 
@@ -267,7 +292,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // 3. Perform Browser's Check & Find First Standard Error
-        let isFormValid = form.checkValidity(); // Check standard HTML5 validation
+        let isFormValid = form.checkValidity();
+        console.log('Form overall validity:', isFormValid);
 
         if (!isFormValid && !firstInvalidElement) { // Find the first *standard* error only if no custom one was found yet
             const elements = form.elements;

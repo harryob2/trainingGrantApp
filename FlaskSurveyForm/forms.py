@@ -254,6 +254,16 @@ class TrainingForm(FlaskForm):
     def prepare_form_data(self):
         """Prepare form data for database insertion"""
         is_internal = self.training_type.data == "Internal Training"
+
+        def safe_float(value):
+            """Safely convert a value to float, returning 0.0 for empty/invalid values"""
+            if not value or not str(value).strip():
+                return 0.0
+            try:
+                return float(str(value))
+            except (ValueError, TypeError):
+                return 0.0
+
         data = {
             "training_type": self.training_type.data,
             "trainer_name": (self.trainer_name.data if is_internal else None),
@@ -267,29 +277,23 @@ class TrainingForm(FlaskForm):
             "start_date": self.start_date.data.strftime("%Y-%m-%d"),
             "end_date": self.end_date.data.strftime("%Y-%m-%d"),
             "trainer_hours": (
-                float(str(self.trainer_hours.data))
-                if is_internal and self.trainer_hours.data is not None
+                safe_float(self.trainer_hours.data)
+                if is_internal and self.trainer_hours.data
                 else None
             ),
             "training_description": self.training_description.data or "",
             "trainees_data": self.trainees_data.data or "[]",
-            "travel_cost": (
-                float(self.travel_cost.data) if self.travel_cost.data else 0.0
-            ),
-            "food_cost": float(self.food_cost.data) if self.food_cost.data else 0.0,
-            "materials_cost": (
-                float(self.materials_cost.data) if self.materials_cost.data else 0.0
-            ),
-            "other_cost": float(self.other_cost.data) if self.other_cost.data else 0.0,
+            "travel_cost": safe_float(self.travel_cost.data),
+            "food_cost": safe_float(self.food_cost.data),
+            "materials_cost": safe_float(self.materials_cost.data),
+            "other_cost": safe_float(self.other_cost.data),
             "other_expense_description": (
                 self.other_expense_description.data
-                if self.other_cost.data and self.other_cost.data > 0
+                if safe_float(self.other_cost.data) > 0
                 else None
             ),
             "concur_claim": self.concur_claim.data,
-            "trainee_hours": (
-                float(str(self.trainee_hours.data)) if self.trainee_hours.data else 0.0
-            ),
+            "trainee_hours": safe_float(self.trainee_hours.data),
             "training_catalog_id": self.training_catalog_id.data if self.training_catalog_id.data else None,
         }
 
