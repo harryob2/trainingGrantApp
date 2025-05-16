@@ -783,9 +783,9 @@ def export_claim5():
         approved_forms = get_approved_forms_for_export()
 
     try:
-        # Path to the new template Excel file
+        # Path to the template Excel file
         template_path = os.path.join(
-            "attached_assets", "Claim-Form-5-Training new GBER Rules.xlsx"
+            "attached_assets", "Claim-Form-5-revised-Training.xlsx"
         )
 
         # Load the template using openpyxl
@@ -796,78 +796,109 @@ def export_claim5():
             return redirect(url_for("list_forms"))
 
         wb = load_workbook(template_path)
-        
-        # Get the Trainee sheet
-        trainee_sheet = wb["Trainee"]
-        
-        # Start row for data (header is on row 15)
-        current_row = 16
+        ws = wb.active  # Assuming the template has only one sheet
 
-        def process_trainee_sheet(form):
-            nonlocal current_row
-            try:
-                # Get trainees data for this form
-                trainees = []
-                if form.get("trainees_data"):
-                    try:
-                        trainees_data = json.loads(form["trainees_data"])
-                        if isinstance(trainees_data, list):
-                            # Handle different possible formats of trainees_data
-                            if trainees_data and isinstance(trainees_data[0], dict):
-                                trainees = trainees_data
-                            else:
-                                # Simple list of emails, convert to dict format
-                                trainees = [
-                                    {"email": email, "name": email}
-                                    for email in trainees_data
-                                ]
-                    except json.JSONDecodeError:
-                        logging.error(f"Error parsing trainees_data for form {form['id']}")
-                        return
+        # Column headers are in row 8, data starts from row 9
+        start_row = 9
+        current_row = start_row
 
-                # If no trainees found, add a placeholder row
-                if not trainees:
-                    logging.warning(f"No trainees found for form {form['id']}")
-                    return
-
-                # Process each trainee
-                for trainee in trainees:
-                    # Extract email username (remove @ and everything after)
-                    email = trainee.get("email", "")
-                    trainee_name = email.split("@")[0] if "@" in email else email
-
-                    # Fill the row with data according to requirements
-                    trainee_sheet.cell(row=current_row, column=1).value = trainee_name  # Trainee Name
-                    trainee_sheet.cell(row=current_row, column=2).value = form.get("training_description", "")  # Course Code/Name
-                    trainee_sheet.cell(row=current_row, column=3).value = ""  # Certification Class
-                    trainee_sheet.cell(row=current_row, column=4).value = ""  # Department
-                    trainee_sheet.cell(row=current_row, column=5).value = form.get("trainee_hours", "")  # # Hours Training
-                    trainee_sheet.cell(row=current_row, column=8).value = form.get("start_date", "")  # Start Date
-                    trainee_sheet.cell(row=current_row, column=9).value = form.get("end_date", "")  # End Date
-
-                    # Handle trainer names based on training type
-                    if form.get("training_type") == "Internal Training":
-                        trainee_sheet.cell(row=current_row, column=10).value = form.get("trainer_name", "")  # Internal Trainer Name
-                        trainee_sheet.cell(row=current_row, column=11).value = ""  # External Trainer Name
-                    else:
-                        trainee_sheet.cell(row=current_row, column=10).value = ""  # Internal Trainer Name
-                        trainee_sheet.cell(row=current_row, column=11).value = form.get("supplier_name", "")  # External Trainer Name
-
-                    current_row += 1
-
-            except Exception as e:
-                logging.error(f"Error processing trainee sheet for form {form['id']}: {str(e)}", exc_info=True)
-
-        # Process each approved form
+        # Process each training form
         for form in approved_forms:
-            process_trainee_sheet(form)
+            # Get trainees data for this form
+            trainees = []
+            if form.get("trainees_data"):
+                try:
+                    trainees_data = json.loads(form["trainees_data"])
+                    if isinstance(trainees_data, list):
+                        # Handle different possible formats of trainees_data
+                        if trainees_data and isinstance(trainees_data[0], dict):
+                            trainees = trainees_data
+                        else:
+                            # Simple list of emails, convert to dict format
+                            trainees = [
+                                {"email": email, "name": email}
+                                for email in trainees_data
+                            ]
+                except json.JSONDecodeError:
+                    logging.error(f"Error parsing trainees_data for form {form['id']}")
+                    trainees = []
+
+            # If no trainees found, add a placeholder row
+            if not trainees:
+                trainees = [{"name": "Unknown", "email": ""}]
+
+            # Determine location value based on location_type
+            if form.get("location_type") == "Onsite":
+                location = "Onsite (Stryker Limerick)"
+            else:
+                location = form.get("location_details", "")
+
+            # Process each trainee
+            for i, trainee in enumerate(trainees):
+                trainee_name = trainee.get(
+                    "name", trainee.get("email", "Unknown Trainee")
+                )
+
+                # Insert new rows if we're exceeding the template's initial capacity
+                if current_row > 23:  # 23 is the last empty row in the template
+                    ws.insert_rows(current_row)
+
+                # Fill the row with data according to requirements
+                ws.cell(row=current_row, column=1).value = (
+                    trainee_name  # Names of Trainees
+                )
+                ws.cell(row=current_row, column=2).value = location  # Location
+                ws.cell(row=current_row, column=3).value = ""  # Weekly Wage (blank)
+                ws.cell(row=current_row, column=4).value = form.get(
+                    "trainee_hours", ""
+                )  # Nr of Weeks/days/hours
+                ws.cell(row=current_row, column=5).value = ""
+
+                # Only fill these fields for the first trainee of each form
+                if i == 0:
+                    ws.cell(row=current_row, column=6).value = form.get(
+                        "trainer_name", ""
+                    )  # Name of trainer (moved from col 5)
+                    ws.cell(row=current_row, column=7).value = (
+                        ""  # Nr of Weeks/days/hours (blank) (moved from col 6)
+                    )
+                    ws.cell(row=current_row, column=8).value = (
+                        location  # Location (same as trainee location) (moved from col 7)
+                    )
+                    ws.cell(row=current_row, column=9).value = (
+                        ""  # Salary (blank) (moved from col 8)
+                    )
+                    ws.cell(row=current_row, column=10).value = form.get(
+                        "supplier_name", ""
+                    )  # Supplier/Name (moved from col 9)
+                    ws.cell(row=current_row, column=11).value = form.get(
+                        "travel_cost", ""
+                    )  # Travel (moved from col 10)
+                    ws.cell(row=current_row, column=12).value = form.get(
+                        "food_cost", ""
+                    )  # Subsistence (moved from col 11)
+                    ws.cell(row=current_row, column=13).value = form.get(
+                        "materials_cost", ""
+                    )  # External Trainer / Course Costs (moved from col 12)
+                    ws.cell(row=current_row, column=14).value = form.get(
+                        "materials_cost", ""
+                    )  # Materials (moved from col 13)
+
+                current_row += 1
+
+            # Add an empty row between different training forms
+            if current_row <= 23 or len(approved_forms) > 1:
+                ws.insert_rows(current_row)
+                current_row += 1
 
         # Create an in-memory file to store the Excel
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        logging.info(f"Exported {len(approved_forms)} approved forms to Excel template.")
+        logging.info(
+            f"Exported {len(approved_forms)} approved forms to Excel template."
+        )
         # Send the file to the user
         return send_file(
             output,
