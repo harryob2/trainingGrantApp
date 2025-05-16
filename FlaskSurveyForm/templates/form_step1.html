@@ -14,10 +14,9 @@
                     <form id="training-form" method="POST" action="{{ url_for('form_step', step=1) }}">
                         <!-- Training Type Selection -->
                         <div class="form-group mb-4">
-                            <label class="form-label">Select Training Type</label>
                             <div class="row" id="training-type-card-group">
                                 <!-- Internal Training Card -->
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6 training-type-column">
                                     <div class="training-type-card" data-value="Internal Training" tabindex="0">
                                         <div class="card h-100">
                                             <div class="card-body text-center">
@@ -33,7 +32,7 @@
                                 </div>
                                 
                                 <!-- External Training Card -->
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6 training-type-column">
                                     <div class="training-type-card" data-value="External Training" tabindex="0">
                                         <div class="card h-100">
                                             <div class="card-body text-center">
@@ -99,10 +98,10 @@
     border-color: #213ab5;
 }
 
-.training-type-card.active-card .card {
+/* .training-type-card.active-card .card {
     border-color: #213ab5;
     background-color: #f8f9ff;
-}
+} */
 
 .training-type-radio {
     display: none;
