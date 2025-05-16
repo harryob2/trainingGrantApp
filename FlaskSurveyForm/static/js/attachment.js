@@ -3,11 +3,9 @@ console.log("Attachments script loaded");
 document.addEventListener("DOMContentLoaded", function () {
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("file-input");
-  let attachmentTable = null;
-  const attachmentTableElem = document.getElementById("attachment-table");
-  if (attachmentTableElem) {
-    attachmentTable = attachmentTableElem.querySelector("tbody");
-  }
+  const attachmentTable = document
+    .getElementById("attachment-table")
+    .querySelector("tbody");
   const attachmentPreviewsContainer = document.getElementById(
     "attachment-previews",
   );
@@ -250,24 +248,4 @@ document.addEventListener("DOMContentLoaded", function () {
       "attachments logic.",
     );
   };
-
-  const attachmentContainer = document.getElementById('attachment-container');
-  const addAttachmentBtn = document.getElementById('add-attachment-btn');
-  
-  if (attachmentContainer && addAttachmentBtn) {
-    addAttachmentBtn.addEventListener('click', function() {
-      const attachmentGroup = document.createElement('div');
-      attachmentGroup.className = 'attachment-group mb-3';
-      attachmentGroup.innerHTML = `
-        <div class="input-group">
-          <input type="file" class="form-control" name="attachments" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
-          <input type="text" class="form-control" name="attachment_descriptions[]" placeholder="Description">
-          <button type="button" class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      `;
-      attachmentContainer.appendChild(attachmentGroup);
-    });
-  }
 });
