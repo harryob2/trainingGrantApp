@@ -15,14 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
             maxDate: "today",
             onChange: function(selectedDates) {
                 endDateInput._flatpickr.set('minDate', selectedDates[0]);
-            },
-            placeholder: ""
+            }
         });
 
         flatpickr(endDateInput, {
             dateFormat: "Y-m-d",
-            maxDate: "today",
-            placeholder: ""
+            maxDate: "today"
         });
     }
 

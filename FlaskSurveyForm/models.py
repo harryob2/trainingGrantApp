@@ -82,10 +82,6 @@ class TrainingCatalog(Base):
     skill_impact = Column(String)
     evaluation_method = Column(String)
     ida_class = Column(String)
-    training_type = Column(String)
-    training_hours = Column(Float)
-    supplier_name = Column(String)
-    training_cost = Column(Float)
 
 
 class Attachment(Base):
