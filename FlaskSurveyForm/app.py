@@ -1034,7 +1034,7 @@ def form_step(step):
             
         elif step == 2:
             # Store step 2 data in session
-            session['step2_data'] = {Q
+            session['step2_data'] = {
                 'trainer_name': request.form.get('trainer_name'),
                 'supplier_name': request.form.get('supplier_name'),
                 'start_date': request.form.get('start_date'),
