@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initialize Training Catalog Search
     const trainingCatalogSearchInput = document.getElementById("training_catalog_search_input");
     const trainingCatalogSearchResultsDivId = "training_catalog_search_results";
+    const trainingFormDetails = document.getElementById("training-form-details");
+    const addManuallyBtn = document.getElementById("add-manually-btn");
     
     if (trainingCatalogSearchInput && document.getElementById(trainingCatalogSearchResultsDivId)) {
         console.log("[FormSetup] Setting up Training Catalog Search.");
@@ -24,23 +26,65 @@ document.addEventListener("DOMContentLoaded", function () {
                 `;
             },
             onSelect: (training) => {
+                console.log('[DEBUG] Selected training:', training);
                 const trainingDescField = document.getElementById('training_description');
-                const trainingIdField = document.getElementById('training_catalog_id'); 
+                const trainingIdField = document.getElementById('training_catalog_id');
+                const trainingTypeRadios = document.querySelectorAll('input[name="training_type"]');
+                const trainingTypeCards = document.querySelectorAll('.training-type-card');
+                console.log('[DEBUG] Found trainingTypeRadios:', trainingTypeRadios);
+                console.log('[DEBUG] Found trainingTypeCards:', trainingTypeCards);
 
                 if (trainingIdField) {
                     trainingIdField.value = training.id;
-                    trainingIdField.dispatchEvent(new Event('change'));
                 }
 
                 if (trainingDescField) {
-                    if (training.id === 0) { // "Other" selected
-                        trainingDescField.value = ""; 
-                        trainingDescField.placeholder = "Please describe the training (course title, area, etc.)";
-                    } else {
-                        trainingDescField.value = training.name; 
-                        trainingDescField.placeholder = ""; 
+                    trainingDescField.value = training.id === 0 ? "" : training.name;
+                    trainingDescField.placeholder = training.id === 0 ? 
+                        "Please describe the training (course title, area, etc.)" : "";
+                }
+
+                // Set training type based on catalog data
+                if (training.id !== 0 && training.training_type) {
+                    let found = false;
+                    trainingTypeRadios.forEach(radio => {
+                        console.log('[DEBUG] Checking radio value:', radio.value, 'against', training.training_type);
+                        if (radio.value === training.training_type) {
+                            radio.checked = true;
+                            found = true;
+                            
+                            // Update card selection - Remove active-card from all cards first
+                            trainingTypeCards.forEach(card => {
+                                card.classList.remove('selected');
+                            });
+                            
+                            // Then add active-card to the matching card
+                            trainingTypeCards.forEach(card => {
+                                if (card.dataset.value === training.training_type) {
+                                    card.classList.add('selected');
+                                    console.log('[DEBUG] Activated card for type:', card.dataset.value);
+                                }
+                            });
+
+                            // Trigger change event
+                            radio.dispatchEvent(new Event('change', { bubbles: true }));
+                            console.log('[DEBUG] Set training type to:', radio.value);
+                        }
+                    });
+                    if (!found) {
+                        console.warn('[DEBUG] No matching radio found for training_type:', training.training_type);
+                    }
+                } else {
+                    if (training.id !== 0) {
+                        console.warn('[DEBUG] training.training_type missing in selected training:', training);
                     }
                 }
+
+                // Show the form details section
+                if (trainingFormDetails) {
+                    trainingFormDetails.classList.remove('d-none');
+                }
+
                 console.log(`[TrainingCatalogSearch] Selected: ID=${training.id}, Name=${training.name}`);
             },
             clearInputOnSelect: true, 
@@ -51,6 +95,25 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     } else {
         console.warn("[FormSetup] Training Catalog Search input or results container not found. Skipping init.");
+    }
+
+    // Handle Add Manually button click
+    if (addManuallyBtn) {
+        addManuallyBtn.addEventListener('click', function() {
+            if (trainingFormDetails) {
+                trainingFormDetails.classList.remove('d-none');
+                // Clear any selected training
+                const trainingIdField = document.getElementById('training_catalog_id');
+                if (trainingIdField) {
+                    trainingIdField.value = '';
+                }
+                const trainingDescField = document.getElementById('training_description');
+                if (trainingDescField) {
+                    trainingDescField.value = '';
+                    trainingDescField.placeholder = "Please describe the training (course title, area, etc.)";
+                }
+            }
+        });
     }
 
     // Future: Other form-wide component initializations can go here.

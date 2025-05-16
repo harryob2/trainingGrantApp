@@ -181,15 +181,8 @@ async function fillBasicInternalTrainingForm(page, options = {}) {
   if (settings.includeTrainer) {
     await setTrainerName(page, settings.trainerName);
     await page
-      .locator('input[name="trainer_hours"]')
+      .locator('input[name="training_hours"]')
       .fill(settings.trainerHours);
-  }
-
-  // Set trainee hours
-  if (settings.traineeHours) {
-    await page
-      .locator('input[name="trainee_hours"]')
-      .fill(settings.traineeHours);
   }
 
   // Set description
@@ -241,13 +234,6 @@ async function fillBasicExternalTrainingForm(page, options = {}) {
   // Set dates
   await page.locator('input[name="start_date"]').fill(settings.startDate);
   await page.locator('input[name="end_date"]').fill(settings.endDate);
-
-  // Set trainee Hours
-  if (settings.traineeHours) {
-    await page
-      .locator('input[name="trainee_hours"]')
-      .fill(settings.traineeHours);
-  }
 
   // Set description
   await page

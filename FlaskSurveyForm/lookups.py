@@ -92,6 +92,7 @@ def get_lookup_data(entity_type: str):
                         "area": item.area,         # Key for subtitle/secondary info
                         # Add other fields if needed by frontend, but keep it minimal for lookup
                         "ida_class": item.ida_class,
+                        "training_type": item.training_type,
                     })
             _training_catalog_cache = trainings
             logger.info(f"Loaded and cached {len(trainings)} training catalog items.")

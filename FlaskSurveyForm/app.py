@@ -515,7 +515,7 @@ def edit_form(form_id):
                 return redirect(url_for("list_forms"))
 
             # Numeric fields
-            form.trainer_hours.data = form_data["trainer_hours"]
+            form.training_hours.data = form_data["training_hours"]
             form.training_description.data = form_data.get("training_description", "")
 
             # Expense fields
@@ -527,7 +527,6 @@ def edit_form(form_id):
                 "other_expense_description", ""
             )
             form.concur_claim.data = form_data.get("concur_claim", "")
-            form.trainee_hours.data = form_data.get("trainee_hours", 0)
 
             # Load trainees data
             if form_data.get("trainees_data"):
@@ -840,7 +839,6 @@ def export_claim5():
                     trainee_sheet.cell(row=current_row, column=2).value = form.get("training_description", "")  # Course Code/Name
                     trainee_sheet.cell(row=current_row, column=3).value = ""  # Certification Class
                     trainee_sheet.cell(row=current_row, column=4).value = ""  # Department
-                    trainee_sheet.cell(row=current_row, column=5).value = form.get("trainee_hours", "")  # # Hours Training
                     trainee_sheet.cell(row=current_row, column=8).value = form.get("start_date", "")  # Start Date
                     trainee_sheet.cell(row=current_row, column=9).value = form.get("end_date", "")  # End Date
 
@@ -983,7 +981,7 @@ def leaderboard():
 
     # Get all approved forms
     forms = get_approved_forms_for_export()
-    trainer_hours = defaultdict(float)
+    training_hours = defaultdict(float)
 
     for form in forms:
         trainer_name = form.get("trainer_name")
@@ -1001,13 +999,12 @@ def leaderboard():
                 num_trainees = 0
         except Exception:
             num_trainees = 0
-        trainer_hours_val = float(form.get("trainer_hours") or 0)
-        trainee_hours_val = float(form.get("trainee_hours") or 0)
-        total_hours = trainer_hours_val + (trainee_hours_val * num_trainees)
-        trainer_hours[trainer_name] += total_hours
+        training_hours_val = float(form.get("training_hours") or 0)
+        total_hours = training_hours_val * num_trainees
+        training_hours[trainer_name] += total_hours
 
     # Sort trainers by total hours descending
-    leaderboard_data = sorted(trainer_hours.items(), key=lambda x: x[1], reverse=True)
+    leaderboard_data = sorted(training_hours.items(), key=lambda x: x[1], reverse=True)
     names = [x[0] for x in leaderboard_data]
     hours = [x[1] for x in leaderboard_data]
     return render_template("leaderboard.html", names=names, hours=hours)

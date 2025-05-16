@@ -48,9 +48,8 @@ test.describe("Survey Form Submission", () => {
     // 4. Select Location: 'Onsite'
     await page.locator("label").filter({ hasText: "Onsite" }).click();
 
-    // Fill trainer and trainee hours instead of days
-    await page.locator('input[name="trainer_hours"]').fill("8");
-    await page.locator('input[name="trainee_hours"]').fill("16");
+    // Fill Training Hours
+    await page.locator('input[name="training_hours"]').fill("8");
 
     // 7. Enter dates
     await page.locator('input[name="start_date"]').fill("2023-01-01");

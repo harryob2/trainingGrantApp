@@ -113,14 +113,6 @@ class TrainingForm(FlaskForm):
     training_description = TextAreaField(
         "Training Description", validators=[DataRequired()]
     )
-    trainee_hours = FloatField(
-        "Trainee Hours",
-        validators=[
-            DataRequired(),
-            NumberRange(min=0, message="Trainee hours cannot be negative."),
-        ],
-        render_kw={"type": "number", "step": "0.1", "min": "0"},
-    )
 
     # Conditionally Required
     trainer_name = StringField(
@@ -138,13 +130,13 @@ class TrainingForm(FlaskForm):
         validators=[DynamicRequiredIf("location_type", "Offsite")],
         description="Required for offsite training",
     )
-    trainer_hours = FloatField(
-        "Trainer Hours",
+    training_hours = FloatField(
+        "Training Hours",
         validators=[
             DynamicRequiredIf(
                 "training_type",
                 "Internal Training",
-                NumberRange(min=0, message="Trainer hours cannot be negative."),
+                NumberRange(min=0, message="Training Hours cannot be negative."),
             ),
         ],
         default=None,
@@ -266,9 +258,9 @@ class TrainingForm(FlaskForm):
             ),
             "start_date": self.start_date.data.strftime("%Y-%m-%d"),
             "end_date": self.end_date.data.strftime("%Y-%m-%d"),
-            "trainer_hours": (
-                float(str(self.trainer_hours.data))
-                if is_internal and self.trainer_hours.data is not None
+            "training_hours": (
+                float(str(self.training_hours.data))
+                if is_internal and self.training_hours.data is not None
                 else None
             ),
             "training_description": self.training_description.data or "",
@@ -287,9 +279,6 @@ class TrainingForm(FlaskForm):
                 else None
             ),
             "concur_claim": self.concur_claim.data,
-            "trainee_hours": (
-                float(str(self.trainee_hours.data)) if self.trainee_hours.data else 0.0
-            ),
             "training_catalog_id": self.training_catalog_id.data if self.training_catalog_id.data else None,
         }
 
@@ -344,12 +333,12 @@ class TrainingForm(FlaskForm):
 
         return data
 
-    def validate_trainer_hours(self, field):
-        """Validate that trainer hours is provided if required and not empty."""
+    def validate_training_hours(self, field):
+        """Validate that Training Hours is provided if required and not empty."""
         if self.training_type.data == "Internal Training":
             if field.data is None or str(field.data).strip() == "" or field.data <= 0:
                 raise ValidationError(
-                    "Trainer hours is required and must be greater than 0 for internal training."
+                    "Training Hours is required and must be greater than 0 for internal training."
                 )
 
 

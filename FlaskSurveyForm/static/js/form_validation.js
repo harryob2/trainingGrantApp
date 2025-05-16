@@ -62,6 +62,18 @@ function validateFileSize() {
   return true;
 }
 
+// Helper function to check if an element is really visible
+function isReallyVisible(element) {
+    if (!element) return false;
+    const style = window.getComputedStyle(element);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+}
+
+// Helper function to parse currency values
+function parseCurrency(val) {
+    if (!val) return 0;
+    return parseFloat(val.replace(/[^0-9.-]+/g, ""));
+}
 
 // --- Main Validation Driver Logic (integrating previous inline script logic) ---
 document.addEventListener("DOMContentLoaded", function () {
@@ -71,30 +83,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!form || !submitButton) {
         console.error("Form or Submit Button not found for validation initialization.");
         return;
-    }
-
-    // Helper: Check if an element (or its container) is truly visible to the user
-    function isReallyVisible(element) {
-        if (!element) return false;
-        let el = element;
-        let visible = false;
-        let depth = 0; // Prevent infinite loops
-        while (el && el !== document.body && depth < 10) {
-            const style = window.getComputedStyle(el);
-            if (
-                style.display === "none" ||
-                style.visibility === "hidden" ||
-                parseFloat(style.opacity) === 0
-            ) {
-                return false;
-            }
-            if (style.display !== "none" && (el.offsetWidth > 0 || el.offsetHeight > 0)) {
-                visible = true;
-            }
-            el = el.parentElement;
-            depth++;
-        }
-        return visible;
     }
 
     // Helper function to display validation messages
@@ -202,8 +190,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        // --- Trainer Hours: Required for Internal Training ---
-        const trainerHours = form.elements["trainer_hours"];
+        // --- Training Hours: Required for Internal Training ---
+        const trainerHours = form.elements["training_hours"];
         if (
             trainingType.value === "Internal Training" &&
             trainerHours &&
@@ -219,10 +207,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!feedback) {
                 feedback = document.createElement('div');
                 feedback.className = 'invalid-feedback';
-                feedback.innerText = "Trainer hours are required and must be greater than 0 for internal training.";
+                feedback.innerText = "Training Hours are required and must be greater than 0 for internal training.";
                 trainerHours.parentElement.appendChild(feedback);
             }
-            trainerHours.setCustomValidity("Trainer hours are required and must be greater than 0 for internal training.");
+            trainerHours.setCustomValidity("Training Hours are required and must be greater than 0 for internal training.");
             if (!firstInvalidElement) firstInvalidElement = trainerHours;
         } else if (trainerHours) {
             trainerHours.classList.remove("is-invalid");
@@ -232,7 +220,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // --- Expenses: Concur Claim ---
-        // Relies on parseCurrency from form_helpers.js (ensure loaded first)
         const expenseInputs = [travelCost, foodCost, materialsCost, otherCost].filter(el => el);
         let hasExpenses = expenseInputs.some((input) => {
              const val = (typeof parseCurrency === 'function') ? parseCurrency(input.value) : parseFloat(input.value || '0');

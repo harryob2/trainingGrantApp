@@ -50,7 +50,7 @@ class TrainingForm(Base):
     location_details = Column(String)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
-    trainer_hours = Column(Float)
+    training_hours = Column(Float)
     trainees_data = Column(Text)
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
@@ -60,7 +60,6 @@ class TrainingForm(Base):
     materials_cost = Column(Float, default=0)
     other_cost = Column(Float, default=0)
     other_expense_description = Column(Text)
-    trainee_hours = Column(Float)
     training_description = Column(Text, nullable=False)
     submitter = Column(String)
     created_at = Column(DateTime, default=func.now())
@@ -82,6 +81,10 @@ class TrainingCatalog(Base):
     skill_impact = Column(String)
     evaluation_method = Column(String)
     ida_class = Column(String)
+    training_type = Column(String)
+    training_hours = Column(Float)
+    supplier_name = Column(String)
+    training_cost = Column(Float)
 
 
 class Attachment(Base):
@@ -172,7 +175,7 @@ def insert_training_form(form_data):
             location_details=form_data.get("location_details"),
             start_date=parse_date(form_data["start_date"]),
             end_date=parse_date(form_data["end_date"]),
-            trainer_hours=form_data.get("trainer_hours"),
+            training_hours=form_data.get("training_hours"),
             trainees_data=form_data.get("trainees_data"),
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
@@ -181,7 +184,6 @@ def insert_training_form(form_data):
             materials_cost=form_data.get("materials_cost", 0),
             other_cost=form_data.get("other_cost", 0),
             other_expense_description=form_data.get("other_expense_description"),
-            trainee_hours=form_data.get("trainee_hours"),
             training_description=form_data["training_description"],
             submitter=form_data.get("submitter"),
             training_catalog_id=form_data.get("training_catalog_id"),
@@ -234,7 +236,7 @@ def get_training_form(form_id):
                 "location_details": form.location_details,
                 "start_date": form.start_date.isoformat() if form.start_date else None,
                 "end_date": form.end_date.isoformat() if form.end_date else None,
-                "trainer_hours": form.trainer_hours,
+                "training_hours": form.training_hours,
                 "trainees_data": form.trainees_data,
                 "submission_date": (
                     form.submission_date.isoformat() if form.submission_date else None
@@ -246,7 +248,6 @@ def get_training_form(form_id):
                 "concur_claim": form.concur_claim,
                 "other_expense_description": form.other_expense_description,
                 "approved": bool(form.approved),
-                "trainee_hours": form.trainee_hours or 0.0,
                 "training_description": form.training_description,
                 "submitter": form.submitter,
             }
@@ -299,7 +300,7 @@ def get_all_training_forms(
                         form.start_date.isoformat() if form.start_date else None
                     ),
                     "end_date": form.end_date.isoformat() if form.end_date else None,
-                    "trainer_hours": form.trainer_hours,
+                    "training_hours": form.training_hours,
                     "trainees_data": form.trainees_data,
                     "submission_date": (
                         form.submission_date.isoformat()
@@ -336,7 +337,7 @@ def get_approved_forms_for_export():
                         form.start_date.isoformat() if form.start_date else None
                     ),
                     "end_date": form.end_date.isoformat() if form.end_date else None,
-                    "trainer_hours": form.trainer_hours,
+                    "training_hours": form.training_hours,
                     "trainees_data": form.trainees_data,
                     "submission_date": (
                         form.submission_date.isoformat()
@@ -350,7 +351,6 @@ def get_approved_forms_for_export():
                     "concur_claim": form.concur_claim,
                     "other_expense_description": form.other_expense_description,
                     "approved": bool(form.approved),
-                    "trainee_hours": form.trainee_hours or 0.0,
                     "training_description": form.training_description,
                     "submitter": form.submitter,
                 }
@@ -405,7 +405,7 @@ def get_user_training_forms(
                         form.start_date.isoformat() if form.start_date else None
                     ),
                     "end_date": form.end_date.isoformat() if form.end_date else None,
-                    "trainer_hours": form.trainer_hours,
+                    "training_hours": form.training_hours,
                     "trainees_data": form.trainees_data,
                     "submission_date": (
                         form.submission_date.isoformat()

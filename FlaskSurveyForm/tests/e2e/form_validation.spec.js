@@ -48,32 +48,6 @@ test.describe("Form Validation Errors", () => {
     console.log("--- Finished test: Missing Trainer Name ---");
   });
 
-  // Test 2: Trainee Hours validation
-  test("2. should show error if Trainee Hours is empty", async ({ page }) => {
-    console.log("--- Starting test: Missing Trainee Hours ---");
-
-    // Setup: Fill form without trainee Hours
-    await gotoHome(page);
-    await fillBasicInternalTrainingForm(page, {
-      traineeHours: null // Skip trainee Hours
-    });
-
-    // Action: Submit the form
-    await submitForm(page);
-
-    // Assertion: Check for validation message element
-    const traineeHoursInput = page.locator('input[name="trainee_hours"]');
-    const traineeHoursContainer = traineeHoursInput.locator(
-      'xpath=ancestor::div[contains(@class, "mb-3")]'
-    );
-    const errorMessage = traineeHoursContainer
-      .locator(".validation-message")
-      .first();
-    await expect(errorMessage).toBeVisible();
-
-    console.log("--- Finished test: Missing Trainee Hours ---");
-  });
-
   // Test 3: Concur Claim validation
   test("3. should show error if Expenses are entered but Concur Claim is empty", async ({
     page
@@ -90,8 +64,7 @@ test.describe("Form Validation Errors", () => {
       .click();
       await page.locator("label").filter({ hasText: "Onsite" }).click();
       await setTrainerName(page, "Test Trainer");
-    await page.locator('input[name="trainer_hours"]').fill("1");
-    await page.locator('input[name="trainee_hours"]').fill("1");
+    await page.locator('input[name="training_hours"]').fill("1");
     await page.locator('input[name="start_date"]').fill("2023-01-01");
     await page.locator('input[name="end_date"]').fill("2023-01-01");
     await page
@@ -141,8 +114,7 @@ test.describe("Form Validation Errors", () => {
       .click();
       await page.locator("label").filter({ hasText: "Onsite" }).click();
       await setTrainerName(page, "Test Trainer");
-    await page.locator('input[name="trainer_hours"]').fill("1");
-    await page.locator('input[name="trainee_hours"]').fill("1");
+    await page.locator('input[name="training_hours"]').fill("1");
     await page.locator('input[name="start_date"]').fill("2023-01-01");
     await page.locator('input[name="end_date"]').fill("2023-01-01");
     await page
@@ -255,14 +227,14 @@ test.describe("Form Validation Errors", () => {
   });
 
   // Test 7: External Training validation (positive test)
-  test("7. should allow submitting External Training without entering Trainer Hours", async ({
+  test("7. should allow submitting External Training without entering Training Hours", async ({
     page
   }) => {
     console.log(
-      "--- Starting test: External Training No Trainer Hours Error ---"
+      "--- Starting test: External Training No Training Hours Error ---"
     );
 
-    // Setup: Fill external training form without trainer Hours
+    // Setup: Fill external training form without Training Hours
     await gotoHome(page);
     await fillBasicExternalTrainingForm(page);
 
@@ -273,7 +245,7 @@ test.describe("Form Validation Errors", () => {
     await expectSuccessfulSubmission(page);
 
     console.log(
-      "--- Finished test: External Training No Trainer Hours Error ---"
+      "--- Finished test: External Training No Training Hours Error ---"
     );
   });
 
