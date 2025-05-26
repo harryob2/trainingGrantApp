@@ -31,6 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const trainingIdField = document.getElementById('training_catalog_id');
                 const trainingTypeRadios = document.querySelectorAll('input[name="training_type"]');
                 const trainingTypeCards = document.querySelectorAll('.training-type-card');
+                const supplierNameField = document.getElementById('supplier_name');
+                const trainingHoursField = document.getElementById('training_hours');
                 console.log('[DEBUG] Found trainingTypeRadios:', trainingTypeRadios);
                 console.log('[DEBUG] Found trainingTypeCards:', trainingTypeCards);
 
@@ -78,6 +80,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (training.id !== 0) {
                         console.warn('[DEBUG] training.training_type missing in selected training:', training);
                     }
+                }
+
+                // Populate supplier name if External Training
+                if (training.training_type === 'External Training' && supplierNameField && training.supplier_name) {
+                    supplierNameField.value = training.supplier_name;
+                }
+
+                // Populate training hours regardless of type
+                if (trainingHoursField && training.training_hours) {
+                    trainingHoursField.value = training.training_hours;
                 }
 
                 // Show the form details section
