@@ -45,7 +45,7 @@
                             <input type="text" id="training_catalog_search_input" class="form-control" placeholder="Type to search catalog by title or area...">
                             <div id="training_catalog_search_results" class="autocomplete-results" style="display: none;"></div>
                         </div>
-                        {{ form.training_catalog_id }} {# This will render the hidden field #}
+
                         <div class="mt-3">
                             <button type="button" id="add-manually-btn" class="btn btn-outline-primary">
                                 <i class="bi bi-plus-lg me-1"></i> Add Training Manually
@@ -178,7 +178,7 @@
                             </div>
 
                             <div class="row g-3">
-                                <!-- Training Hours (only shown for Internal Training) -->
+                                <!-- Training Hours (required for Internal Training, optional for External) -->
                                 <div id="trainer-Hours-container" class="col-md-6 mb-3 d-none">
                                     <div class="form-floating">
                                         {{ form.training_hours(class="form-control", placeholder=" ") }} {{
@@ -186,6 +186,17 @@
                                     </div>
                                     <div class="form-text">
                                         How long the training took to deliver. Does not include preparation time.
+                                    </div>
+                                </div>
+                                
+                                <!-- Course Cost (only shown for External Training) -->
+                                <div id="course-cost-container" class="col-md-6 mb-3 d-none">
+                                    <div class="form-floating">
+                                        {{ form.course_cost(class="form-control money", placeholder=" ") }} {{
+                                        form.course_cost.label }}
+                                    </div>
+                                    <div class="form-text">
+                                        The cost of the external training course.
                                     </div>
                                 </div>
                             </div>
@@ -217,6 +228,19 @@
                                     </div>
                                     <div class="form-text">
                                         Briefly describe the training delivered
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Training Class -->
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="form-floating">
+                                        {{ form.ida_class(class="form-control", placeholder=" ") }}
+                                        {{ form.ida_class.label }}
+                                    </div>
+                                    <div class="form-text">
+                                        Select the appropriate training classification
                                     </div>
                                 </div>
                             </div>

@@ -143,7 +143,7 @@ def login():
             username = f"{username}@{app.config['LDAP_DOMAIN']}"
 
         # Authenticate user against LDAP
-        user = authenticate_user(username, password)
+        user = authenticate_user(username, password, app.config)
 
         if user:
             # Log the user in
@@ -516,7 +516,9 @@ def edit_form(form_id):
 
             # Numeric fields
             form.training_hours.data = form_data["training_hours"]
+            form.course_cost.data = form_data.get("course_cost", 0)
             form.training_description.data = form_data.get("training_description", "")
+            form.ida_class.data = form_data.get("ida_class", "")
 
             # Expense fields
             form.travel_cost.data = form_data.get("travel_cost", 0)

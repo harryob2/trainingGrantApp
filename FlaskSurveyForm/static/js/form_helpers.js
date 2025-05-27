@@ -102,6 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const internalTrainerContainer = document.getElementById("internal-trainer-container");
         const externalSupplierContainer = document.getElementById("external-supplier-container");
         const trainerHoursContainer = document.getElementById("trainer-Hours-container");
+        const courseCostContainer = document.getElementById("course-cost-container");
         const locationDetailsContainer = document.getElementById("location-details-container");
         const virtualTrainingNote = document.getElementById("virtual-training-attachment-note");
 
@@ -118,7 +119,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (selectedTrainingType) {
                 internalTrainerContainer?.classList.toggle("d-none", selectedTrainingType !== "Internal Training");
                 externalSupplierContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
+                // Show training hours for both Internal and External Training
                 trainerHoursContainer?.classList.toggle("d-none", false);
+                // Show course cost only for External Training
+                courseCostContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
             }
         }
 

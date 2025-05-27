@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const materialsCostInput = form?.elements["materials_cost"];
   // otherCostField is already defined
   const concurRequiredMessageDiv = document.getElementById("concur-required-message");
+  const concurClaimInput = form?.elements["concur_claim"];
 
   // Combine inputs, filtering out any that might not exist
   const expenseInputs = [
@@ -59,8 +60,12 @@ document.addEventListener("DOMContentLoaded", function () {
           }
       });
 
+      // Check if concur claim number is filled
+      const hasConcurClaim = concurClaimInput && concurClaimInput.value.trim() !== "";
+
       if (concurRequiredMessageDiv) { // Check if element exists
-          concurRequiredMessageDiv.classList.toggle("d-none", !hasAnyExpense);
+          // Show message only if there are expenses AND no concur claim number
+          concurRequiredMessageDiv.classList.toggle("d-none", !hasAnyExpense || hasConcurClaim);
       }
   }
   // --- End Concur Logic Function ---
@@ -75,6 +80,11 @@ document.addEventListener("DOMContentLoaded", function () {
   expenseInputs.forEach((input) => {
       input.addEventListener("input", updateConcurMessageVisibility);
   });
+  
+  // Add listener to concur claim input to hide message when filled
+  if (concurClaimInput) {
+      concurClaimInput.addEventListener("input", updateConcurMessageVisibility);
+  }
   // --- End Concur Logic Listeners ---
 
   // Initial check when the page loads

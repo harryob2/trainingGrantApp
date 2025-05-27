@@ -60,11 +60,11 @@ class TrainingForm(Base):
     materials_cost = Column(Float, default=0)
     other_cost = Column(Float, default=0)
     other_expense_description = Column(Text)
+    course_cost = Column(Float, default=0)
     training_description = Column(Text, nullable=False)
     submitter = Column(String)
     created_at = Column(DateTime, default=func.now())
-    training_catalog_id = Column(Integer, ForeignKey('training_catalog.id'), nullable=True)
-    training_catalog_item = relationship("TrainingCatalog")
+    ida_class = Column(String)
     attachments = relationship(
         "Attachment", back_populates="training_form", cascade="all, delete-orphan"
     )
@@ -184,9 +184,10 @@ def insert_training_form(form_data):
             materials_cost=form_data.get("materials_cost", 0),
             other_cost=form_data.get("other_cost", 0),
             other_expense_description=form_data.get("other_expense_description"),
+            course_cost=form_data.get("course_cost", 0),
             training_description=form_data["training_description"],
             submitter=form_data.get("submitter"),
-            training_catalog_id=form_data.get("training_catalog_id"),
+            ida_class=form_data.get("ida_class"),
         )
         session.add(form)
         session.flush()
@@ -245,11 +246,13 @@ def get_training_form(form_id):
                 "food_cost": float(form.food_cost or 0),
                 "materials_cost": float(form.materials_cost or 0),
                 "other_cost": float(form.other_cost or 0),
+                "course_cost": float(form.course_cost or 0),
                 "concur_claim": form.concur_claim,
                 "other_expense_description": form.other_expense_description,
                 "approved": bool(form.approved),
                 "training_description": form.training_description,
                 "submitter": form.submitter,
+                "ida_class": form.ida_class,
             }
         return None
 
@@ -309,6 +312,7 @@ def get_all_training_forms(
                     ),
                     "approved": bool(form.approved),
                     "submitter": form.submitter,
+                    "ida_class": form.ida_class,
                 }
             )
         return result, total_count
@@ -348,11 +352,13 @@ def get_approved_forms_for_export():
                     "food_cost": float(form.food_cost or 0),
                     "materials_cost": float(form.materials_cost or 0),
                     "other_cost": float(form.other_cost or 0),
+                    "course_cost": float(form.course_cost or 0),
                     "concur_claim": form.concur_claim,
                     "other_expense_description": form.other_expense_description,
                     "approved": bool(form.approved),
                     "training_description": form.training_description,
                     "submitter": form.submitter,
+                    "ida_class": form.ida_class,
                 }
             )
         return result
@@ -414,6 +420,7 @@ def get_user_training_forms(
                     ),
                     "approved": bool(form.approved),
                     "submitter": form.submitter,
+                    "ida_class": form.ida_class,
                 }
             )
         return result, total_count

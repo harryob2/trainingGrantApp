@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
             onSelect: (training) => {
                 console.log('[DEBUG] Selected training:', training);
                 const trainingDescField = document.getElementById('training_description');
-                const trainingIdField = document.getElementById('training_catalog_id');
+                const idaClassField = document.getElementById('ida_class');
                 const trainingTypeRadios = document.querySelectorAll('input[name="training_type"]');
                 const trainingTypeCards = document.querySelectorAll('.training-type-card');
                 const supplierNameField = document.getElementById('supplier_name');
@@ -36,14 +36,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log('[DEBUG] Found trainingTypeRadios:', trainingTypeRadios);
                 console.log('[DEBUG] Found trainingTypeCards:', trainingTypeCards);
 
-                if (trainingIdField) {
-                    trainingIdField.value = training.id;
-                }
-
                 if (trainingDescField) {
                     trainingDescField.value = training.id === 0 ? "" : training.name;
                     trainingDescField.placeholder = training.id === 0 ? 
                         "Please describe the training (course title, area, etc.)" : "";
+                }
+
+                // Populate IDA class if available
+                if (idaClassField && training.ida_class && training.id !== 0) {
+                    idaClassField.value = training.ida_class;
                 }
 
                 // Set training type based on catalog data
@@ -92,6 +93,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     trainingHoursField.value = training.training_hours;
                 }
 
+                // Populate course cost for External Training
+                const courseCostField = document.getElementById('course_cost');
+                if (training.training_type === 'External Training' && courseCostField && training.training_cost) {
+                    courseCostField.value = training.training_cost;
+                }
+
                 // Show the form details section
                 if (trainingFormDetails) {
                     trainingFormDetails.classList.remove('d-none');
@@ -115,10 +122,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (trainingFormDetails) {
                 trainingFormDetails.classList.remove('d-none');
                 // Clear any selected training
-                const trainingIdField = document.getElementById('training_catalog_id');
-                if (trainingIdField) {
-                    trainingIdField.value = '';
-                }
                 const trainingDescField = document.getElementById('training_description');
                 if (trainingDescField) {
                     trainingDescField.value = '';

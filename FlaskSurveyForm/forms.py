@@ -29,6 +29,15 @@ from wtforms.validators import (
 # Training types
 TRAINING_TYPES = ["Internal Training", "External Training"]
 
+# IDA Class options
+IDA_CLASS_CHOICES = [
+    ("Class A - QQI Certified L1-10", "Class A - QQI Certified L1-10"),
+    ("Class B - Nat/International Industry Cert", "Class B - Nat/International Industry Cert"),
+    ("Class C - Internal Corporate Cert", "Class C - Internal Corporate Cert"),
+    ("Class D - Not Certified", "Class D - Not Certified"),
+    ("Not sure", "Not sure"),
+]
+
 # Sort options
 SORT_OPTIONS = [
     ("submission_date", "Submission Date"),
@@ -113,6 +122,11 @@ class TrainingForm(FlaskForm):
     training_description = TextAreaField(
         "Training Description", validators=[DataRequired()]
     )
+    ida_class = SelectField(
+        "Training Class",
+        choices=IDA_CLASS_CHOICES,
+        validators=[DataRequired()]
+    )
 
     # Conditionally Required
     trainer_name = StringField(
@@ -142,19 +156,30 @@ class TrainingForm(FlaskForm):
         default=None,
         render_kw={"type": "number", "step": "0.1", "min": "0"},
     )
+    course_cost = FloatField(
+        "Course Cost",
+        validators=[
+            DynamicRequiredIf(
+                "training_type",
+                "External Training",
+                NumberRange(min=0, message="Course Cost cannot be negative."),
+            ),
+        ],
+        default=None,
+    )
 
     # Optional or complex validation
     travel_cost = FloatField(
-        "Travel Expenses (€)", validators=[Optional(), NumberRange(min=0)]
+        "Travel Expenses", validators=[Optional(), NumberRange(min=0)]
     )
     food_cost = FloatField(
-        "Food & Accommodation (€)", validators=[Optional(), NumberRange(min=0)]
+        "Food & Accommodation", validators=[Optional(), NumberRange(min=0)]
     )
     materials_cost = FloatField(
-        "Materials (€)", validators=[Optional(), NumberRange(min=0)]
+        "Materials", validators=[Optional(), NumberRange(min=0)]
     )
     other_cost = FloatField(
-        "Other Expenses (€)", validators=[Optional(), NumberRange(min=0)]
+        "Other Expenses", validators=[Optional(), NumberRange(min=0)]
     )
     # Use custom validators for these complex conditions
     other_expense_description = TextAreaField(
@@ -167,7 +192,6 @@ class TrainingForm(FlaskForm):
     # Hidden fields
     department = HiddenField("Department", default="Engineering")
     trainees_data = HiddenField("Trainees Data")
-    training_catalog_id = HiddenField("Training Catalog ID")
 
     # Attachment fields
     attachments = MultipleFileField(
@@ -263,6 +287,11 @@ class TrainingForm(FlaskForm):
                 if is_internal and self.training_hours.data is not None
                 else None
             ),
+            "course_cost": (
+                float(self.course_cost.data)
+                if not is_internal and self.course_cost.data is not None
+                else 0.0
+            ),
             "training_description": self.training_description.data or "",
             "trainees_data": self.trainees_data.data or "[]",
             "travel_cost": (
@@ -279,7 +308,7 @@ class TrainingForm(FlaskForm):
                 else None
             ),
             "concur_claim": self.concur_claim.data,
-            "training_catalog_id": self.training_catalog_id.data if self.training_catalog_id.data else None,
+            "ida_class": self.ida_class.data,
         }
 
         # Handle trainees data
@@ -339,6 +368,14 @@ class TrainingForm(FlaskForm):
             if field.data is None or str(field.data).strip() == "" or field.data <= 0:
                 raise ValidationError(
                     "Training Hours is required and must be greater than 0 for internal training."
+                )
+
+    def validate_course_cost(self, field):
+        """Validate that Course Cost is provided if required and not empty."""
+        if self.training_type.data == "External Training":
+            if field.data is None or str(field.data).strip() == "" or field.data < 0:
+                raise ValidationError(
+                    "Course Cost is required for external training and cannot be negative."
                 )
 
 

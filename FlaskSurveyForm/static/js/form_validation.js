@@ -219,6 +219,35 @@ document.addEventListener("DOMContentLoaded", function () {
             if (feedback) feedback.remove();
         }
 
+        // --- Course Cost: Required for External Training ---
+        const courseCost = form.elements["course_cost"];
+        if (
+            trainingType.value === "External Training" &&
+            courseCost &&
+            (
+                courseCost.value === "" ||
+                isNaN(Number(parseCurrency(courseCost.value))) ||
+                Number(parseCurrency(courseCost.value)) < 0
+            )
+        ) {
+            courseCost.classList.add("is-invalid");
+            // Add feedback if not present
+            let feedback = courseCost.parentElement.querySelector('.invalid-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                feedback.innerText = "Course Cost is required for external training and cannot be negative.";
+                courseCost.parentElement.appendChild(feedback);
+            }
+            courseCost.setCustomValidity("Course Cost is required for external training and cannot be negative.");
+            if (!firstInvalidElement) firstInvalidElement = courseCost;
+        } else if (courseCost) {
+            courseCost.classList.remove("is-invalid");
+            courseCost.setCustomValidity("");
+            let feedback = courseCost.parentElement.querySelector('.invalid-feedback');
+            if (feedback) feedback.remove();
+        }
+
         // --- Expenses: Concur Claim ---
         const expenseInputs = [travelCost, foodCost, materialsCost, otherCost].filter(el => el);
         let hasExpenses = expenseInputs.some((input) => {
