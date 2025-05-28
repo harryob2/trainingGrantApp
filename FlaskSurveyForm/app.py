@@ -263,6 +263,20 @@ def submit_form():
                                 )
                             )
 
+            # Process travel expenses
+            travel_expenses_data = request.form.get("travel_expenses_data")
+            if travel_expenses_data:
+                try:
+                    from models import insert_travel_expenses
+                    travel_expenses = json.loads(travel_expenses_data)
+                    if travel_expenses and isinstance(travel_expenses, list):
+                        insert_travel_expenses(form_id, travel_expenses)
+                        logging.info(f"Inserted {len(travel_expenses)} travel expenses for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing travel expenses: {e}")
+                    # Don't fail the form submission for travel expense errors
+                    flash("Warning: There was an issue processing travel expenses, but the form was submitted successfully.", "warning")
+
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))
         except Exception as e:
@@ -456,6 +470,7 @@ def view_form(form_id):
             }
             for a in attachments
         ]
+    
     # Parse trainees data from JSON if it exists
     trainees = []
     if form_data.get("trainees_data"):
@@ -464,11 +479,20 @@ def view_form(form_id):
         except json.JSONDecodeError:
             logging.error(f"Error parsing trainees_data for form {form_data['id']}")
 
+    # Get travel expenses
+    travel_expenses = []
+    try:
+        from models import get_travel_expenses
+        travel_expenses = get_travel_expenses(form_id)
+    except Exception as e:
+        logging.error(f"Error loading travel expenses for view: {e}")
+
     return render_template(
         "view.html",
         form=form_data,
         trainees=trainees,
         attachments=attachments,
+        travel_expenses=travel_expenses,
         now=datetime.now(),
         is_admin=is_admin_user(current_user),
     )
@@ -486,6 +510,7 @@ def edit_form(form_id):
         if form_data:
             # Basic fields
             form.training_type.data = form_data["training_type"]
+            form.training_name.data = form_data.get("training_name", "")  # Load training name
             form.trainer_name.data = form_data["trainer_name"]
             form.trainer_email.data = form_data.get("trainer_email", "")  # Load trainer email
             form.supplier_name.data = form_data["supplier_name"]
@@ -508,12 +533,11 @@ def edit_form(form_id):
             # Numeric fields
             form.training_hours.data = form_data["training_hours"]
             form.course_cost.data = form_data.get("course_cost", 0)
+            form.invoice_number.data = form_data.get("invoice_number", "")
             form.training_description.data = form_data.get("training_description", "")
             form.ida_class.data = form_data.get("ida_class", "")
 
             # Expense fields
-            form.travel_cost.data = form_data.get("travel_cost", 0)
-            form.food_cost.data = form_data.get("food_cost", 0)
             form.materials_cost.data = form_data.get("materials_cost", 0)
             form.other_cost.data = form_data.get("other_cost", 0)
             form.other_expense_description.data = form_data.get(
@@ -620,6 +644,21 @@ def edit_form(form_id):
                             logging.error(
                                 f"Missing 'id' or 'description' key in JSON: {desc_json}"
                             )
+            
+            # Process travel expenses
+            travel_expenses_data = request.form.get("travel_expenses_data")
+            if travel_expenses_data:
+                try:
+                    from models import update_travel_expenses
+                    travel_expenses = json.loads(travel_expenses_data)
+                    if isinstance(travel_expenses, list):
+                        update_travel_expenses(form_id, travel_expenses)
+                        logging.info(f"Updated travel expenses for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing travel expenses: {e}")
+                    # Don't fail the form update for travel expense errors
+                    flash("Warning: There was an issue processing travel expenses, but the form was updated successfully.", "warning")
+            
             flash("Form updated successfully!", "success")
             return redirect(url_for("view_form", form_id=form_id))
 
@@ -644,12 +683,21 @@ def edit_form(form_id):
             for a in existing_attachments
         ]
 
+    # Load existing travel expenses
+    existing_travel_expenses = []
+    try:
+        from models import get_travel_expenses
+        existing_travel_expenses = get_travel_expenses(form_id)
+    except Exception as e:
+        logging.error(f"Error loading travel expenses for form {form_id}: {e}")
+
     return render_template(
         "index.html",
         form=form,
         edit_mode=True,
         form_id=form_id,
         existing_attachments=existing_attachments,
+        existing_travel_expenses=existing_travel_expenses,
     )
 
 
@@ -764,6 +812,7 @@ def export_claim5():
         external_trainer_sheet = wb["External Trainer"]
         internal_trainers_sheet = wb["Internal Trainers"]
         personnel_sheet = wb["Personnel Costs Lookup Table"]
+        travel_sheet = wb["Travel"]
         
         # Initialize personnel list to track unique employees
         personnel = []
@@ -788,6 +837,9 @@ def export_claim5():
         
         # Start row for internal trainers data (header is on row 8)
         internal_trainers_row = 9
+
+        # Start row for travel data (header is on row 11)
+        travel_row = 12
 
         def process_trainee_sheet(form):
             nonlocal trainee_row
@@ -821,9 +873,8 @@ def export_claim5():
 
                     # Fill the row with data according to requirements
                     trainee_sheet.cell(row=trainee_row, column=1).value = trainee_name  # Trainee Name
-                    trainee_sheet.cell(row=trainee_row, column=2).value = form.get("training_description", "")  # Course Code/Name
+                    trainee_sheet.cell(row=trainee_row, column=2).value = form.get("training_name", "")  # Course Code/Name
                     trainee_sheet.cell(row=trainee_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
-                    trainee_sheet.cell(row=trainee_row, column=4).value = ""  # Department
                     trainee_sheet.cell(row=trainee_row, column=5).value = form.get("training_hours", "")  # Training Hours 
                     trainee_sheet.cell(row=trainee_row, column=8).value = form.get("start_date", "")  # Start Date
                     trainee_sheet.cell(row=trainee_row, column=9).value = form.get("end_date", "")  # End Date
@@ -848,9 +899,59 @@ def export_claim5():
             except Exception as e:
                 logging.error(f"Error processing trainee sheet for form {form['id']}: {str(e)}", exc_info=True)
 
+        def process_travel_expenses(form):
+            nonlocal travel_row
+            try:
+                # Get travel expenses for this form
+                from models import get_travel_expenses
+                travel_expenses = get_travel_expenses(form['id'])
+                
+                if not travel_expenses:
+                    return  # No travel expenses for this form
+                
+                # Process each travel expense
+                for expense in travel_expenses:
+                    # Column 1: Date
+                    travel_sheet.cell(row=travel_row, column=1).value = expense.get("travel_date", "")
+                    
+                    # Column 2: Trainee/trainer name (extract username from email)
+                    traveler_email = expense.get("traveler_email", "")
+                    traveler_name = traveler_email.split("@")[0] if "@" in traveler_email else traveler_email
+                    travel_sheet.cell(row=travel_row, column=2).value = traveler_name
+                    
+                    # Column 3: Travel type (columns C and D are merged, so write to C)
+                    travel_mode = expense.get("travel_mode", "")
+                    if travel_mode == "economy_flight":
+                        travel_type = "Economy Flight"
+                    elif travel_mode == "mileage":
+                        travel_type = "Mileage"
+                    elif travel_mode == "rail":
+                        travel_type = "Rail"
+                    elif travel_mode == "Bus":
+                        travel_type = "bus"
+                    else:
+                        travel_type = travel_mode
+                    travel_sheet.cell(row=travel_row, column=3).value = travel_type
+                    
+                    # Column 5: Travel cost (skip column 4 since C/D are merged)
+                    cost = expense.get("cost", 0)
+                    travel_sheet.cell(row=travel_row, column=5).value = cost if cost else 0
+                    
+                    # Column 6: Destination and course details
+                    destination = expense.get("destination", "")
+                    training_name = form.get("training_name", "")
+                    destination_details = f"Destination: {destination}, Course Details: {training_name}"
+                    travel_sheet.cell(row=travel_row, column=6).value = destination_details
+                    
+                    travel_row += 1
+                    
+            except Exception as e:
+                logging.error(f"Error processing travel expenses for form {form['id']}: {str(e)}", exc_info=True)
+
         # Process each approved form
         for form in approved_forms:
             process_trainee_sheet(form)
+            process_travel_expenses(form)
             
             # Handle trainer sheets based on training type
             if form.get("training_type") == "Internal Training":
@@ -867,7 +968,7 @@ def export_claim5():
                         departments.append(department)
                     
                     internal_trainers_sheet.cell(row=internal_trainers_row, column=1).value = trainer_name
-                    internal_trainers_sheet.cell(row=internal_trainers_row, column=3).value = form.get("training_description", "")
+                    internal_trainers_sheet.cell(row=internal_trainers_row, column=3).value = form.get("training_name", "")
                     internal_trainers_sheet.cell(row=internal_trainers_row, column=4).value = form.get("training_hours", "")
                     
                     internal_trainers_row += 1
@@ -880,10 +981,10 @@ def export_claim5():
                 try:
                     external_trainer_sheet.cell(row=external_trainer_row, column=1).value = form.get("start_date", "")
                     external_trainer_sheet.cell(row=external_trainer_row, column=2).value = form.get("supplier_name", "")
-                    external_trainer_sheet.cell(row=external_trainer_row, column=3).value = ""
-                    external_trainer_sheet.cell(row=external_trainer_row, column=4).value = form.get("training_description", "")
+                    external_trainer_sheet.cell(row=external_trainer_row, column=3).value = form.get("invoice_number", "")
+                    external_trainer_sheet.cell(row=external_trainer_row, column=4).value = form.get("training_name", "")
                     external_trainer_sheet.cell(row=external_trainer_row, column=5).value = form.get("course_cost", 0)
-                    external_trainer_sheet.cell(row=external_trainer_row, column=6).value = ""
+                    external_trainer_sheet.cell(row=external_trainer_row, column=6).value = form.get("training_description", "")
                     
                     external_trainer_row += 1
                     

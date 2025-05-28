@@ -44,9 +44,8 @@ class TrainingForm(FlaskForm):
                 NumberRange(min=0, message="Course Cost cannot be negative."))], 
     default=0)
     
-    # Optional Fields
+    # Optional or complex validation
     travel_cost = FloatField("Travel Expenses", validators=[Optional(), NumberRange(min=0)])
-    food_cost = FloatField("Food & Accommodation", validators=[Optional(), NumberRange(min=0)])
     materials_cost = FloatField("Materials", validators=[Optional(), NumberRange(min=0)])
     other_cost = FloatField("Other Expenses", validators=[Optional(), NumberRange(min=0)])
     other_expense_description = TextAreaField("Other Expense Description", validators=[Optional()])
@@ -84,12 +83,84 @@ class TrainingForm(FlaskForm):
 
 #### Optional Fields
 - **travel_cost**: Travel expenses
-- **food_cost**: Food and accommodation costs
 - **materials_cost**: Training materials cost
 - **other_cost**: Other miscellaneous expenses
 - **other_expense_description**: Description of other expenses
 - **concur_claim**: Concur expense claim number
 - **trainee_emails**: Comma/space separated trainee emails
+
+## Form Layout and Structure
+
+### Section Organization
+
+The training form is organized into five main sections in the following order:
+
+1. **Training Details** - Core training information
+2. **Add Trainees** - Trainee management and selection
+3. **Travel Expenses** - Travel expense management (placeholder)
+4. **Other Expenses** - Additional costs and expenses
+5. **Attachments** - File uploads and documentation
+
+### Section Details
+
+#### 1. Training Details Section
+- **Purpose**: Capture core training information and requirements
+- **Fields**: Training type, name, trainer/supplier, location, dates, hours, classification, description
+- **Conditional Logic**: Fields shown/hidden based on training type and location type
+- **Validation**: Dynamic validation based on training type selection
+
+#### 2. Add Trainees Section
+- **Purpose**: Manage trainee selection and information
+- **Features**: 
+  - Employee search with autocomplete
+  - Individual trainee addition
+  - Bulk email import
+  - Trainee list management
+- **Integration**: Connected to employee lookup system
+- **Validation**: Ensures at least one trainee is added
+
+#### 3. Travel Expenses Section
+- **Purpose**: Manage detailed travel expense records (future feature)
+- **Current Status**: Placeholder section with informational content
+- **Planned Features**: 
+  - Travel date selection (within training period)
+  - Destination specification
+  - Traveler selection (from trainees/trainer)
+  - Transportation mode selection
+  - Cost/distance tracking
+
+#### 4. Other Expenses Section
+- **Purpose**: Capture additional training-related costs
+- **Fields**: Travel cost, materials cost, other expenses, Concur claim number
+- **Conditional Logic**: Description required when other expenses > 0
+- **Validation**: Concur claim required when any expenses entered
+
+#### 5. Attachments Section
+- **Purpose**: Handle file uploads and documentation
+- **Features**:
+  - Drag-and-drop file upload
+  - Multiple file support
+  - File description management
+  - File type validation
+- **Requirements**: Mandatory for virtual training
+- **Security**: File type and size validation
+
+### Form Flow and User Experience
+
+#### Progressive Disclosure
+- Form sections revealed progressively as user completes required information
+- Training catalog search available at the top for quick form population
+- Dynamic field visibility based on user selections
+
+#### Validation Strategy
+- **Client-side**: Immediate feedback for basic validation
+- **Server-side**: Comprehensive validation with detailed error messages
+- **Progressive**: Validation occurs as user moves through sections
+
+#### Responsive Design
+- Mobile-friendly layout with collapsible sections
+- Touch-friendly controls for mobile devices
+- Accessible form controls with proper labeling
 
 ## Dynamic Validation System
 
@@ -248,7 +319,6 @@ def prepare_form_data(self):
         "training_description": self.training_description.data,
         "ida_class": self.ida_class.data,
         "travel_cost": self.travel_cost.data or 0,
-        "food_cost": self.food_cost.data or 0,
         "materials_cost": self.materials_cost.data or 0,
         "other_cost": self.other_cost.data or 0,
         "other_expense_description": self.other_expense_description.data,

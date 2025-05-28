@@ -90,6 +90,7 @@ def get_lookup_data(entity_type: str):
                         "id": item.id,
                         "name": item.training_name, # Key for primary display in autocomplete
                         "area": item.area,         # Key for subtitle/secondary info
+                        "training_desc": item.training_desc,  # Add training description for form population
                         # Add other fields if needed by frontend, but keep it minimal for lookup
                         "ida_class": item.ida_class,
                         "training_type": item.training_type,
@@ -106,6 +107,12 @@ def get_lookup_data(entity_type: str):
     
     logger.warning(f"Unknown entity type for lookup: {entity_type}")
     return []
+
+def clear_training_catalog_cache():
+    """Clear the training catalog cache to force reload of data."""
+    global _training_catalog_cache
+    _training_catalog_cache = None
+    logger.info("Training catalog cache cleared.")
 
 if __name__ == '__main__':
     # For testing the module directly

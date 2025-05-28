@@ -225,6 +225,11 @@ function updateTraineesData() {
     traineesDataField.value = traineesJson;
     console.log("Hidden input value after setting:", traineesDataField.value);
   }
+
+  // Dispatch event to notify travel expenses manager
+  document.dispatchEvent(new CustomEvent('traineesUpdated', {
+    detail: { trainees: trainees }
+  }));
 }
 
 // Function to validate email format

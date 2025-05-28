@@ -127,7 +127,7 @@ function hasTrainees() {
  * Check if any expense fields have values
  */
 function hasExpenses() {
-    const expenseFields = ['travel_cost', 'food_cost', 'materials_cost', 'other_cost'];
+    const expenseFields = ['materials_cost', 'other_cost'];
     return expenseFields.some(fieldId => {
         const field = document.getElementById(fieldId);
         if (!field) return false;

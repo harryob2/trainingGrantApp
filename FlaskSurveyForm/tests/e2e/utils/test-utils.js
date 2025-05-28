@@ -254,7 +254,6 @@ async function fillBasicExternalTrainingForm(page, options = {}) {
 async function addExpenses(page, options = {}) {
   const defaults = {
     travelCost: "5",
-    foodCost: "5",
     materialsCost: "5",
     otherCost: "5",
     otherDescription: "Test expenses",
@@ -266,10 +265,6 @@ async function addExpenses(page, options = {}) {
   // Add expense values
   if (settings.travelCost) {
     await page.locator('input[name="travel_cost"]').fill(settings.travelCost);
-  }
-
-  if (settings.foodCost) {
-    await page.locator('input[name="food_cost"]').fill(settings.foodCost);
   }
 
   if (settings.materialsCost) {
@@ -305,7 +300,6 @@ async function addExpenses(page, options = {}) {
   // Add concur claim if any expenses are added and a claim number is provided
   const hasExpenses =
     settings.travelCost ||
-    settings.foodCost ||
     settings.materialsCost ||
     settings.otherCost;
 

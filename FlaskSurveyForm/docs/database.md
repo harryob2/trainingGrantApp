@@ -43,7 +43,6 @@ CREATE TABLE training_forms (
     approved BOOLEAN DEFAULT FALSE,
     concur_claim VARCHAR,
     travel_cost FLOAT DEFAULT 0,
-    food_cost FLOAT DEFAULT 0,
     materials_cost FLOAT DEFAULT 0,
     other_cost FLOAT DEFAULT 0,
     other_expense_description TEXT,
@@ -70,7 +69,6 @@ CREATE TABLE training_forms (
 - `approved`: Admin approval status
 - `concur_claim`: Concur expense claim number
 - `travel_cost`: Travel expenses amount
-- `food_cost`: Food and accommodation expenses
 - `materials_cost`: Training materials cost
 - `other_cost`: Other miscellaneous expenses
 - `other_expense_description`: Description of other expenses
@@ -135,7 +133,52 @@ CREATE TABLE admins (
 - Used for role-based access control
 - Integrated with LDAP authentication
 
-### 4. TrainingCatalog (training_catalog)
+### 4. TravelExpense (travel_expenses)
+
+**Purpose**: Stores detailed travel expense records linked to training forms
+
+**Table Structure**:
+```sql
+CREATE TABLE travel_expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    form_id INTEGER NOT NULL,
+    travel_date DATE NOT NULL,
+    destination VARCHAR NOT NULL,
+    traveler_type VARCHAR NOT NULL,
+    traveler_email VARCHAR NOT NULL,
+    traveler_name VARCHAR NOT NULL,
+    travel_mode VARCHAR NOT NULL,
+    cost FLOAT,
+    distance_km FLOAT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES training_forms(id) ON DELETE CASCADE
+);
+```
+
+**Field Descriptions**:
+- `id`: Primary key, auto-incrementing unique identifier
+- `form_id`: Foreign key reference to training_forms.id
+- `travel_date`: Date of travel (must be between training start and end dates)
+- `destination`: Travel destination location
+- `traveler_type`: Type of traveler ("trainer" or "trainee")
+- `traveler_email`: Email address of the traveler
+- `traveler_name`: Name of the traveler
+- `travel_mode`: Mode of transportation ("mileage", "rail", "economy_flight")
+- `cost`: Travel cost (for rail and flight expenses)
+- `distance_km`: Distance in kilometers (for mileage expenses)
+- `created_at`: Record creation timestamp
+
+**Business Rules**:
+- Travel date must be between training start and end dates
+- For mileage travel mode: `distance_km` is required, `cost` is calculated automatically
+- For rail/flight travel modes: `cost` is required, `distance_km` is not used
+- Traveler must be either the trainer or one of the trainees from the form
+
+**Relationships**:
+- Many-to-One with TrainingForm (one form can have multiple travel expenses)
+- Cascade delete (travel expenses deleted when form is deleted)
+
+### 5. TrainingCatalog (training_catalog)
 
 **Purpose**: Predefined training courses for autocomplete and standardization
 
@@ -179,6 +222,7 @@ CREATE TABLE training_catalog (
 
 ```
 TrainingForm (1) ←→ (Many) Attachment
+TrainingForm (1) ←→ (Many) TravelExpense
      ↓
    Submitter (User via LDAP)
      ↓
@@ -194,12 +238,17 @@ TrainingCatalog (Lookup data for forms)
    - Attachments are deleted when the parent form is deleted (CASCADE)
    - Foreign key: `attachments.form_id → training_forms.id`
 
-2. **User ↔ TrainingForm** (One-to-Many via submitter field)
+2. **TrainingForm ↔ TravelExpense** (One-to-Many)
+   - One training form can have multiple travel expense records
+   - Travel expenses are deleted when the parent form is deleted (CASCADE)
+   - Foreign key: `travel_expenses.form_id → training_forms.id`
+
+3. **User ↔ TrainingForm** (One-to-Many via submitter field)
    - One user can submit multiple training forms
    - User identification through email address
    - No direct foreign key (users managed via LDAP)
 
-3. **Admin ↔ User** (Role assignment)
+4. **Admin ↔ User** (Role assignment)
    - Admin table defines which users have administrative privileges
    - Used for authorization checks throughout the application
 
@@ -223,6 +272,24 @@ def add_admin(admin_data):
         admin = Admin(**admin_data)
         session.add(admin)
         return True
+
+# Insert travel expenses for a form
+def insert_travel_expenses(form_id, travel_expenses_data):
+    with db_session() as session:
+        for expense_data in travel_expenses_data:
+            expense = TravelExpense(
+                form_id=form_id,
+                travel_date=parse_date(expense_data["travel_date"]),
+                destination=expense_data["destination"],
+                traveler_type=expense_data["traveler_type"],
+                traveler_email=expense_data["traveler_email"],
+                traveler_name=expense_data["traveler_name"],
+                travel_mode=expense_data["travel_mode"],
+                cost=expense_data.get("cost"),
+                distance_km=expense_data.get("distance_km"),
+            )
+            session.add(expense)
+        return True
 ```
 
 #### Read Operations
@@ -237,6 +304,12 @@ def get_all_training_forms(search_term="", date_from=None, date_to=None,
                           training_type=None, sort_by="submission_date", 
                           sort_order="DESC", page=1):
     # Complex query with filtering, sorting, and pagination
+
+# Get travel expenses for a form
+def get_travel_expenses(form_id):
+    with db_session() as session:
+        expenses = session.query(TravelExpense).filter_by(form_id=form_id).all()
+        return [expense.to_dict() for expense in expenses]
 ```
 
 #### Update Operations
@@ -301,8 +374,7 @@ def get_training_statistics():
             func.count(TrainingForm.id).label('total_submissions'),
             func.sum(TrainingForm.training_hours).label('total_hours'),
             func.sum(TrainingForm.course_cost + TrainingForm.travel_cost + 
-                    TrainingForm.food_cost + TrainingForm.materials_cost + 
-                    TrainingForm.other_cost).label('total_cost')
+                    TrainingForm.materials_cost + TrainingForm.other_cost).label('total_cost')
         ).group_by(TrainingForm.submitter).all()
 ```
 
@@ -330,6 +402,9 @@ CREATE INDEX idx_training_forms_submission_date ON training_forms(submission_dat
 CREATE INDEX idx_training_forms_start_date ON training_forms(start_date);
 CREATE INDEX idx_training_forms_approved ON training_forms(approved);
 CREATE INDEX idx_attachments_form_id ON attachments(form_id);
+CREATE INDEX idx_travel_expenses_form_id ON travel_expenses(form_id);
+CREATE INDEX idx_travel_expenses_travel_date ON travel_expenses(travel_date);
+CREATE INDEX idx_travel_expenses_traveler_email ON travel_expenses(traveler_email);
 ```
 
 ### Query Optimization

@@ -62,7 +62,6 @@ test.describe("Survey Form Submission", () => {
 
     // 9. Enter Expenses (simplified version without other expenses)
     await page.locator('input[name="travel_cost"]').fill("5");
-    await page.locator('input[name="food_cost"]').fill("5");
     await page.locator('input[name="materials_cost"]').fill("5");
     // Skip other cost to avoid description issues
     await page.locator('input[name="concur_claim"]').fill("abc2222");
@@ -135,7 +134,6 @@ test.describe("Survey Form Submission", () => {
 
     // --- Add Expenses (simplified to avoid issues with other expense description) ---
     await page.locator('input[name="travel_cost"]').fill("250.50");
-    await page.locator('input[name="food_cost"]').fill("120.75");
     await page.locator('input[name="materials_cost"]').fill("75");
     // Skip other cost to avoid issues with description field
     await page.locator('input[name="concur_claim"]').fill("EXT-2024-0789");

@@ -113,6 +113,11 @@ class TrainingForm(FlaskForm):
         ],
         validators=[DataRequired()],
     )
+    training_name = StringField(
+        "Training Name",
+        validators=[DataRequired(message="Training Name is required.")],
+        description="The name/title of the training course",
+    )
     location_type = RadioField(
         "Location",
         choices=[("Onsite", "Onsite"), ("Offsite", "Offsite"), ("Virtual", "Virtual")],
@@ -171,14 +176,13 @@ class TrainingForm(FlaskForm):
         ],
         default=0,
     )
+    invoice_number = StringField(
+        "Invoice Number",
+        validators=[DynamicRequiredIf("training_type", "External Training")],
+        description="Invoice number for external training course",
+    )
 
     # Optional or complex validation
-    travel_cost = FloatField(
-        "Travel Expenses", validators=[Optional(), NumberRange(min=0)]
-    )
-    food_cost = FloatField(
-        "Food & Accommodation", validators=[Optional(), NumberRange(min=0)]
-    )
     materials_cost = FloatField(
         "Materials", validators=[Optional(), NumberRange(min=0)]
     )
@@ -228,9 +232,7 @@ class TrainingForm(FlaskForm):
     def validate_concur_claim(self, field):
         """Validate that Concur Claim Number is provided when expenses > 0 are entered"""
         has_expenses = (
-            (self.travel_cost.data and self.travel_cost.data > 0)
-            or (self.food_cost.data and self.food_cost.data > 0)
-            or (self.materials_cost.data and self.materials_cost.data > 0)
+            (self.materials_cost.data and self.materials_cost.data > 0)
             or (self.other_cost.data and self.other_cost.data > 0)
         )
         if has_expenses and (not field.data or not field.data.strip()):
@@ -277,6 +279,7 @@ class TrainingForm(FlaskForm):
         is_internal = self.training_type.data == "Internal Training"
         data = {
             "training_type": self.training_type.data,
+            "training_name": self.training_name.data,
             "trainer_name": (self.trainer_name.data if is_internal else None),
             "trainer_email": (self.trainer_email.data if is_internal else None),
             "supplier_name": (self.supplier_name.data if not is_internal else None),
@@ -294,12 +297,11 @@ class TrainingForm(FlaskForm):
                 if not is_internal and self.course_cost.data is not None
                 else 0.0
             ),
+            "invoice_number": (
+                self.invoice_number.data if not is_internal else None
+            ),
             "training_description": self.training_description.data or "",
             "trainees_data": self.trainees_data.data or "[]",
-            "travel_cost": (
-                float(self.travel_cost.data) if self.travel_cost.data else 0.0
-            ),
-            "food_cost": float(self.food_cost.data) if self.food_cost.data else 0.0,
             "materials_cost": (
                 float(self.materials_cost.data) if self.materials_cost.data else 0.0
             ),

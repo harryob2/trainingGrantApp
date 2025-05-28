@@ -127,6 +127,24 @@
                             </div>
                         </div>
 
+                        <!-- Training Name Field -->
+                        <div class="col-md-12 mb-4">
+                            <div class="form-floating">
+                                {{ form.training_name(class="form-control", placeholder=" ") }}
+                                {{ form.training_name.label }}
+                            </div>
+                            <div class="form-text">
+                                Enter the name or title of the training course
+                            </div>
+                            {% if form.training_name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.training_name.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
                         <!-- Conditional sections based on training type -->
                         <div id="training-details-section" class="col-12 mb-3 d-none">
                             <hr />
@@ -197,18 +215,18 @@
                                     {% endif %}
                                 </div>
                                 
-                                <!-- Course Cost (only shown for External Training) -->
-                                <div id="course-cost-container" class="col-md-6 mb-3 d-none">
+                                <!-- Training Class (always shown when form details are visible) -->
+                                <div id="training-class-container" class="col-md-6 mb-3 d-none">
                                     <div class="form-floating">
-                                        {{ form.course_cost(class="form-control money", placeholder=" ") }} {{
-                                        form.course_cost.label }}
+                                        {{ form.ida_class(class="form-control", placeholder=" ") }}
+                                        {{ form.ida_class.label }}
                                     </div>
                                     <div class="form-text">
-                                        The cost of the external training course.
+                                        Select the appropriate training classification
                                     </div>
-                                    {% if form.course_cost.errors %}
+                                    {% if form.ida_class.errors %}
                                     <div class="text-danger">
-                                        {% for error in form.course_cost.errors %}
+                                        {% for error in form.ida_class.errors %}
                                         <small>{{ error }}</small>
                                         {% endfor %}
                                     </div>
@@ -247,117 +265,45 @@
                                 </div>
                             </div>
 
-                            <!-- Training Class -->
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
+                            <!-- Course Cost and Invoice Number (only shown for External Training) -->
+                            <div class="row g-3">
+                                <div id="course-cost-container" class="col-md-6 mb-3 d-none">
                                     <div class="form-floating">
-                                        {{ form.ida_class(class="form-control", placeholder=" ") }}
-                                        {{ form.ida_class.label }}
+                                        {{ form.course_cost(class="form-control money", placeholder=" ") }} {{
+                                        form.course_cost.label }}
                                     </div>
                                     <div class="form-text">
-                                        Select the appropriate training classification
+                                        The cost of the external training course (ex VAT).
                                     </div>
+                                    {% if form.course_cost.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.course_cost.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                            </div>
 
-                            <!-- Expenses Section -->
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <h3 class="fs-5 form-section-title">Expenses</h3>
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <div class="form-floating">
-                                                {{ form.travel_cost(class="form-control money",
-                                                placeholder=" ") }} {{ form.travel_cost.label }}
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-floating">
-                                                {{ form.food_cost(class="form-control money",
-                                                placeholder=" ") }} {{ form.food_cost.label }}
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-floating">
-                                                {{ form.materials_cost(class="form-control money",
-                                                placeholder=" ") }} {{ form.materials_cost.label }}
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                {{ form.other_cost(class="form-control money",
-                                                placeholder=" ") }} {{ form.other_cost.label }}
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                {{ form.concur_claim(class="form-control", placeholder="
-                                                ") }} {{ form.concur_claim.label }}
-                                            </div>
-                                            <div id="concur-required-message" class="form-text text-danger d-none mt-1"
-                                                style="font-size: 0.85em">
-                                                * Required when expenses are entered
-                                            </div>
-                                        </div>
-
-                                        <div id="other-expense-description-container" class="col-md-12 mb-3 d-none">
-                                            <div class="form-floating">
-                                                {{ form.other_expense_description(class="form-control",
-                                                style="height: 100px", placeholder=" ") }} {{
-                                                form.other_expense_description.label (style="position: absolute; top: -7px; width: 115%;")}}
-                                            </div>
-                                            <div class="form-text text-danger other-expense-required-text">
-                                                * Required when other expenses are entered
-                                            </div>
-                                        </div>
+                                <div id="invoice-number-container" class="col-md-6 mb-3 d-none">
+                                    <div class="form-floating">
+                                        {{ form.invoice_number(class="form-control", placeholder=" ") }} {{
+                                        form.invoice_number.label }}
                                     </div>
-                                </div>
-                            </div>
-                            {% if edit_mode and existing_attachments %}
-                            <!-- Hidden container for existing attachments data -->
-                            {% for att in existing_attachments %}
-                            <div class="existing-attachment d-none" data-id="{{ att['id'] }}"
-                                data-filename="{{ att['filename'] }}" data-description="{{ att['description'] or '' }}">
-                            </div>
-                            {% endfor %} {% endif %}
-                            <!-- Attachments Section -->
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <h3 class="fs-5 form-section-title">Attachments</h3>
-                                    <p class="form-text">
-                                        NOTE: Attachments are optional. Only include attachments not already in your Concur Expense Report.
-                                    </p>
-                                    <!-- Add the message for Virtual Training -->
-                                    <div id="virtual-training-attachment-note" class="alert alert-info d-none mb-3"
-                                        role="alert">
-                                        <i class="bi bi-info-circle-fill me-2"></i>
-                                        You must attach your completed virtual training certificate.
+                                    <div class="form-text">
+                                        Invoice number for the external training course.
                                     </div>
-                                    <div id="dropzone" class="dropzone border p-3 mb-3 text-center">
-                                        <i class="bi bi-upload fs-1 text-primary"></i>
-                                        <p>Drag and drop files here or click to browse</p>
-                                        <input type="file" id="file-input" class="d-none" multiple />
+                                    {% if form.invoice_number.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.invoice_number.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
                                     </div>
-                                    <!-- New Attachment Previews Container -->
-                                    <div id="attachment-previews"></div>
-                                    <!-- Hidden table for compatibility with old scripts if needed -->
-                                    <table class="table table-bordered d-none" id="attachment-table">
-                                        <thead>
-                                            <tr>
-                                                <th>File Name</th>
-                                                <th>Description</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <!-- Rows will be dynamically added here -->
-                                        </tbody>
-                                    </table>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Add Trainees Section (moved up from bottom) -->
                         <div class="col-md-12 mb-3">
                             <h3 class="fs-5 form-section-title">Add Trainees</h3>
                         </div>
@@ -390,6 +336,129 @@
                             </div>
                         </div>
 
+                        <!-- Travel Expenses Section -->
+                        <div class="row mb-4" id="travel-expenses-section">
+                            <div class="col-md-12">
+                                <h3 class="fs-5 form-section-title">Travel Expenses</h3>
+                                <p class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Add travel expenses for trainees and trainers related to this training.
+                                </p>
+                                
+                                <!-- Add Travel Expense Button -->
+                                <div class="mb-3">
+                                    <button type="button" id="add-travel-expense-btn" class="btn btn-outline-primary">
+                                        <i class="bi bi-plus-lg me-1"></i> Add Travel Expense
+                                    </button>
+                                </div>
+
+                                <!-- No Travel Expenses Message -->
+                                <div id="no-travel-expenses-message" class="alert alert-dark border text-center py-4">
+                                    <i class="bi bi-geo-alt fs-4 d-block mb-2 text-light"></i>
+                                    <p class="mb-0 text-light">No travel expenses have been added yet</p>
+                                    <small class="text-light">Click "Add Travel Expense" to get started</small>
+                                </div>
+
+                                <!-- Travel Expenses List -->
+                                <div id="travel-expenses-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Other Expenses Section (renamed from "Expenses") -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h3 class="fs-5 form-section-title">Other Expenses</h3>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            {{ form.materials_cost(class="form-control money",
+                                            placeholder=" ") }} {{ form.materials_cost.label }}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            {{ form.other_cost(class="form-control money",
+                                            placeholder=" ") }} {{ form.other_cost.label }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            {{ form.concur_claim(class="form-control", placeholder="
+                                            ") }} {{ form.concur_claim.label }}
+                                        </div>
+                                        <div id="concur-required-message" class="form-text text-danger d-none mt-1"
+                                            style="font-size: 0.85em">
+                                            * Required when expenses are entered or for external training
+                                        </div>
+                                    </div>
+
+                                    <div id="other-expense-description-container" class="col-md-12 mb-3 d-none">
+                                        <div class="form-floating">
+                                            {{ form.other_expense_description(class="form-control",
+                                            style="height: 100px", placeholder=" ") }} {{
+                                            form.other_expense_description.label (style="position: absolute; top: -7px; width: 115%;")}}
+                                        </div>
+                                        <div class="form-text text-danger other-expense-required-text">
+                                            * Required when other expenses are entered
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if edit_mode and existing_attachments %}
+                        <!-- Hidden container for existing attachments data -->
+                        {% for att in existing_attachments %}
+                        <div class="existing-attachment d-none" data-id="{{ att['id'] }}"
+                            data-filename="{{ att['filename'] }}" data-description="{{ att['description'] or '' }}">
+                        </div>
+                        {% endfor %} {% endif %}
+
+                        {% if edit_mode and existing_travel_expenses %}
+                        <!-- Hidden field for existing travel expenses data -->
+                        <input type="hidden" id="travel_expenses_data" name="travel_expenses_data" 
+                               value="{{ existing_travel_expenses | tojson | e }}">
+                        {% endif %}
+                        
+                        <!-- Attachments Section (moved to end) -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h3 class="fs-5 form-section-title">Attachments</h3>
+                                <p class="form-text">
+                                    NOTE: Attachments are optional. Only include attachments not already in your Concur Expense Report.
+                                </p>
+                                <!-- Add the message for Virtual Training -->
+                                <div id="virtual-training-attachment-note" class="alert alert-info d-none mb-3"
+                                    role="alert">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    You must attach your completed virtual training certificate.
+                                </div>
+                                <div id="dropzone" class="dropzone border p-3 mb-3 text-center">
+                                    <i class="bi bi-upload fs-1 text-primary"></i>
+                                    <p>Drag and drop files here or click to browse</p>
+                                    <input type="file" id="file-input" class="d-none" multiple />
+                                </div>
+                                <!-- New Attachment Previews Container -->
+                                <div id="attachment-previews"></div>
+                                <!-- Hidden table for compatibility with old scripts if needed -->
+                                <table class="table table-bordered d-none" id="attachment-table">
+                                    <thead>
+                                        <tr>
+                                            <th>File Name</th>
+                                            <th>Description</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rows will be dynamically added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
                         <div class="col-md-12 mt-4">
                             <div class="d-flex justify-content-between">
                                 {% if edit_mode %}
@@ -476,6 +545,112 @@
         </div>
     </div>
 </div>
+
+<!-- Travel Expense Modal -->
+<div class="modal fade" id="travelExpenseModal" tabindex="-1" aria-labelledby="travelExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="travelExpenseModalLabel">Add Travel Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="travel-expense-form">
+                    <div class="row g-3">
+                        <!-- Travel Date -->
+                        <div class="col-md-6">
+                            <label for="travel_date" class="form-label">Travel Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="travel_date" required>
+                            <div class="form-text">Must be between training start and end dates</div>
+                        </div>
+
+                        <!-- Destination -->
+                        <div class="col-md-6">
+                            <label for="destination" class="form-label">Destination <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="destination" placeholder="e.g., Dublin, Cork, London" required>
+                        </div>
+
+                        <!-- Traveler Selection -->
+                        <div class="col-md-12">
+                            <label class="form-label">Travelers <span class="text-danger">*</span></label>
+                            <div class="border rounded p-3" style="min-height: 120px; max-height: 200px; overflow-y: auto;">
+                                <div id="traveler-checkboxes">
+                                    <!-- Traveler checkboxes will be populated here -->
+                                </div>
+                                <div id="no-travelers-available" class="text-muted text-center py-3" style="display: none;">
+                                    <i class="bi bi-people"></i>
+                                    <p class="mb-0">No travelers available. Please add trainees first.</p>
+                                </div>
+                            </div>
+                            <div class="form-text">Select one or more travelers from trainer or trainees added to this form</div>
+                        </div>
+
+                        <!-- Travel Mode -->
+                        <div class="col-md-12">
+                            <label class="form-label">Travel Mode <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="travel_mode" id="mode_mileage" value="mileage">
+                                        <label class="form-check-label" for="mode_mileage">
+                                            <strong>Mileage</strong><br>
+                                            <small class="text-muted">Taxi/Car</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="travel_mode" id="mode_rail" value="rail">
+                                        <label class="form-check-label" for="mode_rail">
+                                            <strong>Rail</strong><br>
+                                            <small class="text-muted">Train travel</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="travel_mode" id="mode_bus" value="bus">
+                                        <label class="form-check-label" for="mode_bus">
+                                            <strong>Bus</strong><br>
+                                            <small class="text-muted">Bus travel</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="travel_mode" id="mode_flight" value="economy_flight">
+                                        <label class="form-check-label" for="mode_flight">
+                                            <strong>Economy Flight</strong><br>
+                                            <small class="text-muted">Air travel</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Distance (for mileage) -->
+                        <div class="col-md-6" id="distance-group" style="display: none;">
+                            <label for="distance_km" class="form-label">Distance (km) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="distance_km" step="0.1" min="0" placeholder="e.g., 150.5">
+                            <div class="form-text">Distance in kilometers</div>
+                        </div>
+
+                        <!-- Cost (for rail/bus/flight) -->
+                        <div class="col-md-6" id="cost-group" style="display: none;">
+                            <label for="cost" class="form-label">Cost (€) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="cost" step="0.01" min="0" placeholder="e.g., 125.50">
+                            <div class="form-text">Total cost of travel expense</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="save-travel-expense-btn" class="btn btn-primary">Save Travel Expense</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %} {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="{{ url_for('static', filename='js/form_validation.js') }}"></script>
@@ -485,6 +660,7 @@
 <script src="{{ url_for('static', filename='js/attachment.js') }}"></script>
 <script src="{{ url_for('static', filename='js/other_expense.js') }}"></script>
 <script src="{{ url_for('static', filename='js/form_helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/travel_expenses.js') }}"></script>
 <script>
     console.log("Inline script finished, remaining logic delegated to external files.");
 
@@ -582,19 +758,21 @@
             } else {
                 form.elements["location_type"][0].setCustomValidity("");
             }
-            const travelCost = form.elements["travel_cost"];
-            const foodCost = form.elements["food_cost"];
             const materialsCost = form.elements["materials_cost"];
             const otherCost = form.elements["other_cost"];
             const concurClaim = form.elements["concur_claim"];
             const otherDesc = form.elements["other_expense_description"];
-            const expenseInputs = [travelCost, foodCost, materialsCost, otherCost];
+            const expenseInputs = [materialsCost, otherCost];
             function hasExpenses(inputs) {
                 return inputs.some((input) => input.value && parseCurrency(input.value) > 0);
             }
-            if (hasExpenses(expenseInputs) && !concurClaim.value.trim()) {
+            function hasTravelExpenses() {
+                return window.travelExpensesManager && window.travelExpensesManager.travelExpenses && window.travelExpensesManager.travelExpenses.length > 0;
+            }
+            const isExternalTraining = trainingType.value === "External Training";
+            if ((hasExpenses(expenseInputs) || hasTravelExpenses() || isExternalTraining) && !concurClaim.value.trim()) {
                 concurClaim.setCustomValidity(
-                    "Concur Claim Number is required when expenses are entered.",
+                    "Concur Claim Number is required when expenses are entered or for external training.",
                 );
             } else {
                 concurClaim.setCustomValidity("");

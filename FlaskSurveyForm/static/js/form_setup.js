@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             onSelect: (training) => {
                 console.log('[DEBUG] Selected training:', training);
+                const trainingNameField = document.getElementById('training_name');
                 const trainingDescField = document.getElementById('training_description');
                 const idaClassField = document.getElementById('ida_class');
                 const trainingTypeRadios = document.querySelectorAll('input[name="training_type"]');
@@ -60,8 +61,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log('[DEBUG] Found trainingTypeRadios:', trainingTypeRadios);
                 console.log('[DEBUG] Found trainingTypeCards:', trainingTypeCards);
 
+                // Populate training name field
+                if (trainingNameField) {
+                    trainingNameField.value = training.id === 0 ? "" : training.name;
+                    trainingNameField.placeholder = training.id === 0 ? 
+                        "Enter the training name/title" : "";
+                }
+
                 if (trainingDescField) {
-                    trainingDescField.value = training.id === 0 ? "" : training.name;
+                    trainingDescField.value = training.id === 0 ? "" : training.training_desc || "";
                     trainingDescField.placeholder = training.id === 0 ? 
                         "Please describe the training (course title, area, etc.)" : "";
                 }
@@ -145,7 +153,14 @@ document.addEventListener("DOMContentLoaded", function () {
             if (trainingFormDetails) {
                 trainingFormDetails.classList.remove('d-none');
                 // Clear any selected training
+                const trainingNameField = document.getElementById('training_name');
                 const trainingDescField = document.getElementById('training_description');
+                
+                if (trainingNameField) {
+                    trainingNameField.value = '';
+                    trainingNameField.placeholder = "Enter the training name/title";
+                }
+                
                 if (trainingDescField) {
                     trainingDescField.value = '';
                     trainingDescField.placeholder = "Please describe the training (course title, area, etc.)";

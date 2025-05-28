@@ -95,7 +95,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const internalTrainerContainer = document.getElementById("internal-trainer-container");
         const externalSupplierContainer = document.getElementById("external-supplier-container");
         const trainerHoursContainer = document.getElementById("trainer-Hours-container");
+        const trainingClassContainer = document.getElementById("training-class-container");
         const courseCostContainer = document.getElementById("course-cost-container");
+        const invoiceNumberContainer = document.getElementById("invoice-number-container");
         const locationDetailsContainer = document.getElementById("location-details-container");
         const virtualTrainingNote = document.getElementById("virtual-training-attachment-note");
 
@@ -114,10 +116,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (selectedTrainingType) {
                 internalTrainerContainer?.classList.toggle("d-none", selectedTrainingType !== "Internal Training");
                 externalSupplierContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
-                // Always show training hours since it's now always required
+                // Always show training hours and training class since they're now always required
                 trainerHoursContainer?.classList.remove("d-none");
-                // Show course cost only for External Training
+                trainingClassContainer?.classList.remove("d-none");
+                // Show course cost and invoice number only for External Training
                 courseCostContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
+                invoiceNumberContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
                 
                 // Set course cost to 0 for Internal Training to prevent validation errors
                 if (selectedTrainingType === "Internal Training" && courseCostField) {

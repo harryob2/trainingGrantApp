@@ -42,6 +42,9 @@ content %}
             <div class="mb-4">
               <h4 class="fs-6 text-primary mb-3">Training Information</h4>
               <dl class="row">
+                <dt class="col-sm-4">Training Name</dt>
+                <dd class="col-sm-8">{{ form.training_name or 'Not specified' }}</dd>
+
                 <dt class="col-sm-4">Start Date</dt>
                 <dd class="col-sm-8">{{ form.start_date }}</dd>
 
@@ -88,6 +91,12 @@ content %}
 
                 <dt class="col-sm-4">Course Cost</dt>
                 <dd class="col-sm-8">€{{ "%.2f"|format(form.course_cost|default(0)) }}</dd>
+
+                <dt class="col-sm-4">Invoice Number</dt>
+                <dd class="col-sm-8">{{ form.invoice_number or 'Not provided' }}</dd>
+
+                <dt class="col-sm-4">Training Hours</dt>
+                <dd class="col-sm-8">{{ form.training_hours }}</dd>
                 {% endif %}
               </dl>
             </div>
@@ -120,33 +129,62 @@ content %}
           </div>
         </div>
 
+        <!-- Travel Expenses Section -->
+        <div class="mb-4">
+          <h4 class="fs-6 text-primary mb-3">Travel Expenses</h4>
+          {% if travel_expenses %}
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Destination</th>
+                  <th>Traveler</th>
+                  <th>Mode</th>
+                  <th>Distance/Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for expense in travel_expenses %}
+                <tr>
+                  <td>{{ expense.travel_date }}</td>
+                  <td>{{ expense.destination }}</td>
+                  <td>
+                    <strong>{{ expense.traveler_name }}</strong>
+                    <small class="text-muted d-block">({{ expense.traveler_type.title() }})</small>
+                  </td>
+                  <td>
+                    {% if expense.travel_mode == 'mileage' %}Mileage
+                    {% elif expense.travel_mode == 'rail' %}Rail
+                    {% elif expense.travel_mode == 'bus' %}Bus
+                    {% elif expense.travel_mode == 'economy_flight' %}Economy Flight
+                    {% else %}{{ expense.travel_mode.title() }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if expense.travel_mode == 'mileage' %}
+                      {{ "%.1f"|format(expense.distance_km) }} km
+                    {% else %}
+                      €{{ "%.2f"|format(expense.cost) }}
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0">
+            No travel expenses recorded for this training
+          </div>
+          {% endif %}
+        </div>
+
         <!-- Expenses Section -->
         <div class="mb-4">
-          <h4 class="fs-6 text-primary mb-3">Expenses Breakdown</h4>
+          <h4 class="fs-6 text-primary mb-3">Other Expenses Breakdown</h4>
           <div class="row expense-row mb-4">
-            <div class="col-md-3">
-              <div class="card border-primary">
-                <div class="card-body">
-                  <h5 class="card-title text-muted small">Travel</h5>
-                  <div class="fs-5">
-                    €{{ "%.2f"|format(form.travel_cost|default(0)) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="card border-primary">
-                <div class="card-body">
-                  <h5 class="card-title text-muted small">
-                    Food & Accommodation
-                  </h5>
-                  <div class="fs-5">
-                    €{{ "%.2f"|format(form.food_cost|default(0)) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
               <div class="card border-primary">
                 <div class="card-body">
                   <h5 class="card-title text-muted small">Materials</h5>
@@ -156,7 +194,7 @@ content %}
                 </div>
               </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
               <div class="card border-primary">
                 <div class="card-body">
                   <h5 class="card-title text-muted small">Other</h5>
@@ -179,8 +217,6 @@ content %}
             </div>
           </div>
         </div>
-
-
 
         <!-- Attachments Section -->
         <div class="card mb-4 mt-4">

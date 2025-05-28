@@ -21,6 +21,7 @@ from sqlalchemy.sql import func
 from contextlib import contextmanager
 from datetime import datetime, date
 from typing import Optional, Dict, Any, List, Tuple
+import logging
 
 DATABASE_URL = "sqlite:///training_forms.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -59,6 +60,7 @@ class TrainingForm(Base):
     __tablename__ = "training_forms"
     id = Column(Integer, primary_key=True, autoincrement=True)
     training_type = Column(String, nullable=False)
+    training_name = Column(String, nullable=False)
     trainer_name = Column(String)
     trainer_email = Column(String)
     supplier_name = Column(String)
@@ -72,11 +74,11 @@ class TrainingForm(Base):
     approved = Column(Boolean, default=False)
     concur_claim = Column(String)
     travel_cost = Column(Float, default=0)
-    food_cost = Column(Float, default=0)
     materials_cost = Column(Float, default=0)
     other_cost = Column(Float, default=0)
     other_expense_description = Column(Text)
     course_cost = Column(Float, default=0)
+    invoice_number = Column(String)
     training_description = Column(Text, nullable=False)
     submitter = Column(String)
     created_at = Column(DateTime, default=func.now())
@@ -84,12 +86,16 @@ class TrainingForm(Base):
     attachments = relationship(
         "Attachment", back_populates="training_form", cascade="all, delete-orphan"
     )
+    travel_expenses = relationship(
+        "TravelExpense", back_populates="training_form", cascade="all, delete-orphan"
+    )
 
     def to_dict(self, include_costs: bool = False) -> Dict[str, Any]:
         """Convert TrainingForm to dictionary with optional cost fields."""
         result = {
             "id": self.id,
             "training_type": self.training_type,
+            "training_name": self.training_name,
             "trainer_name": self.trainer_name,
             "trainer_email": self.trainer_email,
             "supplier_name": self.supplier_name,
@@ -111,12 +117,13 @@ class TrainingForm(Base):
         if include_costs:
             result.update({
                 "travel_cost": float(self.travel_cost or 0),
-                "food_cost": float(self.food_cost or 0),
                 "materials_cost": float(self.materials_cost or 0),
                 "other_cost": float(self.other_cost or 0),
                 "course_cost": float(self.course_cost or 0),
+                "invoice_number": self.invoice_number,
                 "concur_claim": self.concur_claim,
                 "other_expense_description": self.other_expense_description,
+                "travel_expenses": [expense.to_dict() for expense in self.travel_expenses],
             })
         
         return result
@@ -166,13 +173,48 @@ class Admin(Base):
     last_name = Column(String)
 
 
+class TravelExpense(Base):
+    __tablename__ = "travel_expenses"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    form_id = Column(
+        Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
+    )
+    travel_date = Column(Date, nullable=False)
+    destination = Column(String, nullable=False)
+    traveler_type = Column(String, nullable=False)  # 'trainer' or 'trainee'
+    traveler_email = Column(String, nullable=False)
+    traveler_name = Column(String, nullable=False)
+    travel_mode = Column(String, nullable=False)  # 'mileage', 'rail', 'economy_flight'
+    cost = Column(Float)  # for rail/flight
+    distance_km = Column(Float)  # for mileage
+    created_at = Column(DateTime, default=func.now())
+    training_form = relationship("TrainingForm", back_populates="travel_expenses")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert TravelExpense to dictionary."""
+        return {
+            "id": self.id,
+            "form_id": self.form_id,
+            "travel_date": self.travel_date.isoformat() if self.travel_date else None,
+            "destination": self.destination,
+            "traveler_type": self.traveler_type,
+            "traveler_email": self.traveler_email,
+            "traveler_name": self.traveler_name,
+            "travel_mode": self.travel_mode,
+            "cost": float(self.cost) if self.cost else None,
+            "distance_km": float(self.distance_km) if self.distance_km else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 def _apply_training_form_filters(query, search_term="", date_from=None, date_to=None, 
                                 training_type=None, approval_status=None):
     """Apply common filters to TrainingForm queries."""
     if search_term:
         like_term = f"%{search_term}%"
         query = query.filter(
-            (TrainingForm.trainer_name.like(like_term))
+            (TrainingForm.training_name.like(like_term))
+            | (TrainingForm.trainer_name.like(like_term))
             | (TrainingForm.trainer_email.like(like_term))
             | (TrainingForm.supplier_name.like(like_term))
             | (TrainingForm.location_details.like(like_term))
@@ -254,6 +296,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
     with db_session() as session:
         form = TrainingForm(
             training_type=form_data["training_type"],
+            training_name=form_data["training_name"],
             trainer_name=form_data.get("trainer_name"),
             trainer_email=form_data.get("trainer_email"),
             training_hours=form_data.get("training_hours"),
@@ -265,12 +308,12 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             trainees_data=form_data.get("trainees_data"),
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
-            travel_cost=form_data.get("travel_cost", 0),
-            food_cost=form_data.get("food_cost", 0),
+            travel_cost=0,  # No longer used - travel expenses handled separately
             materials_cost=form_data.get("materials_cost", 0),
             other_cost=form_data.get("other_cost", 0),
             other_expense_description=form_data.get("other_expense_description"),
             course_cost=form_data.get("course_cost", 0),
+            invoice_number=form_data.get("invoice_number"),
             training_description=form_data["training_description"],
             submitter=form_data.get("submitter"),
             ida_class=form_data.get("ida_class"),
@@ -349,3 +392,76 @@ def get_user_training_forms(
         query = _apply_sorting_and_pagination(query, sort_by, sort_order, page)
         forms = query.all()
         return [form.to_dict() for form in forms], total_count
+
+
+# Travel Expense CRUD Functions
+
+def insert_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, Any]]) -> bool:
+    """Insert multiple travel expenses for a training form."""
+    try:
+        with db_session() as session:
+            for expense_data in travel_expenses_data:
+                expense = TravelExpense(
+                    form_id=form_id,
+                    travel_date=parse_date(expense_data["travel_date"]),
+                    destination=expense_data["destination"],
+                    traveler_type=expense_data["traveler_type"],
+                    traveler_email=expense_data["traveler_email"],
+                    traveler_name=expense_data["traveler_name"],
+                    travel_mode=expense_data["travel_mode"],
+                    cost=expense_data.get("cost"),
+                    distance_km=expense_data.get("distance_km"),
+                )
+                session.add(expense)
+        return True
+    except Exception as e:
+        logging.error(f"Error inserting travel expenses: {str(e)}")
+        return False
+
+
+def update_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, Any]]) -> bool:
+    """Update travel expenses for a training form by replacing all existing ones."""
+    try:
+        with db_session() as session:
+            # Delete existing travel expenses for this form
+            session.query(TravelExpense).filter_by(form_id=form_id).delete()
+            
+            # Insert new travel expenses
+            for expense_data in travel_expenses_data:
+                expense = TravelExpense(
+                    form_id=form_id,
+                    travel_date=parse_date(expense_data["travel_date"]),
+                    destination=expense_data["destination"],
+                    traveler_type=expense_data["traveler_type"],
+                    traveler_email=expense_data["traveler_email"],
+                    traveler_name=expense_data["traveler_name"],
+                    travel_mode=expense_data["travel_mode"],
+                    cost=expense_data.get("cost"),
+                    distance_km=expense_data.get("distance_km"),
+                )
+                session.add(expense)
+        return True
+    except Exception as e:
+        logging.error(f"Error updating travel expenses: {str(e)}")
+        return False
+
+
+def get_travel_expenses(form_id: int) -> List[Dict[str, Any]]:
+    """Get all travel expenses for a training form."""
+    with db_session() as session:
+        expenses = session.query(TravelExpense).filter_by(form_id=form_id).all()
+        return [expense.to_dict() for expense in expenses]
+
+
+def delete_travel_expense(expense_id: int) -> bool:
+    """Delete a specific travel expense."""
+    try:
+        with db_session() as session:
+            expense = session.query(TravelExpense).filter_by(id=expense_id).first()
+            if expense:
+                session.delete(expense)
+                return True
+            return False
+    except Exception as e:
+        logging.error(f"Error deleting travel expense: {str(e)}")
+        return False
