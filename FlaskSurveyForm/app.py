@@ -795,7 +795,7 @@ def export_claim5():
                     # Fill the row with data according to requirements
                     trainee_sheet.cell(row=current_row, column=1).value = trainee_name  # Trainee Name
                     trainee_sheet.cell(row=current_row, column=2).value = form.get("training_description", "")  # Course Code/Name
-                    trainee_sheet.cell(row=current_row, column=3).value = form.get("ida_class", "")  # Certification Class
+                    trainee_sheet.cell(row=current_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
                     trainee_sheet.cell(row=current_row, column=4).value = ""  # Department
                     trainee_sheet.cell(row=current_row, column=8).value = form.get("start_date", "")  # Start Date
                     trainee_sheet.cell(row=current_row, column=9).value = form.get("end_date", "")  # End Date
