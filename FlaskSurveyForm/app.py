@@ -442,19 +442,12 @@ def view_form(form_id):
             trainees = json.loads(form_data["trainees_data"])
         except json.JSONDecodeError:
             logging.error(f"Error parsing trainees_data for form {form_data['id']}")
-    # Parse comma-separated trainee emails
-    trainee_emails = []
-    if form_data.get("trainee_emails"):
-        trainee_emails = [
-            e.strip() for e in form_data["trainees_data"].split(",") if e.strip()
-        ]
 
     return render_template(
         "view.html",
         form=form_data,
         trainees=trainees,
         attachments=attachments,
-        trainee_emails=trainee_emails,
         now=datetime.now(),
         is_admin=is_admin_user(current_user),
     )
@@ -932,13 +925,7 @@ def leaderboard():
 
         try:
             trainees_data = json.loads(form.get("trainees_data") or "[]")
-            if isinstance(trainees_data, list):
-                if trainees_data and isinstance(trainees_data[0], dict):
-                    num_trainees = len(trainees_data)
-                else:
-                    num_trainees = len(trainees_data)
-            else:
-                num_trainees = 0
+            num_trainees = len(trainees_data) if isinstance(trainees_data, list) else 0
         except Exception:
             num_trainees = 0
         training_hours_val = float(form.get("training_hours") or 0)

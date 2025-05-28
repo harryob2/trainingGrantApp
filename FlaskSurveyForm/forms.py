@@ -314,7 +314,6 @@ class TrainingForm(FlaskForm):
         # Handle trainees data
         if self.trainees_data.data:
             try:
-                # If trainees_data is already JSON, use it directly
                 trainees = json.loads(self.trainees_data.data)
                 if isinstance(trainees, list):
                     # Ensure all trainees have the required fields
@@ -330,34 +329,12 @@ class TrainingForm(FlaskForm):
                                 "department": trainee.get("department", "Engineering"),
                             }
                             processed_trainees.append(processed_trainee)
-                        elif isinstance(trainee, str):
-                            # Convert string email to trainee object
-                            processed_trainees.append(
-                                {
-                                    "email": trainee,
-                                    "name": trainee.split("@")[0],
-                                    "department": "Engineering",
-                                }
-                            )
-
                     data["trainees_data"] = json.dumps(processed_trainees)
                 else:
                     data["trainees_data"] = "[]"
             except json.JSONDecodeError:
-                # If not valid JSON, try to process as emails
-                emails = self.process_emails()
-                # Convert emails to trainee objects
-                trainees = [
-                    {
-                        "email": email,
-                        "name": email.split("@")[0],
-                        "department": "Engineering",
-                    }
-                    for email in emails
-                ]
-                data["trainees_data"] = json.dumps(trainees)
+                data["trainees_data"] = "[]"
         else:
-            # If no trainees data, use empty array
             data["trainees_data"] = "[]"
 
         return data
