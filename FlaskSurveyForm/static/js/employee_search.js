@@ -48,6 +48,13 @@ function initEmployeeSearch(
         if (trainerSearchInputElement) {
             trainerSearchInputElement.value = employee.name; // Explicitly set trainer name input
         }
+        
+        // Also update the trainer email hidden field
+        const trainerEmailHidden = document.getElementById('trainer_email_hidden');
+        if (trainerEmailHidden) {
+            trainerEmailHidden.value = employee.email || '';
+            trainerEmailHidden.dispatchEvent(new Event("change"));
+        }
       }
 
       // Update hidden field if specified (applies to trainer search)
@@ -56,6 +63,15 @@ function initEmployeeSearch(
         if (hiddenField) {
           hiddenField.value = employee.name;
           hiddenField.dispatchEvent(new Event("change"));
+        }
+        
+        // For trainer search, also update the email hidden field
+        if (hiddenFieldId === 'trainer_name_hidden') {
+          const trainerEmailHidden = document.getElementById('trainer_email_hidden');
+          if (trainerEmailHidden) {
+            trainerEmailHidden.value = employee.email || '';
+            trainerEmailHidden.dispatchEvent(new Event("change"));
+          }
         }
       }
 

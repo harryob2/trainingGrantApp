@@ -34,6 +34,7 @@
 
                 <!-- Hidden fields for JavaScript -->
                 {{ form.department(class="d-none", id="department_hidden") }}
+                {{ form.trainer_email(class="d-none", id="trainer_email_hidden") }}
                 <input type="hidden" id="trainees_data" name="trainees_data"
                     value="{{ form.trainees_data.data if form.trainees_data.data else '[]' }}" />
 
@@ -187,6 +188,13 @@
                                     <div class="form-text">
                                         How long the training took to deliver. Does not include preparation time.
                                     </div>
+                                    {% if form.training_hours.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.training_hours.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 
                                 <!-- Course Cost (only shown for External Training) -->
@@ -198,6 +206,13 @@
                                     <div class="form-text">
                                         The cost of the external training course.
                                     </div>
+                                    {% if form.course_cost.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.course_cost.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
 

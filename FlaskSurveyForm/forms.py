@@ -169,7 +169,7 @@ class TrainingForm(FlaskForm):
                 NumberRange(min=0, message="Course Cost cannot be negative."),
             ),
         ],
-        default=None,
+        default=0,
     )
 
     # Optional or complex validation
@@ -196,6 +196,7 @@ class TrainingForm(FlaskForm):
     # Hidden fields
     department = HiddenField("Department", default="Engineering")
     trainees_data = HiddenField("Trainees Data")
+    trainer_email = HiddenField("Trainer Email")  # New hidden field for trainer email
 
     # Attachment fields
     attachments = MultipleFileField(
@@ -277,6 +278,7 @@ class TrainingForm(FlaskForm):
         data = {
             "training_type": self.training_type.data,
             "trainer_name": (self.trainer_name.data if is_internal else None),
+            "trainer_email": (self.trainer_email.data if is_internal else None),
             "supplier_name": (self.supplier_name.data if not is_internal else None),
             "location_type": self.location_type.data,
             "location_details": (
@@ -346,6 +348,10 @@ class TrainingForm(FlaskForm):
                 raise ValidationError(
                     "Course Cost is required for external training and cannot be negative."
                 )
+        # For Internal Training, ensure the field has a valid default value
+        elif self.training_type.data == "Internal Training":
+            if field.data is None or str(field.data).strip() == "":
+                field.data = 0
 
 
 class InvoiceForm(FlaskForm):

@@ -60,6 +60,7 @@ class TrainingForm(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     training_type = Column(String, nullable=False)
     trainer_name = Column(String)
+    trainer_email = Column(String)
     supplier_name = Column(String)
     location_type = Column(String, nullable=False)
     location_details = Column(String)
@@ -90,6 +91,7 @@ class TrainingForm(Base):
             "id": self.id,
             "training_type": self.training_type,
             "trainer_name": self.trainer_name,
+            "trainer_email": self.trainer_email,
             "supplier_name": self.supplier_name,
             "location_type": self.location_type,
             "location_details": self.location_details,
@@ -171,6 +173,7 @@ def _apply_training_form_filters(query, search_term="", date_from=None, date_to=
         like_term = f"%{search_term}%"
         query = query.filter(
             (TrainingForm.trainer_name.like(like_term))
+            | (TrainingForm.trainer_email.like(like_term))
             | (TrainingForm.supplier_name.like(like_term))
             | (TrainingForm.location_details.like(like_term))
             | (TrainingForm.training_description.like(like_term))
@@ -252,6 +255,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
         form = TrainingForm(
             training_type=form_data["training_type"],
             trainer_name=form_data.get("trainer_name"),
+            trainer_email=form_data.get("trainer_email"),
             training_hours=form_data.get("training_hours"),
             supplier_name=form_data.get("supplier_name"),
             location_type=form_data["location_type"],

@@ -487,6 +487,7 @@ def edit_form(form_id):
             # Basic fields
             form.training_type.data = form_data["training_type"]
             form.trainer_name.data = form_data["trainer_name"]
+            form.trainer_email.data = form_data.get("trainer_email", "")  # Load trainer email
             form.supplier_name.data = form_data["supplier_name"]
             form.location_type.data = form_data["location_type"]
             form.location_details.data = form_data["location_details"]
@@ -758,17 +759,35 @@ def export_claim5():
 
         wb = load_workbook(template_path)
         
-        # Get the Trainee sheet
+        # Get the sheets
         trainee_sheet = wb["Trainee"]
-        
-        # Get the External Trainer sheet
         external_trainer_sheet = wb["External Trainer"]
+        internal_trainers_sheet = wb["Internal Trainers"]
+        personnel_sheet = wb["Personnel Costs Lookup Table"]
+        
+        # Initialize personnel list to track unique employees
+        personnel = []
+        departments = []  # Track departments corresponding to personnel
+        
+        # Get employee data for department lookup
+        employee_data = get_lookup_data("employees")
+        
+        # Create a lookup dictionary for departments by email username
+        department_lookup = {}
+        for emp in employee_data:
+            email = emp.get("email", "")
+            if email and "@" in email:
+                username = email.split("@")[0]
+                department_lookup[username] = emp.get("department", "")
         
         # Start row for data (header is on row 15)
         trainee_row = 16
         
         # Start row for external trainer data (header is on row 7)
         external_trainer_row = 8
+        
+        # Start row for internal trainers data (header is on row 8)
+        internal_trainers_row = 9
 
         def process_trainee_sheet(form):
             nonlocal trainee_row
@@ -792,6 +811,13 @@ def export_claim5():
                     # Extract email username (remove @ and everything after)
                     email = trainee.get("email", "")
                     trainee_name = email.split("@")[0] if "@" in email else email
+                    
+                    # Add trainee to personnel list if not already in
+                    if trainee_name and trainee_name not in personnel:
+                        personnel.append(trainee_name)
+                        # Look up department for this trainee
+                        department = department_lookup.get(trainee_name, "")
+                        departments.append(department)
 
                     # Fill the row with data according to requirements
                     trainee_sheet.cell(row=trainee_row, column=1).value = trainee_name  # Trainee Name
@@ -804,7 +830,14 @@ def export_claim5():
 
                     # Handle trainer names based on training type
                     if form.get("training_type") == "Internal Training":
-                        trainee_sheet.cell(row=trainee_row, column=10).value = form.get("trainer_name", "")  # Internal Trainer Name
+                        trainer_name = form.get("trainer_email", "").partition("@")[0]
+                        # Add trainer to personnel list if not already in
+                        if trainer_name and trainer_name not in personnel:
+                            personnel.append(trainer_name)
+                            # Look up department for this trainer
+                            department = department_lookup.get(trainer_name, "")
+                            departments.append(department)
+                        trainee_sheet.cell(row=trainee_row, column=10).value = trainer_name  # Internal Trainer Name
                         trainee_sheet.cell(row=trainee_row, column=11).value = ""  # External Trainer Name
                     else:
                         trainee_sheet.cell(row=trainee_row, column=10).value = ""  # Internal Trainer Name
@@ -821,29 +854,35 @@ def export_claim5():
             
             # Handle trainer sheets based on training type
             if form.get("training_type") == "Internal Training":
-                # TODO: Add data to internal trainers sheet
+                # Add data to internal trainers sheet
                 # Process internal trainer information
-                pass
+                try:
+                    # Extract username from email (remove domain)
+                    trainer_name = form.get("trainer_email", "").partition("@")[0]
+                    # Add trainer to personnel list if not already in
+                    if trainer_name and trainer_name not in personnel:
+                        personnel.append(trainer_name)
+                        # Look up department for this trainer
+                        department = department_lookup.get(trainer_name, "")
+                        departments.append(department)
+                    
+                    internal_trainers_sheet.cell(row=internal_trainers_row, column=1).value = trainer_name
+                    internal_trainers_sheet.cell(row=internal_trainers_row, column=3).value = form.get("training_description", "")
+                    internal_trainers_sheet.cell(row=internal_trainers_row, column=4).value = form.get("training_hours", "")
+                    
+                    internal_trainers_row += 1
+                    
+                except Exception as e:
+                    logging.error(f"Error processing internal trainers sheet for form {form['id']}: {str(e)}", exc_info=True)
             else:
                 # Add data to external trainers sheet  
                 # Process external trainer information
                 try:
-                    # Column A: Date (training start date)
                     external_trainer_sheet.cell(row=external_trainer_row, column=1).value = form.get("start_date", "")
-                    
-                    # Column B: Supplier/Name
                     external_trainer_sheet.cell(row=external_trainer_row, column=2).value = form.get("supplier_name", "")
-                    
-                    # Column C: Invoice # (leave blank for now)
                     external_trainer_sheet.cell(row=external_trainer_row, column=3).value = ""
-                    
-                    # Column D: Training Course Code/Name
                     external_trainer_sheet.cell(row=external_trainer_row, column=4).value = form.get("training_description", "")
-                    
-                    # Column E: Course Cost
                     external_trainer_sheet.cell(row=external_trainer_row, column=5).value = form.get("course_cost", 0)
-                    
-                    # Column F: Course Details (leave blank for now)
                     external_trainer_sheet.cell(row=external_trainer_row, column=6).value = ""
                     
                     external_trainer_row += 1
@@ -851,12 +890,20 @@ def export_claim5():
                 except Exception as e:
                     logging.error(f"Error processing external trainer sheet for form {form['id']}: {str(e)}", exc_info=True)
 
+        # Populate Personnel Costs Lookup Table sheet
+        # Header row starts at row 2, data starts at row 3
+        personnel_row = 3
+        for i, name in enumerate(personnel):
+            personnel_sheet.cell(row=personnel_row, column=2).value = name  # Column B is name
+            personnel_sheet.cell(row=personnel_row, column=3).value = departments[i]  # Column C is department
+            personnel_row += 1
+
         # Create an in-memory file to store the Excel
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        logging.info(f"Exported {len(approved_forms)} approved forms to Excel template.")
+        logging.info(f"Exported {len(approved_forms)} approved forms to Excel template with {len(personnel)} unique personnel.")
         # Send the file to the user
         return send_file(
             output,

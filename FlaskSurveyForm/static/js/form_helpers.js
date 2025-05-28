@@ -107,6 +107,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function handleTrainingTypeChange() {
             const selectedTrainingType = form.elements["training_type"]?.value;
+            const courseCostField = document.getElementById("course_cost");
+            
             trainingDetailsSection.classList.toggle("d-none", !selectedTrainingType);
 
             if (selectedTrainingType) {
@@ -116,6 +118,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 trainerHoursContainer?.classList.remove("d-none");
                 // Show course cost only for External Training
                 courseCostContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
+                
+                // Set course cost to 0 for Internal Training to prevent validation errors
+                if (selectedTrainingType === "Internal Training" && courseCostField) {
+                    courseCostField.value = "0";
+                }
             }
         }
 

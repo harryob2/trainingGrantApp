@@ -40,7 +40,9 @@ class TrainingForm(FlaskForm):
     supplier_name = StringField("Supplier Name", validators=[DynamicRequiredIf("training_type", "External Training")])
     location_details = StringField("Location Details", validators=[DynamicRequiredIf("location_type", "Offsite")])
     training_hours = FloatField("Training Hours", validators=[DynamicRequiredIf("training_type", "Internal Training")])
-    course_cost = FloatField("Course Cost", validators=[DynamicRequiredIf("training_type", "External Training")])
+    course_cost = FloatField("Course Cost", validators=[DynamicRequiredIf("training_type", "External Training", 
+                NumberRange(min=0, message="Course Cost cannot be negative."))], 
+    default=0)
     
     # Optional Fields
     travel_cost = FloatField("Travel Expenses", validators=[Optional(), NumberRange(min=0)])
@@ -132,7 +134,8 @@ supplier_name = StringField("Supplier Name",
     validators=[DynamicRequiredIf("training_type", "External Training")])
 course_cost = FloatField("Course Cost", 
     validators=[DynamicRequiredIf("training_type", "External Training", 
-                NumberRange(min=0, message="Course Cost cannot be negative."))])
+                NumberRange(min=0, message="Course Cost cannot be negative."))], 
+    default=0)
 ```
 
 #### Location Type Dependencies

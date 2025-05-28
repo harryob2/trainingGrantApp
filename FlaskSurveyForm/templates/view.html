@@ -71,7 +71,14 @@ content %}
               <dl class="row">
                 {% if form.training_type == 'Internal Training' %}
                 <dt class="col-sm-4">Trainer</dt>
-                <dd class="col-sm-8">{{ form.trainer_name }}</dd>
+                <dd class="col-sm-8">
+                  {{ form.trainer_name }}
+                  {% if form.trainer_email %}
+                  <div class="text-muted small">
+                    <i class="bi bi-envelope"></i> {{ form.trainer_email }}
+                  </div>
+                  {% endif %}
+                </dd>
 
                 <dt class="col-sm-4">Training Hours</dt>
                 <dd class="col-sm-8">{{ form.training_hours }}</dd>
