@@ -440,14 +440,8 @@ def view_form(form_id):
     if form_data.get("trainees_data"):
         try:
             trainees = json.loads(form_data["trainees_data"])
-            if (
-                isinstance(trainees, list)
-                and len(trainees) > 0
-                and not isinstance(trainees[0], dict)
-            ):
-                trainees = [{"email": email} for email in trainees]
-        except Exception:
-            trainees = []
+        except json.JSONDecodeError:
+            logging.error(f"Error parsing trainees_data for form {form_data['id']}")
     # Parse comma-separated trainee emails
     trainee_emails = []
     if form_data.get("trainee_emails"):
@@ -766,17 +760,7 @@ def export_claim5():
                 trainees = []
                 if form.get("trainees_data"):
                     try:
-                        trainees_data = json.loads(form["trainees_data"])
-                        if isinstance(trainees_data, list):
-                            # Handle different possible formats of trainees_data
-                            if trainees_data and isinstance(trainees_data[0], dict):
-                                trainees = trainees_data
-                            else:
-                                # Simple list of emails, convert to dict format
-                                trainees = [
-                                    {"email": email, "name": email}
-                                    for email in trainees_data
-                                ]
+                        trainees = json.loads(form["trainees_data"])
                     except json.JSONDecodeError:
                         logging.error(f"Error parsing trainees_data for form {form['id']}")
                         return
