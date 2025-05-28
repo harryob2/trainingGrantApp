@@ -95,6 +95,7 @@ def get_lookup_data(entity_type: str):
                         "training_type": item.training_type,
                         "supplier_name": item.supplier_name,  # Add supplier name for External Training
                         "training_hours": item.training_hours,  # Add training hours
+                        "course_cost": item.course_cost
                     })
             _training_catalog_cache = trainings
             logger.info(f"Loaded and cached {len(trainings)} training catalog items.")

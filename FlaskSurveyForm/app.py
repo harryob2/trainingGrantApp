@@ -45,6 +45,7 @@ from models import (
 from setup_db import setup_database
 from auth import init_auth, authenticate_user, is_admin_email
 from lookups import get_lookup_data
+from utils import get_quarter
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -211,11 +212,6 @@ def submit_form():
     """Process the form submission"""
     form = TrainingForm()
 
-    # Log all form data received
-    logging.debug("=== Form Submission Debug ===")
-    logging.debug(f"Form data: {request.form}")
-    logging.debug(f"Trainees data: {request.form.get('trainees_data')}")
-
     # Validate the form data
     if form.validate_on_submit():
         try:
@@ -226,7 +222,6 @@ def submit_form():
 
             # Prepare form data using the form's method
             form_data = form.prepare_form_data()
-            logging.debug(f"Prepared form data: {form_data}")
 
             # Add submitter information
             form_data["submitter"] = current_user.email
@@ -238,7 +233,6 @@ def submit_form():
 
             # Insert the form data into the database
             form_id = insert_training_form(form_data)
-            logging.debug(f"Form inserted with ID: {form_id}")
 
             # Create a unique folder for attachments
             unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
@@ -248,7 +242,6 @@ def submit_form():
             if "attachments" in request.files:
                 new_files = request.files.getlist("attachments")
                 descriptions = request.form.getlist("attachment_descriptions[]")
-                logging.debug(f"Processing {len(new_files)} new attachments.")
 
                 if len(descriptions) < len(new_files):
                     descriptions.extend([""] * (len(new_files) - len(descriptions)))
@@ -258,7 +251,6 @@ def submit_form():
                         if file and file.filename:
                             filename = secure_filename(file.filename)
                             file_path = os.path.join(unique_folder, filename)
-                            logging.debug(f"Saving file {filename} to {file_path}")
                             file.save(file_path)
                             description = (
                                 descriptions[i] if i < len(descriptions) else ""
@@ -270,13 +262,6 @@ def submit_form():
                                     description=description,
                                 )
                             )
-                        else:
-                            logging.debug(f"Skipping empty file input at index {i}.")
-
-            elif not request.files.getlist("attachments"):
-                logging.debug(
-                    "No new files found in request.files for key 'attachments'."
-                )
 
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))
@@ -434,7 +419,6 @@ def list_forms():
 def view_form(form_id):
     """Display a single training form submission"""
     form_data = get_training_form(form_id)
-    print("DEBUG - Form Data Received:", form_data)
     if not form_data:
         flash("Training form not found", "danger")
         return redirect(url_for("list_forms"))
@@ -471,7 +455,6 @@ def view_form(form_id):
             e.strip() for e in form_data["trainees_data"].split(",") if e.strip()
         ]
 
-    print("Attachments from DB:", attachments)
     return render_template(
         "view.html",
         form=form_data,
@@ -487,7 +470,6 @@ def view_form(form_id):
 @login_required
 def edit_form(form_id):
     """Edit an existing training form submission"""
-    logging.debug(f"Edit form request - Method: {request.method}, Form ID: {form_id}")
     form = TrainingForm()
 
     if request.method == "GET":
@@ -543,7 +525,6 @@ def edit_form(form_id):
 
             # Get form data
             form_data = form.prepare_form_data()
-            logging.debug(f"Prepared form data: {form_data}")
 
             # Get the existing form to preserve the submitter
             existing_form = get_training_form(form_id)
@@ -561,20 +542,16 @@ def edit_form(form_id):
 
             # Update form data in database
             update_training_form(form_id, form_data)
-            logging.debug(f"Form {form_id} core data updated.")
 
-            # --- Handle Attachments ---
+            # Handle Attachments
             unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
             os.makedirs(unique_folder, exist_ok=True)
-            logging.debug(f"Ensured attachment directory exists: {unique_folder}")
 
             # Process NEW attachments using SQLAlchemy ORM
             if "attachments" in request.files:
                 new_files = request.files.getlist("attachments")
                 descriptions = request.form.getlist("attachment_descriptions[]")
-                logging.debug(
-                    f"Processing {len(new_files)} new attachments for form {form_id}."
-                )
+                
                 if len(descriptions) < len(new_files):
                     descriptions.extend([""] * (len(new_files) - len(descriptions)))
                 with db_session() as session:
@@ -582,7 +559,6 @@ def edit_form(form_id):
                         if file and file.filename:
                             filename = secure_filename(file.filename)
                             file_path = os.path.join(unique_folder, filename)
-                            logging.debug(f"Saving new file {filename} to {file_path}")
                             file.save(file_path)
                             description = (
                                 descriptions[i] if i < len(descriptions) else ""
@@ -594,21 +570,10 @@ def edit_form(form_id):
                                     description=description,
                                 )
                             )
-                        else:
-                            logging.debug(
-                                f"Skipping empty new file input at index {i}."
-                            )
-            else:
-                logging.debug(
-                    "No new files found in request.files for key 'attachments'."
-                )
 
             # Handle attachment DELETIONS using SQLAlchemy ORM
             delete_attachments = request.form.getlist("delete_attachments[]")
             if delete_attachments:
-                logging.debug(
-                    f"Processing deletions for attachment IDs: {delete_attachments}"
-                )
                 with db_session() as session:
                     session.query(Attachment).filter(
                         Attachment.id.in_(delete_attachments),
@@ -620,7 +585,6 @@ def edit_form(form_id):
                 "update_attachment_descriptions[]"
             )
             if update_descriptions:
-                logging.debug(f"Processing description updates: {update_descriptions}")
                 with db_session() as session:
                     for desc_json in update_descriptions:
                         try:
@@ -730,10 +694,6 @@ def export_claim5_options():
     min_date = min(created_dates).date().isoformat()
     max_date = max(created_dates).date().isoformat()
 
-    def get_quarter(dt):
-        q = (dt.month - 1) // 3 + 1
-        return f"Q{q} {dt.year}"
-
     quarters = sorted(
         {get_quarter(dt) for dt in created_dates}, key=lambda x: (int(x[1]), int(x[3:]))
     )
@@ -758,10 +718,6 @@ def export_claim5():
 
         forms = get_approved_forms_for_export()
         filtered_forms = []
-
-        def get_quarter(dt):
-            q = (dt.month - 1) // 3 + 1
-            return f"Q{q} {dt.year}"
 
         for f in forms:
             created = (

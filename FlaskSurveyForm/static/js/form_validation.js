@@ -1,5 +1,8 @@
 /**
  * Form validation logic for the training form.
+ * 
+ * This module handles client-side validation for the training form,
+ * including dynamic field requirements based on training type.
  */
 
 /**
@@ -75,7 +78,60 @@ function parseCurrency(val) {
     return parseFloat(val.replace(/[^0-9.-]+/g, ""));
 }
 
-// --- Main Validation Driver Logic (integrating previous inline script logic) ---
+// --- Validation Helper Functions ---
+
+/**
+ * Check if a field should be required based on training type
+ */
+function isFieldRequired(fieldName, trainingType) {
+    const internalRequiredFields = ['trainer_name', 'training_hours'];
+    const externalRequiredFields = ['supplier_name', 'course_cost'];
+    
+    if (trainingType === 'Internal Training') {
+        return internalRequiredFields.includes(fieldName);
+    } else if (trainingType === 'External Training') {
+        return externalRequiredFields.includes(fieldName);
+    }
+    return false;
+}
+
+/**
+ * Validate email format
+ */
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+}
+
+/**
+ * Check if trainees have been added
+ */
+function hasTrainees() {
+    const traineesData = document.getElementById('trainees_data');
+    if (!traineesData || !traineesData.value) return false;
+    
+    try {
+        const trainees = JSON.parse(traineesData.value);
+        return Array.isArray(trainees) && trainees.length > 0;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Check if any expense fields have values
+ */
+function hasExpenses() {
+    const expenseFields = ['travel_cost', 'food_cost', 'materials_cost', 'other_cost'];
+    return expenseFields.some(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field) return false;
+        const value = parseCurrency(field.value);
+        return !isNaN(value) && value > 0;
+    });
+}
+
+// --- Main Validation Driver Logic ---
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("training-form");
     const submitButton = document.getElementById("submit-training-form-btn");
@@ -118,236 +174,120 @@ document.addEventListener("DOMContentLoaded", function () {
         return messageElement;
     }
 
-    // --- Form Validation triggered by BUTTON CLICK ---
+    // Main validation logic
     submitButton.addEventListener("click", function (event) {
-        // 1. Reset state
-        document.querySelectorAll(".validation-message").forEach((el) => el.remove());
-        form.classList.remove("was-validated");
-        // Reset custom validity messages
-        Array.from(form.elements).forEach(el => el.setCustomValidity?.(""));
-        console.log("Form validation triggered...");
-
-        // 2. Specific Custom Validations (before checkValidity)
-        const trainingType = form.elements["training_type"];
-        const locationType = form.elements["location_type"];
-        const startDate = form.elements["start_date"];
-        const endDate = form.elements["end_date"];
-        const travelCost = form.elements["travel_cost"];
-        const foodCost = form.elements["food_cost"];
-        const materialsCost = form.elements["materials_cost"];
-        const otherCost = form.elements["other_cost"];
-        const concurClaim = form.elements["concur_claim"];
-        const otherDesc = form.elements["other_expense_description"];
-        const trainerNameSearch = document.getElementById("trainer_name_search");
-        const trainerNameHidden = form.elements["trainer_name"];
-        const traineesData = form.elements["trainees_data"];
-        const locationDetails = form.elements["location_details"];
-
+        // Clear previous validation messages
+        document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+        
+        let isValid = true;
         let firstInvalidElement = null;
-        let firstInvalidMessageElement = null;
 
-        // --- Training Type ---
-        if (!trainingType.value) {
-            const message = "Please select a training type.";
-            const targetElement = document.getElementById('training-type-card-group') || trainingType[0];
-            if (targetElement) {
-                firstInvalidMessageElement = showValidationMessage(targetElement, message);
-                firstInvalidElement = targetElement; // Set focus target
+        // Get form elements
+        const trainingType = document.querySelector('input[name="training_type"]:checked');
+        const trainerName = document.getElementById("trainer_name_search");
+        const supplierName = document.getElementById("supplier_name");
+        const trainingHours = document.getElementById("training_hours");
+        const courseCost = document.getElementById("course_cost");
+        const concurClaim = document.getElementById("concur_claim");
+        const otherCost = document.getElementById("other_cost");
+        const otherDesc = document.getElementById("other_expense_description");
+
+        // Validate training type selection
+        if (!trainingType) {
+            const trainingTypeContainer = document.getElementById("training-type-card-group");
+            if (trainingTypeContainer) {
+                showValidationMessage(trainingTypeContainer, "Please select a training type.");
+                if (!firstInvalidElement) firstInvalidElement = trainingTypeContainer;
             }
+            isValid = false;
         }
 
-        // --- Location Type --- (If training type is selected)
-        if (trainingType.value && !locationType.value) {
-            const message = "Please select a location type.";
-            const targetElement = locationType[0]?.closest(".form-group") || locationType[0];
-            if (targetElement && !firstInvalidElement) {
-                firstInvalidMessageElement = showValidationMessage(targetElement, message);
-                firstInvalidElement = targetElement;
+        // Validate trainees
+        if (!hasTrainees()) {
+            const traineesContainer = document.getElementById("trainee-search-input");
+            if (traineesContainer) {
+                showValidationMessage(traineesContainer, "At least one trainee must be added.");
+                if (!firstInvalidElement) firstInvalidElement = traineesContainer;
             }
+            isValid = false;
         }
 
-        // --- Location Details --- (If Offsite)
-        if (locationType.value === 'Offsite' && !locationDetails?.value?.trim()) {
-             const message = "Location Details are required for Offsite training.";
-             if (locationDetails && !firstInvalidElement) {
-                  firstInvalidMessageElement = showValidationMessage(locationDetails, message);
-                  firstInvalidElement = locationDetails;
-                  locationDetails.setCustomValidity(message); // Also set for potential Bootstrap styling
-             }
-        } else if (locationDetails) {
-            locationDetails.setCustomValidity("");
-        }
+        // Dynamic validation based on training type
+        if (trainingType) {
+            const typeValue = trainingType.value;
 
-        // --- Dates ---
-        validateDates(startDate, endDate); // Sets custom validity on endDate
-
-        // --- Conditional Trainer Name ---
-        if (trainerNameSearch && trainerNameHidden) {
-            if (trainingType.value === "Internal Training" && !trainerNameHidden.value?.trim()) {
-                trainerNameSearch.setCustomValidity("Trainer name is required for internal training.");
-            } else {
-                trainerNameSearch.setCustomValidity("");
-            }
-        }
-
-        // --- Training Hours: Required for Internal Training ---
-        const trainerHours = form.elements["training_hours"];
-        if (
-            trainingType.value === "Internal Training" &&
-            trainerHours &&
-            (
-                trainerHours.value === "" ||
-                isNaN(Number(trainerHours.value)) ||
-                Number(trainerHours.value) <= 0
-            )
-        ) {
-            trainerHours.classList.add("is-invalid");
-            // Add feedback if not present
-            let feedback = trainerHours.parentElement.querySelector('.invalid-feedback');
-            if (!feedback) {
-                feedback = document.createElement('div');
-                feedback.className = 'invalid-feedback';
-                feedback.innerText = "Training Hours are required and must be greater than 0 for internal training.";
-                trainerHours.parentElement.appendChild(feedback);
-            }
-            trainerHours.setCustomValidity("Training Hours are required and must be greater than 0 for internal training.");
-            if (!firstInvalidElement) firstInvalidElement = trainerHours;
-        } else if (trainerHours) {
-            trainerHours.classList.remove("is-invalid");
-            trainerHours.setCustomValidity("");
-            let feedback = trainerHours.parentElement.querySelector('.invalid-feedback');
-            if (feedback) feedback.remove();
-        }
-
-        // --- Course Cost: Required for External Training ---
-        const courseCost = form.elements["course_cost"];
-        if (
-            trainingType.value === "External Training" &&
-            courseCost &&
-            (
-                courseCost.value === "" ||
-                isNaN(Number(parseCurrency(courseCost.value))) ||
-                Number(parseCurrency(courseCost.value)) < 0
-            )
-        ) {
-            courseCost.classList.add("is-invalid");
-            // Add feedback if not present
-            let feedback = courseCost.parentElement.querySelector('.invalid-feedback');
-            if (!feedback) {
-                feedback = document.createElement('div');
-                feedback.className = 'invalid-feedback';
-                feedback.innerText = "Course Cost is required for external training and cannot be negative.";
-                courseCost.parentElement.appendChild(feedback);
-            }
-            courseCost.setCustomValidity("Course Cost is required for external training and cannot be negative.");
-            if (!firstInvalidElement) firstInvalidElement = courseCost;
-        } else if (courseCost) {
-            courseCost.classList.remove("is-invalid");
-            courseCost.setCustomValidity("");
-            let feedback = courseCost.parentElement.querySelector('.invalid-feedback');
-            if (feedback) feedback.remove();
-        }
-
-        // --- Expenses: Concur Claim ---
-        const expenseInputs = [travelCost, foodCost, materialsCost, otherCost].filter(el => el);
-        let hasExpenses = expenseInputs.some((input) => {
-             const val = (typeof parseCurrency === 'function') ? parseCurrency(input.value) : parseFloat(input.value || '0');
-             return !isNaN(val) && val > 0;
-         });
-        if (concurClaim) {
-            if (hasExpenses && !concurClaim.value.trim()) {
-                concurClaim.setCustomValidity("Concur Claim Number is required when expenses are entered.");
-            } else {
-                concurClaim.setCustomValidity("");
-            }
-        }
-
-        // --- Expenses: Other Description ---
-        if (otherDesc && otherCost) {
-             const otherCostVal = (typeof parseCurrency === 'function') ? parseCurrency(otherCost.value) : parseFloat(otherCost.value || '0');
-            if (!isNaN(otherCostVal) && otherCostVal > 0 && !otherDesc.value.trim()) {
-                otherDesc.setCustomValidity("Description is required when other expenses are entered.");
-            } else {
-                otherDesc.setCustomValidity("");
-            }
-        }
-
-        // --- Trainees ---
-        if (!traineesData || !traineesData.value || traineesData.value.trim() === '[]') {
-            const message = "At least one trainee must be added.";
-            const targetElement = document.getElementById("trainee-search-input") || document.getElementById("trainees-list");
-            if (targetElement && !firstInvalidElement) {
-                firstInvalidMessageElement = showValidationMessage(targetElement, message);
-                firstInvalidElement = targetElement;
-            }
-        }
-
-        // 3. Perform Browser's Check & Find First Standard Error
-        let isFormValid = form.checkValidity(); // Check standard HTML5 validation
-
-        if (!isFormValid && !firstInvalidElement) { // Find the first *standard* error only if no custom one was found yet
-            const elements = form.elements;
-            for (let i = 0; i < elements.length; i++) {
-                const element = elements[i];
-                if (!element.name || element.type === 'submit' || element.type === 'button' || element.disabled ) continue;
-
-                if (!element.validity.valid) {
-                    if (isReallyVisible(element)) {
-                        // Show message for this standard error
-                        showValidationMessage(element, element.validationMessage || "This field is required.");
-                        firstInvalidElement = element; // Set this as the first element to focus/scroll to
-                        break; // Stop at the first visible standard error
+            // Internal Training validations
+            if (typeValue === "Internal Training") {
+                if (!trainerName || !trainerName.value.trim()) {
+                    if (trainerName) {
+                        showValidationMessage(trainerName, "Trainer Name is required for internal training.");
+                        if (!firstInvalidElement) firstInvalidElement = trainerName;
                     }
+                    isValid = false;
+                }
+
+                if (!trainingHours || !trainingHours.value || parseFloat(trainingHours.value) <= 0) {
+                    if (trainingHours) {
+                        showValidationMessage(trainingHours, "Training Hours is required and must be greater than 0 for internal training.");
+                        if (!firstInvalidElement) firstInvalidElement = trainingHours;
+                    }
+                    isValid = false;
+                }
+            }
+
+            // External Training validations
+            if (typeValue === "External Training") {
+                if (!supplierName || !supplierName.value.trim()) {
+                    if (supplierName) {
+                        showValidationMessage(supplierName, "Supplier Name is required for external training.");
+                        if (!firstInvalidElement) firstInvalidElement = supplierName;
+                    }
+                    isValid = false;
+                }
+
+                if (!courseCost || !courseCost.value || parseCurrency(courseCost.value) < 0) {
+                    if (courseCost) {
+                        showValidationMessage(courseCost, "Course Cost is required for external training and cannot be negative.");
+                        if (!firstInvalidElement) firstInvalidElement = courseCost;
+                    }
+                    isValid = false;
                 }
             }
         }
 
-        // 4. Handle Overall Validity
-        if (!isFormValid || firstInvalidMessageElement) { // If either checkValidity failed OR we manually added a message
-            event.preventDefault(); // Prevent submission
-            form.classList.add("was-validated"); // Trigger Bootstrap styles for fields with setCustomValidity errors
-
-            let elementToFocus = firstInvalidElement; // Use the element identified earlier
-
-            // Adjust focus target for specific controls
-            if (elementToFocus) {
-                 if (elementToFocus.name === 'training_type') {
-                     elementToFocus = document.getElementById('training-type-card-group') || elementToFocus;
-                 } else if (elementToFocus.name === 'location_type'){
-                     elementToFocus = elementToFocus.closest('.form-group') || elementToFocus;
-                 } else if (elementToFocus.id === 'trainee-search-input' || elementToFocus.id === 'trainees-list') {
-                     elementToFocus = document.getElementById('trainee-search-input') || elementToFocus;
-                 } else if (elementToFocus.id === 'trainer_name') { // Hidden field
-                     elementToFocus = document.getElementById('trainer_name_search') || elementToFocus;
-                 }
-
-                console.log("Scrolling/Focusing first invalid element:", elementToFocus);
-                const scrollTarget = elementToFocus.closest('.form-group, .mb-3, .trainee-search-box, #training-type-card-group') || elementToFocus;
-                scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" });
-
-                setTimeout(() => {
-                    let focusable = (elementToFocus.tagName === 'INPUT' || elementToFocus.tagName === 'TEXTAREA' || elementToFocus.tagName === 'SELECT')
-                                      ? elementToFocus
-                                      : elementToFocus.querySelector('input:not([type=hidden]), textarea, select');
-
-                    if (focusable?.focus) {
-                        focusable.focus({ preventScroll: true });
-                    }
-                }, 150);
+        // Expense validations
+        if (hasExpenses() && (!concurClaim || !concurClaim.value.trim())) {
+            if (concurClaim) {
+                showValidationMessage(concurClaim, "Concur Claim Number is required when expenses are entered.");
+                if (!firstInvalidElement) firstInvalidElement = concurClaim;
             }
+            isValid = false;
+        }
 
-        } else {
-            // Form IS valid
-            console.log("Form is valid. Preparing attachments for submission.");
-            form.classList.remove("was-validated");
-
-            if (window.prepareAttachmentsForSubmit) {
-                window.prepareAttachmentsForSubmit();
-            } else {
-                console.error("prepareAttachmentsForSubmit function not found!");
+        // Other expense description validation
+        if (otherCost && otherDesc) {
+            const otherCostVal = parseCurrency(otherCost.value);
+            if (!isNaN(otherCostVal) && otherCostVal > 0 && !otherDesc.value.trim()) {
+                showValidationMessage(otherDesc, "Description is required when other expenses are entered.");
+                if (!firstInvalidElement) firstInvalidElement = otherDesc;
+                isValid = false;
             }
         }
+
+        // If validation failed, prevent submission and focus first invalid element
+        if (!isValid) {
+            event.preventDefault();
+            if (firstInvalidElement) {
+                firstInvalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (firstInvalidElement.focus) {
+                    setTimeout(() => firstInvalidElement.focus(), 100);
+                }
+            }
+            return false;
+        }
+
+        return true;
     });
 
-    console.log("Form Validation Initialized.");
+    console.log("Form validation initialized.");
 });

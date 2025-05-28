@@ -43,20 +43,20 @@ def get_training_type_supplier_cost_lookup():
         training_name = row[1]
         supplier_name = row[2]
         training_type_val = row[3]
-        training_cost = row[4]
+        course_cost = row[4]
         if pd.isna(training_name):
             continue
         if training_type_val == "Internal":
             lookup[training_name] = {
                 "training_type": "Internal Training",
                 "supplier_name": None,
-                "training_cost": None,
+                "course_cost": None,
             }
         elif training_type_val == "External-Eligible":
             lookup[training_name] = {
                 "training_type": "External Training",
                 "supplier_name": supplier_name if pd.notna(supplier_name) else None,
-                "training_cost": float(training_cost) if pd.notna(training_cost) else None,
+                "course_cost": float(course_cost) if pd.notna(course_cost) else None,
             }
     return lookup
 
@@ -83,12 +83,12 @@ def populate_training_hours_and_details():
                     print(f"Error converting days to hours for {name}: {e}")
                     hours = None
                 catalog.training_hours = hours
-            # Update training_type, supplier_name, training_cost
+            # Update training_type, supplier_name, course_cost
             details = details_lookup.get(name)
             if details:
                 catalog.training_type = details["training_type"]
                 catalog.supplier_name = details["supplier_name"]
-                catalog.training_cost = details["training_cost"]
+                catalog.course_cost = details["course_cost"]
                 print(f"Updated details for {name}: {details}")
             updated += 1
         session.commit()

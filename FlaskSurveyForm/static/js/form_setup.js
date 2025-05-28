@@ -3,6 +3,29 @@ import { initAutocomplete } from './autocomplete.js';
 document.addEventListener("DOMContentLoaded", function () {
     console.log("[FormSetup] DOMContentLoaded, initializing components...");
 
+    // Helper function to set currency value with retry logic
+    function setCurrencyValueWithRetry(field, value, retryCount = 0) {
+        const maxRetries = 5;
+        const retryDelay = 50; // ms
+        
+        // Try to use the global setCurrencyValue function first
+        if (window.setCurrencyValue && window.setCurrencyValue(field, value)) {
+            return true;
+        }
+        
+        // If that didn't work and we haven't exhausted retries, try again
+        if (retryCount < maxRetries) {
+            console.log(`[FormSetup] Currency value setting failed, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => setCurrencyValueWithRetry(field, value, retryCount + 1), retryDelay);
+            return true;
+        }
+        
+        // Fallback to setting raw value
+        console.warn('[FormSetup] All currency setting attempts failed, using raw value');
+        field.value = value;
+        return false;
+    }
+
     // Initialize Training Catalog Search
     const trainingCatalogSearchInput = document.getElementById("training_catalog_search_input");
     const trainingCatalogSearchResultsDivId = "training_catalog_search_results";
@@ -33,6 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const trainingTypeCards = document.querySelectorAll('.training-type-card');
                 const supplierNameField = document.getElementById('supplier_name');
                 const trainingHoursField = document.getElementById('training_hours');
+                const courseCostField = document.getElementById('course_cost');
                 console.log('[DEBUG] Found trainingTypeRadios:', trainingTypeRadios);
                 console.log('[DEBUG] Found trainingTypeCards:', trainingTypeCards);
 
@@ -83,20 +107,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 }
 
-                // Populate supplier name if External Training
+                // Populate supplier name and course cost if External Training
                 if (training.training_type === 'External Training' && supplierNameField && training.supplier_name) {
                     supplierNameField.value = training.supplier_name;
+                    
+                    // Handle course cost with AutoNumeric formatting
+                    if (courseCostField && training.course_cost) {
+                        setCurrencyValueWithRetry(courseCostField, training.course_cost);
+                    }
                 }
 
                 // Populate training hours regardless of type
                 if (trainingHoursField && training.training_hours) {
                     trainingHoursField.value = training.training_hours;
-                }
-
-                // Populate course cost for External Training
-                const courseCostField = document.getElementById('course_cost');
-                if (training.training_type === 'External Training' && courseCostField && training.training_cost) {
-                    courseCostField.value = training.training_cost;
                 }
 
                 // Show the form details section

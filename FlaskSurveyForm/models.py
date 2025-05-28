@@ -84,7 +84,8 @@ class TrainingCatalog(Base):
     training_type = Column(String)
     training_hours = Column(Float)
     supplier_name = Column(String)
-    training_cost = Column(Float)
+    course_cost = Column(Float)
+    course_cost = Column(Float, default=0)
 
 
 class Attachment(Base):

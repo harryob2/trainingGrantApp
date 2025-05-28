@@ -1,60 +1,40 @@
 /**
- * Other Expense Description Script
- *
- * This script handles the dynamic display of the Other Expense Description field
- * based on whether the Other Expenses field has a value greater than zero.
+ * Other Expense and Concur Claim Logic
+ * Handles visibility of other expense description field and concur claim requirements
  */
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Get the Other Expenses field
+  // Get references to the relevant elements
   const otherCostField = document.getElementById("other_cost");
-  const form = document.getElementById("training-form"); // Need form reference
-
-  // Get the Other Expense Description container
-  const descriptionContainer = document.getElementById(
-    "other-expense-description-container",
-  );
-
-  // --- Add Concur Logic Elements ---
-  const travelCostInput = form?.elements["travel_cost"];
-  const foodCostInput = form?.elements["food_cost"];
-  const materialsCostInput = form?.elements["materials_cost"];
-  // otherCostField is already defined
+  const otherDescriptionDiv = document.getElementById("other-expense-description");
+  const concurClaimInput = document.getElementById("concur_claim");
   const concurRequiredMessageDiv = document.getElementById("concur-required-message");
-  const concurClaimInput = form?.elements["concur_claim"];
 
-  // Combine inputs, filtering out any that might not exist
+  // Get all expense input fields for concur logic
   const expenseInputs = [
-      travelCostInput,
-      foodCostInput,
-      materialsCostInput,
-      otherCostField, // Use the existing variable
-  ].filter(input => input);
+    document.getElementById("travel_cost"),
+    document.getElementById("food_cost"),
+    document.getElementById("materials_cost"),
+    document.getElementById("other_cost"),
+  ].filter(Boolean); // Remove null elements
 
-  // --- End Concur Logic Elements ---
-
-  // Function to parse currency formatted values (can be defined here or rely on global form_helpers.js)
-  // Let's define it here for encapsulation, assuming form_helpers might not always be loaded
-  function parseLocalCurrency(val) {
-    if (!val) return 0;
-    return parseFloat(val.replace(/[^0-9.-]+/g, ""));
+  if (!otherCostField || !otherDescriptionDiv) {
+    console.warn("Other expense elements not found. Skipping other expense logic.");
+    return;
   }
 
-  // Function to check if Other Expenses field has a value and toggle visibility
+  // --- Other Expense Description Visibility Logic ---
   function checkOtherExpensesVisibility() {
-    if (otherCostField && descriptionContainer) {
-      const hasOtherExpenses =
-        otherCostField.value && parseLocalCurrency(otherCostField.value) > 0;
-
-      descriptionContainer.classList.toggle("d-none", !hasOtherExpenses);
-    }
+    const isVisible =
+      otherCostField.value && parseCurrency(otherCostField.value) > 0;
+    otherDescriptionDiv.classList.toggle("d-none", !isVisible);
   }
 
-  // --- Add Concur Logic Function ---
+  // --- Concur Claim Required Message Logic ---
   function updateConcurMessageVisibility() {
       let hasAnyExpense = false;
       expenseInputs.forEach((input) => {
-          const value = parseLocalCurrency(input.value);
+          const value = parseCurrency(input.value);
           if (!isNaN(value) && value > 0) {
               hasAnyExpense = true;
           }
@@ -68,7 +48,6 @@ document.addEventListener("DOMContentLoaded", function () {
           concurRequiredMessageDiv.classList.toggle("d-none", !hasAnyExpense || hasConcurClaim);
       }
   }
-  // --- End Concur Logic Function ---
 
   // Add event listeners to the Other Expenses field to check visibility
   if (otherCostField) {
@@ -76,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
     otherCostField.addEventListener("change", checkOtherExpensesVisibility);
   }
 
-  // --- Add Concur Logic Listeners ---
+  // Add Concur Logic Listeners
   expenseInputs.forEach((input) => {
       input.addEventListener("input", updateConcurMessageVisibility);
   });
@@ -85,14 +64,10 @@ document.addEventListener("DOMContentLoaded", function () {
   if (concurClaimInput) {
       concurClaimInput.addEventListener("input", updateConcurMessageVisibility);
   }
-  // --- End Concur Logic Listeners ---
 
   // Initial check when the page loads
   checkOtherExpensesVisibility();
   updateConcurMessageVisibility(); // Also run Concur check on load
-
-  // Make the checkOtherExpenses function globally available if needed by inline script (legacy)
-  // window.checkOtherExpenses = checkOtherExpensesVisibility; // We removed the call from inline script
 
   console.log("Other Expense and Concur Message Logic Initialized.");
 });

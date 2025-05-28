@@ -9,16 +9,23 @@ import logging
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
-# Configure logging and upload folder
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
-UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "./uploads")
+
+# Import configuration
+try:
+    from config import ALLOWED_EXTENSIONS, UPLOAD_FOLDER
+except ImportError:
+    # Fallback if config is not available
+    ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "txt"}
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "./uploads")
+
+# Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def allowed_file(filename):
     """Check if a filename has an allowed extension"""
-    from forms import ALLOWED_EXTENSIONS
-
     return (
         filename
         and "." in filename
@@ -42,6 +49,20 @@ def save_file(file):
     except Exception as e:
         logging.error(f"Error saving file: {e}")
         return None
+
+
+def get_quarter(dt):
+    """
+    Get quarter string from datetime object.
+    
+    Args:
+        dt: datetime object
+        
+    Returns:
+        str: Quarter string in format "Q1 2024", "Q2 2024", etc.
+    """
+    q = (dt.month - 1) // 3 + 1
+    return f"Q{q} {dt.year}"
 
 
 def prepare_form_data(form, request=None):

@@ -2,13 +2,6 @@
  * Helper functions and UI initialization for the main training form.
  */
 
-// Utility function (can be used by other scripts too)
-function parseCurrency(val) {
-    if (!val) return 0;
-    // Remove currency symbols, thousands separators, etc., keep decimal point and sign
-    return parseFloat(val.replace(/[^0-9.-]+/g, ""));
-}
-
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("training-form");
     if (!form) {
@@ -147,4 +140,5 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Error initializing form visibility:", e);
     }
 
+    console.log("Form helpers initialized successfully.");
 }); 
