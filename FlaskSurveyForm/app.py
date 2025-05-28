@@ -12,7 +12,7 @@ from datetime import datetime
 from io import BytesIO
 import functools
 from collections import defaultdict
-
+from openpyxl import load_workbook
 from flask import (
     Flask,
     render_template,
@@ -731,9 +731,6 @@ def export_claim5():
             "attached_assets", "Claim-Form-5-Training new GBER Rules.xlsx"
         )
 
-        # Load the template using openpyxl
-        from openpyxl import load_workbook
-
         if not os.path.exists(template_path):
             flash("Template file not found.", "danger")
             return redirect(url_for("list_forms"))
@@ -743,11 +740,17 @@ def export_claim5():
         # Get the Trainee sheet
         trainee_sheet = wb["Trainee"]
         
+        # Get the External Trainer sheet
+        external_trainer_sheet = wb["External Trainer"]
+        
         # Start row for data (header is on row 15)
-        current_row = 16
+        trainee_row = 16
+        
+        # Start row for external trainer data (header is on row 7)
+        external_trainer_row = 8
 
         def process_trainee_sheet(form):
-            nonlocal current_row
+            nonlocal trainee_row
             try:
                 # Get trainees data for this form
                 trainees = []
@@ -770,22 +773,22 @@ def export_claim5():
                     trainee_name = email.split("@")[0] if "@" in email else email
 
                     # Fill the row with data according to requirements
-                    trainee_sheet.cell(row=current_row, column=1).value = trainee_name  # Trainee Name
-                    trainee_sheet.cell(row=current_row, column=2).value = form.get("training_description", "")  # Course Code/Name
-                    trainee_sheet.cell(row=current_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
-                    trainee_sheet.cell(row=current_row, column=4).value = ""  # Department
-                    trainee_sheet.cell(row=current_row, column=8).value = form.get("start_date", "")  # Start Date
-                    trainee_sheet.cell(row=current_row, column=9).value = form.get("end_date", "")  # End Date
+                    trainee_sheet.cell(row=trainee_row, column=1).value = trainee_name  # Trainee Name
+                    trainee_sheet.cell(row=trainee_row, column=2).value = form.get("training_description", "")  # Course Code/Name
+                    trainee_sheet.cell(row=trainee_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
+                    trainee_sheet.cell(row=trainee_row, column=4).value = ""  # Department
+                    trainee_sheet.cell(row=trainee_row, column=8).value = form.get("start_date", "")  # Start Date
+                    trainee_sheet.cell(row=trainee_row, column=9).value = form.get("end_date", "")  # End Date
 
                     # Handle trainer names based on training type
                     if form.get("training_type") == "Internal Training":
-                        trainee_sheet.cell(row=current_row, column=10).value = form.get("trainer_name", "")  # Internal Trainer Name
-                        trainee_sheet.cell(row=current_row, column=11).value = ""  # External Trainer Name
+                        trainee_sheet.cell(row=trainee_row, column=10).value = form.get("trainer_name", "")  # Internal Trainer Name
+                        trainee_sheet.cell(row=trainee_row, column=11).value = ""  # External Trainer Name
                     else:
-                        trainee_sheet.cell(row=current_row, column=10).value = ""  # Internal Trainer Name
-                        trainee_sheet.cell(row=current_row, column=11).value = form.get("supplier_name", "")  # External Trainer Name
+                        trainee_sheet.cell(row=trainee_row, column=10).value = ""  # Internal Trainer Name
+                        trainee_sheet.cell(row=trainee_row, column=11).value = form.get("supplier_name", "")  # External Trainer Name
 
-                    current_row += 1
+                    trainee_row += 1
 
             except Exception as e:
                 logging.error(f"Error processing trainee sheet for form {form['id']}: {str(e)}", exc_info=True)
@@ -793,6 +796,38 @@ def export_claim5():
         # Process each approved form
         for form in approved_forms:
             process_trainee_sheet(form)
+            
+            # Handle trainer sheets based on training type
+            if form.get("training_type") == "Internal Training":
+                # TODO: Add data to internal trainers sheet
+                # Process internal trainer information
+                pass
+            else:
+                # Add data to external trainers sheet  
+                # Process external trainer information
+                try:
+                    # Column A: Date (training start date)
+                    external_trainer_sheet.cell(row=external_trainer_row, column=1).value = form.get("start_date", "")
+                    
+                    # Column B: Supplier/Name
+                    external_trainer_sheet.cell(row=external_trainer_row, column=2).value = form.get("supplier_name", "")
+                    
+                    # Column C: Invoice # (leave blank for now)
+                    external_trainer_sheet.cell(row=external_trainer_row, column=3).value = ""
+                    
+                    # Column D: Training Course Code/Name
+                    external_trainer_sheet.cell(row=external_trainer_row, column=4).value = form.get("training_description", "")
+                    
+                    # Column E: Course Cost
+                    external_trainer_sheet.cell(row=external_trainer_row, column=5).value = form.get("course_cost", 0)
+                    
+                    # Column F: Course Details (leave blank for now)
+                    external_trainer_sheet.cell(row=external_trainer_row, column=6).value = ""
+                    
+                    external_trainer_row += 1
+                    
+                except Exception as e:
+                    logging.error(f"Error processing external trainer sheet for form {form['id']}: {str(e)}", exc_info=True)
 
         # Create an in-memory file to store the Excel
         output = BytesIO()
