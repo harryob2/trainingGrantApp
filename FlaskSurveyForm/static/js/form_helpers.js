@@ -112,8 +112,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (selectedTrainingType) {
                 internalTrainerContainer?.classList.toggle("d-none", selectedTrainingType !== "Internal Training");
                 externalSupplierContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
-                // Show training hours for both Internal and External Training
-                trainerHoursContainer?.classList.toggle("d-none", false);
+                // Always show training hours since it's now always required
+                trainerHoursContainer?.classList.remove("d-none");
                 // Show course cost only for External Training
                 courseCostContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
             }

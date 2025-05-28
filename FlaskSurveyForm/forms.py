@@ -46,6 +46,13 @@ SORT_OPTIONS = [
     ("cost", "Cost"),
 ]
 
+# Approval status options
+APPROVAL_STATUS_OPTIONS = [
+    ("", "All Statuses"),
+    ("approved", "Approved"),
+    ("unapproved", "Unapproved"),
+]
+
 # Allowed file extensions for file upload
 ALLOWED_EXTENSIONS = {
     "pdf",
@@ -147,11 +154,8 @@ class TrainingForm(FlaskForm):
     training_hours = FloatField(
         "Training Hours",
         validators=[
-            DynamicRequiredIf(
-                "training_type",
-                "Internal Training",
-                NumberRange(min=0, message="Training Hours cannot be negative."),
-            ),
+            DataRequired(message="Training Hours is required."),
+            NumberRange(min=0, message="Training Hours cannot be negative."),
         ],
         default=None,
         render_kw={"type": "number", "step": "0.1", "min": "0"},
@@ -282,11 +286,7 @@ class TrainingForm(FlaskForm):
             ),
             "start_date": self.start_date.data.strftime("%Y-%m-%d"),
             "end_date": self.end_date.data.strftime("%Y-%m-%d"),
-            "training_hours": (
-                float(str(self.training_hours.data))
-                if is_internal and self.training_hours.data is not None
-                else None
-            ),
+            "training_hours": float(str(self.training_hours.data)),
             "course_cost": (
                 float(self.course_cost.data)
                 if not is_internal and self.course_cost.data is not None
@@ -339,14 +339,6 @@ class TrainingForm(FlaskForm):
 
         return data
 
-    def validate_training_hours(self, field):
-        """Validate that Training Hours is provided if required and not empty."""
-        if self.training_type.data == "Internal Training":
-            if field.data is None or str(field.data).strip() == "" or field.data <= 0:
-                raise ValidationError(
-                    "Training Hours is required and must be greater than 0 for internal training."
-                )
-
     def validate_course_cost(self, field):
         """Validate that Course Cost is provided if required and not empty."""
         if self.training_type.data == "External Training":
@@ -395,6 +387,12 @@ class SearchForm(FlaskForm):
         "Order",
         choices=[("DESC", "Newest First"), ("ASC", "Oldest First")],
         default="DESC",
+    )
+
+    approval_status = SelectField(
+        "Approval Status",
+        choices=APPROVAL_STATUS_OPTIONS,
+        validators=[Optional()],
     )
 
     submit = SubmitField("Search")

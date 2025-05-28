@@ -87,11 +87,7 @@ def prepare_form_data(form, request=None):
         ),
         "start_date": form.start_date.data,
         "end_date": form.end_date.data,
-        "training_hours": (
-            form.training_hours.data
-            if form.training_type.data == "Internal Training"
-            else None
-        ),
+        "training_hours": form.training_hours.data,
         "trainees_data": "[]",
     }
 

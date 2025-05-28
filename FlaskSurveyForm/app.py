@@ -365,9 +365,27 @@ def list_forms():
     date_from = request.args.get("date_from", "")
     date_to = request.args.get("date_to", "")
     training_type = request.args.get("training_type", "")
+    approval_status = request.args.get("approval_status", "")
     sort_by = request.args.get("sort_by", "submission_date")
     sort_order = request.args.get("sort_order", "DESC")
     page = request.args.get("page", 1, type=int)
+
+    # Populate form fields with current filter values
+    form.search.data = search_term
+    if date_from:
+        try:
+            form.date_from.data = datetime.strptime(date_from, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            form.date_to.data = datetime.strptime(date_to, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    form.training_type.data = training_type
+    form.approval_status.data = approval_status
+    form.sort_by.data = sort_by
+    form.sort_order.data = sort_order
 
     # Get forms with filters
     forms, total_count = get_all_training_forms(
@@ -375,6 +393,7 @@ def list_forms():
         date_from=date_from,
         date_to=date_to,
         training_type=training_type,
+        approval_status=approval_status,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -389,6 +408,7 @@ def list_forms():
         "date_from": date_from,
         "date_to": date_to,
         "training_type": training_type,
+        "approval_status": approval_status,
         "sort_by": sort_by,
         "sort_order": sort_order,
     }
@@ -404,11 +424,12 @@ def list_forms():
         date_from=date_from,
         date_to=date_to,
         training_type=training_type,
+        approval_status=approval_status,
         sort_by=sort_by,
         sort_order=sort_order,
         now=datetime.now(),
         params=params,
-        has_filters=bool(search_term or date_from or date_to or training_type),
+        has_filters=bool(search_term or date_from or date_to or training_type or approval_status),
         total_forms=total_count,
         is_admin=is_admin_user(current_user),
     )
@@ -777,6 +798,7 @@ def export_claim5():
                     trainee_sheet.cell(row=trainee_row, column=2).value = form.get("training_description", "")  # Course Code/Name
                     trainee_sheet.cell(row=trainee_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
                     trainee_sheet.cell(row=trainee_row, column=4).value = ""  # Department
+                    trainee_sheet.cell(row=trainee_row, column=5).value = form.get("training_hours", "")  # Training Hours 
                     trainee_sheet.cell(row=trainee_row, column=8).value = form.get("start_date", "")  # Start Date
                     trainee_sheet.cell(row=trainee_row, column=9).value = form.get("end_date", "")  # End Date
 
@@ -891,9 +913,27 @@ def my_submissions():
     date_from = request.args.get("date_from", "")
     date_to = request.args.get("date_to", "")
     training_type = request.args.get("training_type", "")
+    approval_status = request.args.get("approval_status", "")
     sort_by = request.args.get("sort_by", "submission_date")
     sort_order = request.args.get("sort_order", "DESC")
     page = request.args.get("page", 1, type=int)
+
+    # Populate form fields with current filter values
+    form.search.data = search_term
+    if date_from:
+        try:
+            form.date_from.data = datetime.strptime(date_from, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            form.date_to.data = datetime.strptime(date_to, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    form.training_type.data = training_type
+    form.approval_status.data = approval_status
+    form.sort_by.data = sort_by
+    form.sort_order.data = sort_order
 
     forms, total_count = get_user_training_forms(
         current_user.email,
@@ -901,6 +941,7 @@ def my_submissions():
         date_from=date_from,
         date_to=date_to,
         training_type=training_type,
+        approval_status=approval_status,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -911,6 +952,7 @@ def my_submissions():
         "date_from": date_from,
         "date_to": date_to,
         "training_type": training_type,
+        "approval_status": approval_status,
         "sort_by": sort_by,
         "sort_order": sort_order,
     }
@@ -925,11 +967,12 @@ def my_submissions():
         date_from=date_from,
         date_to=date_to,
         training_type=training_type,
+        approval_status=approval_status,
         sort_by=sort_by,
         sort_order=sort_order,
         now=datetime.now(),
         params=params,
-        has_filters=bool(search_term or date_from or date_to or training_type),
+        has_filters=bool(search_term or date_from or date_to or training_type or approval_status),
         total_forms=total_count,
         my_submissions=True,
         is_admin=is_admin_user(current_user),

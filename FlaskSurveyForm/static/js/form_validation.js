@@ -84,8 +84,13 @@ function parseCurrency(val) {
  * Check if a field should be required based on training type
  */
 function isFieldRequired(fieldName, trainingType) {
-    const internalRequiredFields = ['trainer_name', 'training_hours'];
+    const internalRequiredFields = ['trainer_name'];
     const externalRequiredFields = ['supplier_name', 'course_cost'];
+    const alwaysRequiredFields = ['training_hours'];
+    
+    if (alwaysRequiredFields.includes(fieldName)) {
+        return true;
+    }
     
     if (trainingType === 'Internal Training') {
         return internalRequiredFields.includes(fieldName);
@@ -212,6 +217,15 @@ document.addEventListener("DOMContentLoaded", function () {
             isValid = false;
         }
 
+        // Always validate training hours (now required for all training types)
+        if (!trainingHours || !trainingHours.value || parseFloat(trainingHours.value) <= 0) {
+            if (trainingHours) {
+                showValidationMessage(trainingHours, "Training Hours is required and must be greater than 0.");
+                if (!firstInvalidElement) firstInvalidElement = trainingHours;
+            }
+            isValid = false;
+        }
+
         // Dynamic validation based on training type
         if (trainingType) {
             const typeValue = trainingType.value;
@@ -222,14 +236,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (trainerName) {
                         showValidationMessage(trainerName, "Trainer Name is required for internal training.");
                         if (!firstInvalidElement) firstInvalidElement = trainerName;
-                    }
-                    isValid = false;
-                }
-
-                if (!trainingHours || !trainingHours.value || parseFloat(trainingHours.value) <= 0) {
-                    if (trainingHours) {
-                        showValidationMessage(trainingHours, "Training Hours is required and must be greater than 0 for internal training.");
-                        if (!firstInvalidElement) firstInvalidElement = trainingHours;
                     }
                     isValid = false;
                 }

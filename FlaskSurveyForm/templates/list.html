@@ -78,8 +78,7 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
       <form method="GET" action="{{ url_for('list_forms') }}" class="row g-3">
         <div class="col-md-12">
           <div class="input-group">
-            {{ form.search(class="form-control", placeholder="Search by trainee, trainer, supplier, course code, invoice
-            number or training description") }}
+            {{ form.search(class="form-control", placeholder="Search by trainee, trainer, supplier, course name, invoice number or training description") }}
             <button class="btn btn-primary" type="submit">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search"
                 viewBox="0 0 16 16">
@@ -104,6 +103,11 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
         <div class="col-md-3">
           {{ form.training_type.label(class="form-label") }} {{
           form.training_type(class="form-select") }}
+        </div>
+
+        <div class="col-md-3">
+          {{ form.approval_status.label(class="form-label") }} {{
+          form.approval_status(class="form-select") }}
         </div>
 
         <div class="col-md-3">
@@ -170,6 +174,12 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
     <span class="badge bg-primary me-2">
       Training Type: {{ training_type }}
       <a href="{{ url_for('list_forms', **params|remove_param('training_type')) }}"
+        class="text-white ms-1 text-decoration-none">×</a>
+    </span>
+    {% endif %} {% if approval_status %}
+    <span class="badge bg-primary me-2">
+      Approval Status: {{ 'Approved' if approval_status == 'approved' else 'Unapproved' }}
+      <a href="{{ url_for('list_forms', **params|remove_param('approval_status')) }}"
         class="text-white ms-1 text-decoration-none">×</a>
     </span>
     {% endif %}
