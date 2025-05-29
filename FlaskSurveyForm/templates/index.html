@@ -186,6 +186,13 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                                {% if form.location_type.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.location_type.errors %}
+                                    <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
 
                             <div id="location-details-container" class="col-md-12 mb-3 d-none">
@@ -241,6 +248,13 @@
                                         {{ form.start_date(class="form-control date-picker",
                                         placeholder=" ") }} {{ form.start_date.label }}
                                     </div>
+                                    {% if form.start_date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.start_date.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
 
                                 <div class="col-md-6 mb-3">
@@ -248,6 +262,13 @@
                                         {{ form.end_date(class="form-control date-picker",
                                         placeholder=" ") }} {{ form.end_date.label }}
                                     </div>
+                                    {% if form.end_date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.end_date.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -262,12 +283,20 @@
                                     <div class="form-text">
                                         Briefly describe the training delivered
                                     </div>
+                                    {% if form.training_description.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.training_description.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
                             <!-- Course Cost and Invoice Number (only shown for External Training) -->
+                            <!-- Input Fields Row -->
                             <div class="row g-3">
-                                <div id="course-cost-container" class="col-md-6 mb-3 d-none">
+                                <div id="course-cost-container" class="col-md-4 mb-3 d-none">
                                     <div class="form-floating">
                                         {{ form.course_cost(class="form-control money", placeholder=" ") }} {{
                                         form.course_cost.label }}
@@ -275,6 +304,32 @@
                                     <div class="form-text">
                                         The cost of the external training course (ex VAT).
                                     </div>
+                                </div>
+
+                                <div id="invoice-number-container" class="col-md-4 mb-3 d-none">
+                                    <div class="form-floating">
+                                        {{ form.invoice_number(class="form-control", placeholder=" ") }} {{
+                                        form.invoice_number.label }}
+                                    </div>
+                                    <div class="form-text">
+                                        Invoice number for the external training course.
+                                    </div>
+                                </div>
+
+                                <div id="concur-claim-container" class="col-md-4 mb-3">
+                                    <div class="form-floating">
+                                        {{ form.concur_claim(class="form-control", placeholder=" ") }} {{
+                                        form.concur_claim.label }}
+                                    </div>
+                                    <div class="form-text">
+                                        Number for concur claim used to pay invoice.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Validation Messages Row -->
+                            <div class="row g-3">
+                                <div class="col-md-4" id="course-cost-validation">
                                     {% if form.course_cost.errors %}
                                     <div class="text-danger">
                                         {% for error in form.course_cost.errors %}
@@ -284,14 +339,7 @@
                                     {% endif %}
                                 </div>
 
-                                <div id="invoice-number-container" class="col-md-6 mb-3 d-none">
-                                    <div class="form-floating">
-                                        {{ form.invoice_number(class="form-control", placeholder=" ") }} {{
-                                        form.invoice_number.label }}
-                                    </div>
-                                    <div class="form-text">
-                                        Invoice number for the external training course.
-                                    </div>
+                                <div class="col-md-4" id="invoice-number-validation">
                                     {% if form.invoice_number.errors %}
                                     <div class="text-danger">
                                         {% for error in form.invoice_number.errors %}
@@ -300,10 +348,20 @@
                                     </div>
                                     {% endif %}
                                 </div>
+
+                                <div class="col-md-4" id="concur-claim-validation">
+                                    {% if form.concur_claim.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.concur_claim.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Add Trainees Section (moved up from bottom) -->
+                        <!-- Add Trainees Section -->
                         <div class="col-md-12 mb-3">
                             <h3 class="fs-5 form-section-title">Add Trainees</h3>
                         </div>
@@ -342,7 +400,7 @@
                                 <h3 class="fs-5 form-section-title">Travel Expenses</h3>
                                 <p class="form-text text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
-                                    Add travel expenses for trainees and trainers related to this training.
+                                    Optional. Add travel expenses for trainees and trainers related to this training.
                                 </p>
                                 
                                 <!-- Add Travel Expense Button -->
@@ -369,28 +427,17 @@
                             <div class="col-md-12">
                                 <h3 class="fs-5 form-section-title">Other Expenses</h3>
                                 <div class="row g-3">
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-floating">
                                             {{ form.materials_cost(class="form-control money",
                                             placeholder=" ") }} {{ form.materials_cost.label }}
                                         </div>
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-floating">
                                             {{ form.other_cost(class="form-control money",
                                             placeholder=" ") }} {{ form.other_cost.label }}
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="form-floating">
-                                            {{ form.concur_claim(class="form-control", placeholder="
-                                            ") }} {{ form.concur_claim.label }}
-                                        </div>
-                                        <div id="concur-required-message" class="form-text text-danger d-none mt-1"
-                                            style="font-size: 0.85em">
-                                            * Required when expenses are entered or for external training
                                         </div>
                                     </div>
 
@@ -653,7 +700,6 @@
 </div>
 {% endblock %} {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="{{ url_for('static', filename='js/form_validation.js') }}"></script>
 <script src="{{ url_for('static', filename='data/employees.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/employee_search.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/form_setup.js') }}"></script>
@@ -661,285 +707,63 @@
 <script src="{{ url_for('static', filename='js/other_expense.js') }}"></script>
 <script src="{{ url_for('static', filename='js/form_helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/travel_expenses.js') }}"></script>
+<script src="{{ url_for('static', filename='js/form_validation.js') }}"></script>
 <script>
-    console.log("Inline script finished, remaining logic delegated to external files.");
-
+    // Simple error clearing for better UX with server-side validation
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("training-form");
-        const trainingTypeRadios = form.elements["training_type"];
-        const trainingDetailsSection = document.getElementById(
-            "training-details-section",
-        );
-        const internalTrainerContainer = document.getElementById(
-            "internal-trainer-container",
-        );
-        const externalSupplierContainer = document.getElementById(
-            "external-supplier-container",
-        );
-        const trainerHoursContainer = document.getElementById(
-            "trainer-Hours-container",
-        );
-        const locationTypeRadios = form.elements["location_type"];
-        const locationDetailsContainer = document.getElementById(
-            "location-details-container",
-        );
-        const virtualTrainingNote = document.getElementById(
-            "virtual-training-attachment-note",
-        );
-        const otherCostInput = document.getElementById("other_cost");
-        const submitButton = document.getElementById("submit-training-form-btn");
-
-        // Existing call to other_expense.js logic - KEEP
-        if (window.checkOtherExpenses) {
-            window.checkOtherExpenses();
-        }
-
-        // Keep critical error logs
+        
         if (!form) {
-            console.error("CRITICAL: Form element #training-form not found!");
-            return;
-        }
-        if (!submitButton) {
-            console.error(
-                "CRITICAL: Button #submit-training-form-btn not found! Cannot attach click listener.",
-            );
+            console.error("Form not found for error clearing initialization.");
             return;
         }
 
-        // Add form submit event listener
-        form.addEventListener('submit', function(event) {
-            // Remove any existing validation messages
-            const existingMessages = form.querySelectorAll('.validation-message');
-            existingMessages.forEach(msg => msg.remove());
-
-            // Training Type validation
-            const trainingType = form.elements["training_type"];
-            if (!trainingType.value) {
-                const message = "Please select a training type.";
-                const targetElement =
-                    trainingType[0].closest(".form-group") || trainingType[0].parentElement;
-                const messageElement = document.createElement("div");
-                messageElement.className = "validation-message alert alert-danger mt-2";
-                messageElement.style.cssText = "padding: 0.5rem; font-size: 0.9rem;";
-                messageElement.textContent = message;
-                try {
-                    if (targetElement.nextSibling) {
-                        targetElement.parentNode.insertBefore(
-                            messageElement,
-                            targetElement.nextSibling,
-                        );
-                    } else {
-                        targetElement.parentNode.appendChild(messageElement);
-                    }
-                } catch (e) {
-                    console.error("Error inserting Training Type message:", e);
-                }
-                targetElement.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                });
-                setTimeout(() => {
-                    if (trainingType[0].focus) {
-                        trainingType[0].focus({ preventScroll: true });
-                    }
-                }, 150);
-                event.preventDefault();
-                return;
-            }
-
-            // ... (STEP 2: Set Custom Validity) ...
-            const startDate = form.elements["start_date"];
-            const endDate = form.elements["end_date"];
-            validateDates(startDate, endDate);
-            if (trainingType.value && !form.elements["location_type"].value) {
-                form.elements["location_type"][0].setCustomValidity(
-                    "Please select a location type.",
-                );
-            } else {
-                form.elements["location_type"][0].setCustomValidity("");
-            }
-            const materialsCost = form.elements["materials_cost"];
-            const otherCost = form.elements["other_cost"];
-            const concurClaim = form.elements["concur_claim"];
-            const otherDesc = form.elements["other_expense_description"];
-            const expenseInputs = [materialsCost, otherCost];
-            function hasExpenses(inputs) {
-                return inputs.some((input) => input.value && parseCurrency(input.value) > 0);
-            }
-            function hasTravelExpenses() {
-                return window.travelExpensesManager && window.travelExpensesManager.travelExpenses && window.travelExpensesManager.travelExpenses.length > 0;
-            }
-            const isExternalTraining = trainingType.value === "External Training";
-            if ((hasExpenses(expenseInputs) || hasTravelExpenses() || isExternalTraining) && !concurClaim.value.trim()) {
-                concurClaim.setCustomValidity(
-                    "Concur Claim Number is required when expenses are entered or for external training.",
-                );
-            } else {
-                concurClaim.setCustomValidity("");
-            }
-            if (otherCost.value && parseCurrency(otherCost.value) > 0 && !otherDesc.value.trim()) {
-                otherDesc.setCustomValidity(
-                    "Description is required when other expenses are entered.",
-                );
-            } else {
-                otherDesc.setCustomValidity("");
-            }
-            const trainerNameSearch = document.getElementById("trainer_name_search");
-            const trainerNameHidden = form.elements["trainer_name"];
-            if (
-                trainingType.value === "Internal Training" &&
-                !trainerNameHidden.value.trim()
-            ) {
-                trainerNameSearch.setCustomValidity(
-                    "Trainer name is required for internal training.",
-                );
-            } else {
-                trainerNameSearch.setCustomValidity("");
-            }
-
-            // ... (STEP 3: Final Check and Message Display) ...
-            const isFormValid = form.checkValidity();
-
-            if (!isFormValid) {
-                form.classList.add("was-validated");
-                const invalidElements = [];
-                const elements = form.elements;
-                for (let i = 0; i < elements.length; i++) {
-                    const element = elements[i];
-                    if (element.name === "training_type") continue;
-                    if (!element.validity.valid) {
-                        let currentElement = element;
-                        let isVisible = isReallyVisible(currentElement);
-                        if (element.type === "radio") {
-                            let radioGroupContainer =
-                                element.closest(".form-group") ||
-                                element.closest(".form-check") ||
-                                element.parentElement;
-                            currentElement = radioGroupContainer;
-                            isVisible = isReallyVisible(currentElement);
-                        }
-                        if (element.id === "trainer_name") {
-                            let searchInput = document.getElementById("trainer_name_search");
-                            currentElement = searchInput;
-                            isVisible = isReallyVisible(currentElement);
-                            if (isVisible) {
-                                if (
-                                    !invalidElements.some(
-                                        (item) => item.element.id === "trainer_name_search",
-                                    )
-                                ) {
-                                    invalidElements.push({
-                                        element: searchInput,
-                                        message: "Trainer name is required for internal training.",
-                                    });
-                                }
-                            }
-                            continue;
-                        }
-                        if (
-                            element.type === "radio" &&
-                            invalidElements.some((item) => item.element.name === element.name)
-                        ) {
-                            continue;
-                        }
-                        if (isVisible) {
-                            let message = element.validationMessage || "This field is required";
-                            let targetElement = element;
-                            if (element.type === "radio") {
-                                targetElement =
-                                    element.closest(".form-group") || element.parentElement;
-                            }
-                            if (
-                                !invalidElements.some((item) => item.element === targetElement)
-                            ) {
-                                invalidElements.push({
-                                    element: targetElement,
-                                    message: message,
-                                });
-                            }
-                        }
-                    }
-                }
-
-                invalidElements.forEach((item, index) => {
-                    const element = item.element;
-                    const message = item.message;
-                    const messageElement = document.createElement("div");
-                    messageElement.className = "validation-message alert alert-danger mt-2";
-                    messageElement.style.cssText = "padding: 0.5rem; font-size: 0.9rem;";
-                    messageElement.textContent = message;
-                    let insertTarget = element;
-                    if (element.id === "trainer_name_search") {
-                        insertTarget =
-                            element.closest(".trainee-search-box") || element.parentElement;
-                    }
-                    const parentContainer =
-                        insertTarget.closest(".form-group") ||
-                        insertTarget.closest(".mb-3") ||
-                        insertTarget.parentElement;
-                    insertTarget = parentContainer || insertTarget;
-                    try {
-                        if (insertTarget.nextSibling) {
-                            insertTarget.parentNode.insertBefore(
-                                messageElement,
-                                insertTarget.nextSibling,
-                            );
-                        } else {
-                            insertTarget.parentNode.appendChild(messageElement);
-                        }
-                    } catch (e) {
-                        console.error(`Error inserting message for element:`, element, e);
+        // Function to clear error messages for a specific field
+        function clearFieldErrors(field) {
+            // Find the container that might have error messages
+            const container = field.closest('.mb-3, .form-group, .trainee-search-container, .form-floating');
+            if (container) {
+                // Remove Flask validation errors (text-danger)
+                const errorDivs = container.querySelectorAll('.text-danger');
+                errorDivs.forEach(div => {
+                    // Only remove if it contains validation error text
+                    if (div.querySelector('small') || div.textContent.includes('required') || 
+                        div.textContent.includes('cannot') || div.textContent.includes('must')) {
+                        div.remove();
                     }
                 });
-
-                if (invalidElements.length > 0) {
-                    let firstTarget = invalidElements[0].element;
-                    if (firstTarget.id === "trainer_name_search") {
-                        firstTarget =
-                            firstTarget.closest(".trainee-search-box") || firstTarget;
-                    }
-                    const firstScrollTarget =
-                        firstTarget.closest(".form-group") ||
-                        firstTarget.closest(".mb-3") ||
-                        firstTarget;
-                    firstScrollTarget.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                    });
-                    setTimeout(() => {
-                        let focusableElement = invalidElements[0].element;
-                        if (focusableElement.id === "trainer_name_search") {
-                        } else if (
-                            focusableElement.classList.contains("form-group") ||
-                            focusableElement.classList.contains("form-check")
-                        ) {
-                            focusableElement = focusableElement.querySelector(
-                                "input:not([type=hidden]), textarea, select",
-                            );
-                        }
-                        if (focusableElement && focusableElement.focus) {
-                            focusableElement.focus({ preventScroll: true });
-                        }
-                    }, 150);
-                }
-                event.preventDefault();
-            } else {
-                // Form IS valid
-                form.classList.remove("was-validated");
-                if (window.prepareAttachmentsForSubmit) {
-                    window.prepareAttachmentsForSubmit();
-                } else {
-                    console.error("prepareAttachmentsForSubmit function not found!");
-                }
+                
+                // Remove any client-side validation messages too
+                const validationMessages = container.querySelectorAll('.validation-message');
+                validationMessages.forEach(msg => msg.remove());
             }
+        }
+
+        // Clear errors when users start typing/selecting
+        document.querySelectorAll('input, textarea, select').forEach(field => {
+            field.addEventListener('input', function() {
+                clearFieldErrors(this);
+            });
+            field.addEventListener('change', function() {
+                clearFieldErrors(this);
+            });
         });
-    }); // End of DOMContentLoaded listener
 
-    // parseCurrency function - REMOVE
-    // function parseCurrency(val) {
-    //     if (!val) return 0;
-    //     return parseFloat(val.replace(/[^0-9.-]+/g, ""));
-    // }
+        // Special handling for radio buttons (training type and location type)
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Only clear errors if a valid option is actually selected
+                if (this.checked && this.value) {
+                    // Clear errors for all radio buttons with the same name
+                    document.querySelectorAll(`input[name="${this.name}"]`).forEach(r => {
+                        clearFieldErrors(r);
+                    });
+                }
+            });
+        });
+
+        console.log("Simple error clearing initialized.");
+    });
 </script>
 {% endblock %}
 

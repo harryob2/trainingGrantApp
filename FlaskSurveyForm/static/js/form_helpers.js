@@ -111,7 +111,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const selectedTrainingType = form.elements["training_type"]?.value;
             const courseCostField = document.getElementById("course_cost");
             
-            trainingDetailsSection.classList.toggle("d-none", !selectedTrainingType);
+            // Check if there are any validation errors in the training details section
+            const hasValidationErrors = trainingDetailsSection.querySelector('.text-danger');
+            
+            // Show the section if training type is selected OR if there are validation errors
+            trainingDetailsSection.classList.toggle("d-none", !selectedTrainingType && !hasValidationErrors);
 
             if (selectedTrainingType) {
                 internalTrainerContainer?.classList.toggle("d-none", selectedTrainingType !== "Internal Training");

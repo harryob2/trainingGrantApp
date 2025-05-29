@@ -212,8 +212,13 @@ def submit_form():
     """Process the form submission"""
     form = TrainingForm()
 
+    logging.debug("=== SUBMIT FORM ROUTE ===")
+    logging.debug(f"Request method: {request.method}")
+    logging.debug(f"Form data submitted: {request.form}")
+    
     # Validate the form data
     if form.validate_on_submit():
+        logging.debug("Form validation PASSED")
         try:
             # Get trainees data from form
             trainees_data = request.form.get("trainees_data")
@@ -277,6 +282,20 @@ def submit_form():
                     # Don't fail the form submission for travel expense errors
                     flash("Warning: There was an issue processing travel expenses, but the form was submitted successfully.", "warning")
 
+            # Process trainees using the new table structure
+            trainees_data = request.form.get("trainees_data")
+            if trainees_data:
+                try:
+                    from models import insert_trainees
+                    trainees = json.loads(trainees_data)
+                    if trainees and isinstance(trainees, list):
+                        insert_trainees(form_id, trainees)
+                        logging.info(f"Inserted {len(trainees)} trainees for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing trainees: {e}")
+                    # Don't fail the form submission for trainee errors
+                    flash("Warning: There was an issue processing trainees, but the form was submitted successfully.", "warning")
+
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))
         except Exception as e:
@@ -287,10 +306,33 @@ def submit_form():
             )
             return render_template("index.html", form=form, now=datetime.now())
     else:
-        logging.error(f"Form validation errors: {form.errors}")
+        logging.debug("Form validation FAILED")
+        logging.debug(f"Form validation errors: {form.errors}")
+        logging.debug(f"Form data received: {form.data}")
+        
+        # Special focus on location_type field
+        logging.debug(f"Location type field value: {form.location_type.data}")
+        logging.debug(f"Location type field errors: {form.location_type.errors}")
+        logging.debug(f"Location type field raw_data: {form.location_type.raw_data}")
+        
+        # Log each field's error individually
+        for field_name, field_errors in form.errors.items():
+            logging.debug(f"Field '{field_name}' has {len(field_errors)} errors: {field_errors}")
+            field_obj = getattr(form, field_name, None)
+            if field_obj:
+                logging.debug(f"Field '{field_name}' data: {field_obj.data}")
+                logging.debug(f"Field '{field_name}' raw_data: {field_obj.raw_data}")
+        
+        # Flash each error individually with more detailed info
         for field, errors in form.errors.items():
+            field_obj = getattr(form, field, None)
+            field_label = field_obj.label.text if field_obj and hasattr(field_obj, 'label') else field
             for error in errors:
-                flash(f"Error in {getattr(form, field).label.text}: {error}", "danger")
+                error_msg = f"Error in {field_label}: {error}"
+                logging.debug(f"Flashing error: {error_msg}")
+                flash(error_msg, "danger")
+        
+        logging.debug("Returning to index.html with form errors")
         return render_template("index.html", form=form, now=datetime.now())
 
 
@@ -471,13 +513,13 @@ def view_form(form_id):
             for a in attachments
         ]
     
-    # Parse trainees data from JSON if it exists
+    # Get trainees from the new table structure
     trainees = []
-    if form_data.get("trainees_data"):
-        try:
-            trainees = json.loads(form_data["trainees_data"])
-        except json.JSONDecodeError:
-            logging.error(f"Error parsing trainees_data for form {form_data['id']}")
+    try:
+        from models import get_trainees
+        trainees = get_trainees(form_id)
+    except Exception as e:
+        logging.error(f"Error loading trainees for view: {e}")
 
     # Get travel expenses
     travel_expenses = []
@@ -545,9 +587,15 @@ def edit_form(form_id):
             )
             form.concur_claim.data = form_data.get("concur_claim", "")
 
-            # Load trainees data
-            if form_data.get("trainees_data"):
-                form.trainees_data.data = form_data.get("trainees_data")
+            # Load trainees data from the new table structure
+            try:
+                from models import get_trainees
+                existing_trainees = get_trainees(form_id)
+                # Convert to JSON format for the frontend
+                form.trainees_data.data = json.dumps(existing_trainees)
+            except Exception as e:
+                logging.error(f"Error loading trainees for form {form_id}: {e}")
+                form.trainees_data.data = "[]"
 
     if form.validate_on_submit():
         try:
@@ -659,6 +707,20 @@ def edit_form(form_id):
                     # Don't fail the form update for travel expense errors
                     flash("Warning: There was an issue processing travel expenses, but the form was updated successfully.", "warning")
             
+            # Process trainees using the new table structure
+            trainees_data = request.form.get("trainees_data")
+            if trainees_data:
+                try:
+                    from models import update_trainees
+                    trainees = json.loads(trainees_data)
+                    if isinstance(trainees, list):
+                        update_trainees(form_id, trainees)
+                        logging.info(f"Updated trainees for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing trainees: {e}")
+                    # Don't fail the form update for trainee errors
+                    flash("Warning: There was an issue processing trainees, but the form was updated successfully.", "warning")
+
             flash("Form updated successfully!", "success")
             return redirect(url_for("view_form", form_id=form_id))
 
@@ -844,14 +906,14 @@ def export_claim5():
         def process_trainee_sheet(form):
             nonlocal trainee_row
             try:
-                # Get trainees data for this form
+                # Get trainees data for this form from the new table structure
                 trainees = []
-                if form.get("trainees_data"):
-                    try:
-                        trainees = json.loads(form["trainees_data"])
-                    except json.JSONDecodeError:
-                        logging.error(f"Error parsing trainees_data for form {form['id']}")
-                        return
+                try:
+                    from models import get_trainees
+                    trainees = get_trainees(form['id'])
+                except Exception as e:
+                    logging.error(f"Error getting trainees for form {form['id']}: {e}")
+                    return
 
                 # If no trainees found, add a placeholder row
                 if not trainees:
@@ -874,8 +936,18 @@ def export_claim5():
                     # Fill the row with data according to requirements
                     trainee_sheet.cell(row=trainee_row, column=1).value = trainee_name  # Trainee Name
                     trainee_sheet.cell(row=trainee_row, column=2).value = form.get("training_name", "")  # Course Code/Name
-                    trainee_sheet.cell(row=trainee_row, column=3).value = form.get("ida_class", "")[6:7] if form.get("ida_class", "").startswith("Class ") else form.get("ida_class", "")  # Certification Class
-                    trainee_sheet.cell(row=trainee_row, column=5).value = form.get("training_hours", "")  # Training Hours 
+                    
+                    # Handle ida_class certification class extraction
+                    ida_class = form.get("ida_class", "")
+                    if ida_class == "Training not completed/ongoing":
+                        certification_class = "Ongoing"
+                    elif ida_class.startswith("Class "):
+                        certification_class = ida_class[6:7]  # Extract letter (A, B, C, D)
+                    else:
+                        certification_class = ida_class
+                    trainee_sheet.cell(row=trainee_row, column=3).value = certification_class  # Certification Class
+                    
+                    trainee_sheet.cell(row=trainee_row, column=5).value = form.get("training_hours", "")  # Training Hours
                     trainee_sheet.cell(row=trainee_row, column=8).value = form.get("start_date", "")  # Start Date
                     trainee_sheet.cell(row=trainee_row, column=9).value = form.get("end_date", "")  # End Date
 
@@ -1131,7 +1203,11 @@ def my_submissions():
 @login_required
 def new_form():
     """Display the training form"""
+    logging.debug("=== NEW FORM ROUTE ===")
     form = TrainingForm()
+    logging.debug(f"Form created with default data: {form.data}")
+    logging.debug(f"Form errors (should be empty on initial load): {form.errors}")
+    logging.debug(f"Location type field default value: {form.location_type.data}")
     return render_template("index.html", form=form, now=datetime.now())
 
 
@@ -1150,10 +1226,13 @@ def leaderboard():
             continue
 
         try:
-            trainees_data = json.loads(form.get("trainees_data") or "[]")
-            num_trainees = len(trainees_data) if isinstance(trainees_data, list) else 0
-        except Exception:
+            from models import get_trainees
+            trainees = get_trainees(form['id'])
+            num_trainees = len(trainees) if trainees else 0
+        except Exception as e:
+            logging.error(f"Error getting trainees for leaderboard form {form['id']}: {e}")
             num_trainees = 0
+        
         training_hours_val = float(form.get("training_hours") or 0)
         total_hours = training_hours_val * num_trainees
         training_hours[trainer_name] += total_hours

@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Concur Claim Required Message Logic ---
+  // NOTE: Concur claim validation is now handled by the unified ValidationManager in form_validation.js
+  // This logic is commented out to avoid conflicts
+  /*
   function updateConcurMessageVisibility() {
       let hasAnyExpense = false;
       
@@ -77,13 +80,14 @@ document.addEventListener("DOMContentLoaded", function () {
           concurRequiredMessageDiv.classList.toggle("d-none", !shouldShowMessage);
       }
   }
+  */
 
   // Add event listeners to the Other Expenses field to check visibility
   if (otherCostField) {
     otherCostField.addEventListener("input", checkOtherExpensesVisibility);
     otherCostField.addEventListener("change", checkOtherExpensesVisibility);
     // Also update concur message when other cost changes
-    otherCostField.addEventListener("input", updateConcurMessageVisibility);
+    // otherCostField.addEventListener("input", updateConcurMessageVisibility); // Now handled by ValidationManager
     // Update other expense warning when other cost changes
     otherCostField.addEventListener("input", updateOtherExpenseWarningVisibility);
   }
@@ -93,7 +97,8 @@ document.addEventListener("DOMContentLoaded", function () {
     otherDescriptionField.addEventListener("input", updateOtherExpenseWarningVisibility);
   }
 
-  // Add Concur Logic Listeners
+  // Concur Logic Listeners - Now handled by ValidationManager in form_validation.js
+  /*
   expenseInputs.forEach((input) => {
       input.addEventListener("input", updateConcurMessageVisibility);
   });
@@ -111,14 +116,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Listen for travel expenses updates
   document.addEventListener('travelExpensesUpdated', updateConcurMessageVisibility);
+  */
 
   // Initial check when the page loads
   checkOtherExpensesVisibility();
   updateOtherExpenseWarningVisibility();
-  updateConcurMessageVisibility(); // Also run Concur check on load
+  // updateConcurMessageVisibility(); // Now handled by ValidationManager
 
-  console.log("Other Expense and Concur Message Logic Initialized.");
+  console.log("Other Expense Logic Initialized (Concur validation handled by ValidationManager).");
 
   // Make the updateConcurMessageVisibility function globally available
-  window.checkOtherExpenses = updateConcurMessageVisibility;
+  // window.checkOtherExpenses = updateConcurMessageVisibility; // Now handled by ValidationManager
 });

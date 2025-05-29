@@ -127,7 +127,7 @@ function hasTrainees() {
  * Check if any expense fields have values
  */
 function hasExpenses() {
-    const expenseFields = ['materials_cost', 'other_cost'];
+    const expenseFields = ['course_cost', 'materials_cost', 'other_cost'];
     return expenseFields.some(fieldId => {
         const field = document.getElementById(fieldId);
         if (!field) return false;
@@ -146,56 +146,170 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    // Helper function to display validation messages
-    function showValidationMessage(element, message) {
-        const container = element.closest('.form-group, .mb-3, .trainee-search-box, #training-type-card-group');
-        const targetElement = container || element;
-
-        // Remove existing message within the container first
-        const existingMsg = targetElement.parentNode?.querySelector('.validation-message[data-target="' + (element.id || element.name) + '"]');
-        if (existingMsg) {
-            existingMsg.remove();
-        }
-
-        const messageElement = document.createElement("div");
-        messageElement.className = "validation-message alert alert-danger mt-2";
-        messageElement.style.cssText = "padding: 0.5rem; font-size: 0.9rem;";
-        messageElement.textContent = message;
-        messageElement.setAttribute('data-target', (element.id || element.name)); // Link message to field
-
-        try {
-             if (targetElement.parentNode) {
-                 if (targetElement.nextSibling) {
-                    targetElement.parentNode.insertBefore(messageElement, targetElement.nextSibling);
-                 } else {
-                    targetElement.parentNode.appendChild(messageElement);
-                 }
-            } else {
-                 console.error("Could not find parent node to insert validation message for:", element);
+    // Unified validation message system
+    const ValidationManager = {
+        // Show a validation message for a field
+        showMessage: function(element, message) {
+            const fieldId = element.id || element.name;
+            
+            // Special handling for expense fields that have dedicated validation message containers
+            let targetElement;
+            if (fieldId === 'course_cost') {
+                targetElement = document.getElementById('course-cost-validation');
+            } else if (fieldId === 'invoice_number') {
+                targetElement = document.getElementById('invoice-number-validation');
+            } else if (fieldId === 'concur_claim') {
+                targetElement = document.getElementById('concur-claim-validation');
             }
-        } catch (e) {
-            console.error(`Error inserting validation message for element:`, element, e);
+            
+            // Fall back to default behavior for other fields
+            if (!targetElement) {
+                const container = element.closest('.form-group, .mb-3, .trainee-search-box, #training-type-card-group, .col-md-12');
+                targetElement = container || element;
+            }
+
+            // Remove any existing validation messages for this field
+            this.clearMessage(element);
+
+            const messageElement = document.createElement("div");
+            messageElement.className = "validation-message alert alert-danger mt-2";
+            messageElement.style.cssText = "padding: 0.5rem; font-size: 0.9rem;";
+            messageElement.textContent = message;
+            messageElement.setAttribute('data-target', fieldId);
+
+            try {
+                // For the special expense fields, append directly to their validation column
+                if (fieldId === 'course_cost' || fieldId === 'invoice_number' || fieldId === 'concur_claim') {
+                    targetElement.appendChild(messageElement);
+                } else {
+                    // Default behavior for other fields
+                    if (targetElement.parentNode) {
+                        if (targetElement.nextSibling) {
+                            targetElement.parentNode.insertBefore(messageElement, targetElement.nextSibling);
+                        } else {
+                            targetElement.parentNode.appendChild(messageElement);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(`Error inserting validation message:`, e);
+            }
+            return messageElement;
+        },
+
+        // Clear validation message for a specific field
+        clearMessage: function(element) {
+            const fieldId = element.id || element.name;
+            // Remove our validation messages
+            document.querySelectorAll(`.validation-message[data-target="${fieldId}"]`).forEach(msg => msg.remove());
+            
+            // Also clear any server-side validation messages in the same container
+            const container = element.closest('.form-group, .mb-3, .trainee-search-box, .col-md-12');
+            if (container) {
+                const serverErrors = container.querySelectorAll('.text-danger');
+                serverErrors.forEach(error => {
+                    if (error.querySelector('small') || 
+                        error.textContent.includes('required') || 
+                        error.textContent.includes('cannot') || 
+                        error.textContent.includes('must')) {
+                        error.remove();
+                    }
+                });
+            }
+        },
+
+        // Clear all validation messages
+        clearAllMessages: function() {
+            document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+        },
+
+        // Set up auto-clearing when user starts fixing issues
+        setupAutoClearing: function() {
+            // Clear errors when users start typing/selecting in regular fields
+            document.querySelectorAll('input, textarea, select').forEach(field => {
+                field.addEventListener('input', () => this.clearMessage(field));
+                field.addEventListener('change', () => this.clearMessage(field));
+            });
+
+            // Special handling for file inputs (attachments)
+            document.querySelectorAll('input[type="file"]').forEach(fileInput => {
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.files && fileInput.files.length > 0) {
+                        this.clearMessage(fileInput);
+                    }
+                });
+            });
+
+            // Special handling for radio buttons
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.checked && radio.value) {
+                        // Clear errors for all radio buttons with the same name
+                        document.querySelectorAll(`input[name="${radio.name}"]`).forEach(r => {
+                            this.clearMessage(r);
+                        });
+                        
+                        // Also clear errors from the radio group container
+                        const container = radio.closest('.form-group, .col-md-12');
+                        if (container) {
+                            this.clearMessage(container);
+                        }
+                    }
+                });
+            });
+
+            // Special handling for trainees - clear trainee messages when trainees are added
+            const originalHasTrainees = window.hasTrainees || hasTrainees;
+            if (originalHasTrainees) {
+                const checkTrainees = () => {
+                    if (originalHasTrainees()) {
+                        const traineeInput = document.getElementById("trainee-search-input");
+                        if (traineeInput) this.clearMessage(traineeInput);
+                    }
+                };
+                
+                // Listen for trainees updates
+                document.addEventListener('traineesUpdated', checkTrainees);
+                
+                // Also check periodically for trainee changes
+                setInterval(checkTrainees, 1000);
+            }
         }
-        return messageElement;
+    };
+
+    // Helper function to display validation messages (uses unified system)
+    function showValidationMessage(element, message) {
+        return ValidationManager.showMessage(element, message);
     }
+
+    // Initialize the validation manager
+    ValidationManager.setupAutoClearing();
 
     // Main validation logic
     submitButton.addEventListener("click", function (event) {
-        // Clear previous validation messages
-        document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+        // Clear all previous validation messages using unified system
+        ValidationManager.clearAllMessages();
         
         let isValid = true;
         let firstInvalidElement = null;
 
         // Get form elements
         const trainingType = document.querySelector('input[name="training_type"]:checked');
+        const locationType = document.querySelector('input[name="location_type"]:checked');
+        const locationDetails = document.getElementById("location_details");
         const trainerName = document.getElementById("trainer_name_search");
         const supplierName = document.getElementById("supplier_name");
+        const trainingName = document.getElementById("training_name");
+        const startDate = document.getElementById("start_date");
+        const endDate = document.getElementById("end_date");
+        const trainingDescription = document.getElementById("training_description");
+        const idaClass = document.getElementById("ida_class");
         const trainingHours = document.getElementById("training_hours");
         const courseCost = document.getElementById("course_cost");
         const concurClaim = document.getElementById("concur_claim");
         const otherCost = document.getElementById("other_cost");
         const otherDesc = document.getElementById("other_expense_description");
+        const attachments = document.getElementById("attachments");
 
         // Validate training type selection
         if (!trainingType) {
@@ -205,6 +319,97 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (!firstInvalidElement) firstInvalidElement = trainingTypeContainer;
             }
             isValid = false;
+        }
+
+        // Validate training name (always required)
+        if (!trainingName || !trainingName.value.trim()) {
+            if (trainingName) {
+                showValidationMessage(trainingName, "Training Name is required.");
+                if (!firstInvalidElement) firstInvalidElement = trainingName;
+            }
+            isValid = false;
+        }
+
+        // Validate start date (always required)
+        if (!startDate || !startDate.value) {
+            if (startDate) {
+                showValidationMessage(startDate, "Start Date is required.");
+                if (!firstInvalidElement) firstInvalidElement = startDate;
+            }
+            isValid = false;
+        }
+
+        // Validate end date (always required)
+        if (!endDate || !endDate.value) {
+            if (endDate) {
+                showValidationMessage(endDate, "End Date is required.");
+                if (!firstInvalidElement) firstInvalidElement = endDate;
+            }
+            isValid = false;
+        }
+
+        // Validate that end date is not before start date
+        if (startDate && startDate.value && endDate && endDate.value) {
+            const startDateValue = new Date(startDate.value);
+            const endDateValue = new Date(endDate.value);
+            if (endDateValue < startDateValue) {
+                showValidationMessage(endDate, "End date cannot be earlier than start date.");
+                if (!firstInvalidElement) firstInvalidElement = endDate;
+                isValid = false;
+            }
+        }
+
+        // Validate training description (always required)
+        if (!trainingDescription || !trainingDescription.value.trim()) {
+            if (trainingDescription) {
+                showValidationMessage(trainingDescription, "Training Description is required.");
+                if (!firstInvalidElement) firstInvalidElement = trainingDescription;
+            }
+            isValid = false;
+        }
+
+        // Validate IDA class (always required)
+        if (!idaClass || !idaClass.value) {
+            if (idaClass) {
+                showValidationMessage(idaClass, "Training Class is required.");
+                if (!firstInvalidElement) firstInvalidElement = idaClass;
+            }
+            isValid = false;
+        }
+
+        // Validate location type selection
+        if (!locationType) {
+            const locationTypeContainer = document.querySelector('.form-group:has(input[name="location_type"])');
+            const fallbackContainer = document.querySelector('input[name="location_type"]')?.closest('.form-group, .col-md-12');
+            const container = locationTypeContainer || fallbackContainer;
+            
+            if (container) {
+                showValidationMessage(container, "Please select a location type.");
+                if (!firstInvalidElement) firstInvalidElement = container;
+            }
+            isValid = false;
+        } else {
+            // Validate location details for Offsite training
+            if (locationType.value === "Offsite") {
+                if (!locationDetails || !locationDetails.value.trim()) {
+                    if (locationDetails) {
+                        showValidationMessage(locationDetails, "Location Details is required for offsite training.");
+                        if (!firstInvalidElement) firstInvalidElement = locationDetails;
+                    }
+                    isValid = false;
+                }
+            }
+            
+            // Validate attachments for Virtual training
+            if (locationType.value === "Virtual") {
+                if (!attachments || attachments.files.length === 0) {
+                    if (attachments) {
+                        showValidationMessage(attachments, "At least one attachment is required for virtual training.");
+                        if (!firstInvalidElement) firstInvalidElement = attachments;
+                    }
+                    isValid = false;
+                }
+            }
         }
 
         // Validate trainees
@@ -255,6 +460,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (courseCost) {
                         showValidationMessage(courseCost, "Course Cost is required for external training and cannot be negative.");
                         if (!firstInvalidElement) firstInvalidElement = courseCost;
+                    }
+                    isValid = false;
+                }
+
+                // Validate invoice number for External Training
+                const invoiceNumber = document.getElementById("invoice_number");
+                if (!invoiceNumber || !invoiceNumber.value.trim()) {
+                    if (invoiceNumber) {
+                        showValidationMessage(invoiceNumber, "Invoice Number is required for external training.");
+                        if (!firstInvalidElement) firstInvalidElement = invoiceNumber;
                     }
                     isValid = false;
                 }

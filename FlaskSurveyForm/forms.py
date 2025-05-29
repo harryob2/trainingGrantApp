@@ -1,6 +1,7 @@
 from datetime import date
 import re
 import json
+import logging
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
@@ -26,6 +27,10 @@ from wtforms.validators import (
     Email,
 )
 
+# Configure logging for form debugging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 # Training types
 TRAINING_TYPES = ["Internal Training", "External Training"]
 
@@ -35,6 +40,7 @@ IDA_CLASS_CHOICES = [
     ("Class B - Nat/International Industry Cert", "Class B - Nat/International Industry Cert"),
     ("Class C - Internal Corporate Cert", "Class C - Internal Corporate Cert"),
     ("Class D - Not Certified", "Class D - Not Certified"),
+    ("Training not completed/ongoing", "Training not completed/ongoing"),
     ("Not sure", "Not sure"),
 ]
 
@@ -68,9 +74,9 @@ ALLOWED_EXTENSIONS = {
 }
 
 
-def DynamicRequiredIf(condition_field, condition_value, additional_validator=None):
-    """Dynamic required validator based on a condition"""
-
+def RequiredIf(condition_field, condition_value, message=None):
+    """Validator that makes field required if another field has a specific value"""
+    
     def _validator(form, field):
         try:
             other_field = getattr(form, condition_field)
@@ -78,26 +84,73 @@ def DynamicRequiredIf(condition_field, condition_value, additional_validator=Non
             raise ValidationError(
                 f"No field named '{condition_field}' in form for RequiredIf validator."
             )
-        print(
-            f"Validating {field.name} based on {condition_field} == {condition_value}"
-        )
-
+        
+        logger.debug(f"RequiredIf: Checking {field.name} based on {condition_field} == {condition_value}")
+        logger.debug(f"RequiredIf: Other field value: {other_field.data}")
+        logger.debug(f"RequiredIf: Current field value: {field.data}")
+        
+        # If the condition is met and the field is empty or None, it's required
         if other_field.data == condition_value:
-            # If condition is met, field is required
-            validators = (
-                [DataRequired()]
-                if not additional_validator
-                else [DataRequired(), additional_validator]
-            )
-            field.validators = validators
+            if not field.data or (isinstance(field.data, str) and not field.data.strip()):
+                error_message = message or f"This field is required when {condition_field} is {condition_value}."
+                logger.debug(f"RequiredIf: Validation failed - {error_message}")
+                raise ValidationError(error_message)
+            else:
+                logger.debug(f"RequiredIf: Validation passed - field has value")
         else:
-            # Make it optional if condition is not met
-            field.validators = (
-                [Optional()]
-                if not additional_validator
-                else [Optional(), additional_validator]
-            )
+            logger.debug(f"RequiredIf: Condition not met, field is optional")
+    
+    return _validator
 
+
+def RequiredIfExternal(message=None):
+    """Validator that makes field required if training type is External Training"""
+    return RequiredIf("training_type", "External Training", message)
+
+
+def RequiredIfInternal(message=None):
+    """Validator that makes field required if training type is Internal Training"""
+    return RequiredIf("training_type", "Internal Training", message)
+
+
+def RequiredIfOffsite(message=None):
+    """Validator that makes field required if location type is Offsite"""
+    return RequiredIf("location_type", "Offsite", message)
+
+
+def RequiredIfVirtual(message=None):
+    """Validator that makes field required if location type is Virtual"""
+    return RequiredIf("location_type", "Virtual", message)
+
+
+def RequiredAttachmentsIfVirtual(message=None):
+    """Special validator for attachments when location type is Virtual"""
+    
+    def _validator(form, field):
+        try:
+            location_field = getattr(form, "location_type")
+        except AttributeError:
+            raise ValidationError("No location_type field found in form.")
+        
+        logger.debug(f"RequiredAttachmentsIfVirtual: Checking attachments based on location_type == Virtual")
+        logger.debug(f"RequiredAttachmentsIfVirtual: Location type value: {location_field.data}")
+        logger.debug(f"RequiredAttachmentsIfVirtual: Attachments field data: {field.data}")
+        
+        # If location is Virtual, check if attachments are provided
+        if location_field.data == "Virtual":
+            # Check if any files were uploaded
+            has_attachments = field.data and any(f.filename for f in field.data if f)
+            logger.debug(f"RequiredAttachmentsIfVirtual: Has attachments: {has_attachments}")
+            
+            if not has_attachments:
+                error_message = message or "At least one attachment is required for Virtual training."
+                logger.debug(f"RequiredAttachmentsIfVirtual: Validation failed - {error_message}")
+                raise ValidationError(error_message)
+            else:
+                logger.debug(f"RequiredAttachmentsIfVirtual: Validation passed - attachments found")
+        else:
+            logger.debug(f"RequiredAttachmentsIfVirtual: Location is not Virtual, attachments are optional")
+    
     return _validator
 
 
@@ -143,17 +196,17 @@ class TrainingForm(FlaskForm):
     # Conditionally Required
     trainer_name = StringField(
         "Trainer Name",
-        validators=[DynamicRequiredIf("training_type", "Internal Training")],
+        validators=[RequiredIfInternal("Trainer Name is required for internal training.")],
         description="For internal training, select from employee list",
     )
     supplier_name = StringField(
         "Supplier Name",
-        validators=[DynamicRequiredIf("training_type", "External Training")],
+        validators=[RequiredIfExternal("Supplier Name is required for external training.")],
         description="For external training, enter supplier name",
     )
     location_details = StringField(
         "Location Details",
-        validators=[DynamicRequiredIf("location_type", "Offsite")],
+        validators=[RequiredIfOffsite("Location Details is required for offsite training.")],
         description="Required for offsite training",
     )
     training_hours = FloatField(
@@ -168,17 +221,14 @@ class TrainingForm(FlaskForm):
     course_cost = FloatField(
         "Course Cost",
         validators=[
-            DynamicRequiredIf(
-                "training_type",
-                "External Training",
-                NumberRange(min=0, message="Course Cost cannot be negative."),
-            ),
+            RequiredIfExternal("Course Cost is required for external training."),
+            NumberRange(min=0, message="Course Cost cannot be negative."),
         ],
         default=0,
     )
     invoice_number = StringField(
         "Invoice Number",
-        validators=[DynamicRequiredIf("training_type", "External Training")],
+        validators=[RequiredIfExternal("Invoice Number is required for external training.")],
         description="Invoice number for external training course",
     )
 
@@ -205,7 +255,7 @@ class TrainingForm(FlaskForm):
     # Attachment fields
     attachments = MultipleFileField(
         "Attachments",
-        validators=[DynamicRequiredIf("location_type", "Virtual")],
+        validators=[RequiredAttachmentsIfVirtual("At least one attachment is required for virtual training.")],
         description="Required for virtual training",
     )  # Example: Make optional
     attachment_descriptions = TextAreaField(
@@ -219,6 +269,48 @@ class TrainingForm(FlaskForm):
 
     # Submit Button
     submit = SubmitField("Submit Training Form")
+
+    def validate(self, extra_validators=None):
+        """Override validate to add debugging for form validation"""
+        logger.debug("=== FORM VALIDATION START ===")
+        logger.debug(f"Form data: {self.data}")
+        
+        # Call parent validation
+        result = super().validate(extra_validators)
+        
+        logger.debug(f"Overall validation result: {result}")
+        logger.debug(f"Form errors: {self.errors}")
+        
+        # Debug specific fields
+        logger.debug(f"Location type value: {self.location_type.data}")
+        logger.debug(f"Location type errors: {self.location_type.errors}")
+        logger.debug(f"Training type value: {self.training_type.data}")
+        logger.debug(f"Training type errors: {self.training_type.errors}")
+        
+        # Log all field errors
+        for field_name, field in self._fields.items():
+            if hasattr(field, 'errors') and field.errors:
+                logger.debug(f"Field '{field_name}' has errors: {field.errors}")
+        
+        logger.debug("=== FORM VALIDATION END ===")
+        return result
+
+    def validate_location_type(self, field):
+        """Custom validation method for location_type with debugging"""
+        logger.debug(f"=== CUSTOM LOCATION VALIDATION ===")
+        logger.debug(f"Location type field data: {field.data}")
+        logger.debug(f"Location type field raw_data: {field.raw_data}")
+        logger.debug(f"Location type field errors before custom validation: {field.errors}")
+        
+        # Let the DataRequired validator handle the actual validation
+        # This is just for debugging
+        if not field.data:
+            logger.debug("Location type is empty - DataRequired should catch this")
+        else:
+            logger.debug(f"Location type has value: {field.data}")
+        
+        logger.debug(f"Location type field errors after custom validation: {field.errors}")
+        logger.debug("=== END CUSTOM LOCATION VALIDATION ===")
 
     # --- Custom Validation Methods ---
     # Keep these for logic more complex than RequiredIf handles directly
@@ -250,17 +342,6 @@ class TrainingForm(FlaskForm):
             raise ValidationError(
                 "Description is required when other expenses are entered."
             )
-
-    def validate_attachments(self, field):
-        """Validate that at least one attachment is provided if location is Virtual."""
-        # This validation runs on the server side after submission.
-        if self.location_type.data == "Virtual":
-            # Check if any *new* files were uploaded in this submission
-            has_new_attachments = field.data and any(f.filename for f in field.data)
-            if not has_new_attachments:
-                raise ValidationError(
-                    "At least one attachment (e.g., certificate) is required for Virtual training."
-                )
 
     def validate_trainees_data(self, field):
         """Validate that at least one trainee has been added."""
@@ -301,7 +382,6 @@ class TrainingForm(FlaskForm):
                 self.invoice_number.data if not is_internal else None
             ),
             "training_description": self.training_description.data or "",
-            "trainees_data": self.trainees_data.data or "[]",
             "materials_cost": (
                 float(self.materials_cost.data) if self.materials_cost.data else 0.0
             ),
@@ -315,32 +395,9 @@ class TrainingForm(FlaskForm):
             "ida_class": self.ida_class.data,
         }
 
-        # Handle trainees data
-        if self.trainees_data.data:
-            try:
-                trainees = json.loads(self.trainees_data.data)
-                if isinstance(trainees, list):
-                    # Ensure all trainees have the required fields
-                    processed_trainees = []
-                    for trainee in trainees:
-                        if isinstance(trainee, dict):
-                            # Ensure required fields exist
-                            processed_trainee = {
-                                "email": trainee.get("email", ""),
-                                "name": trainee.get(
-                                    "name", trainee.get("email", "").split("@")[0]
-                                ),
-                                "department": trainee.get("department", "Engineering"),
-                            }
-                            processed_trainees.append(processed_trainee)
-                    data["trainees_data"] = json.dumps(processed_trainees)
-                else:
-                    data["trainees_data"] = "[]"
-            except json.JSONDecodeError:
-                data["trainees_data"] = "[]"
-        else:
-            data["trainees_data"] = "[]"
-
+        # Note: trainees are now handled separately via the new Trainee table
+        # No need to include trainees_data in the form data anymore
+        
         return data
 
     def validate_course_cost(self, field):

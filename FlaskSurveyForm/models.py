@@ -69,7 +69,6 @@ class TrainingForm(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     training_hours = Column(Float)
-    trainees_data = Column(Text)
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
     concur_claim = Column(String)
@@ -89,6 +88,9 @@ class TrainingForm(Base):
     travel_expenses = relationship(
         "TravelExpense", back_populates="training_form", cascade="all, delete-orphan"
     )
+    trainees = relationship(
+        "Trainee", back_populates="training_form", cascade="all, delete-orphan"
+    )
 
     def to_dict(self, include_costs: bool = False) -> Dict[str, Any]:
         """Convert TrainingForm to dictionary with optional cost fields."""
@@ -104,7 +106,6 @@ class TrainingForm(Base):
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
             "training_hours": self.training_hours,
-            "trainees_data": self.trainees_data,
             "submission_date": (
                 self.submission_date.isoformat() if self.submission_date else None
             ),
@@ -112,6 +113,7 @@ class TrainingForm(Base):
             "submitter": self.submitter,
             "ida_class": self.ida_class,
             "training_description": self.training_description,
+            "trainees": [trainee.to_dict() for trainee in self.trainees],
         }
         
         if include_costs:
@@ -171,6 +173,30 @@ class Admin(Base):
     email = Column(String, primary_key=True)
     first_name = Column(String)
     last_name = Column(String)
+
+
+class Trainee(Base):
+    __tablename__ = "trainees"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    form_id = Column(
+        Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
+    )
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    training_form = relationship("TrainingForm", back_populates="trainees")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Trainee to dictionary."""
+        return {
+            "id": self.id,
+            "form_id": self.form_id,
+            "name": self.name,
+            "email": self.email,
+            "department": self.department,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 class TravelExpense(Base):
@@ -305,7 +331,6 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             location_details=form_data.get("location_details"),
             start_date=parse_date(form_data["start_date"]),
             end_date=parse_date(form_data["end_date"]),
-            trainees_data=form_data.get("trainees_data"),
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
             travel_cost=0,  # No longer used - travel expenses handled separately
@@ -464,4 +489,67 @@ def delete_travel_expense(expense_id: int) -> bool:
             return False
     except Exception as e:
         logging.error(f"Error deleting travel expense: {str(e)}")
+        return False
+
+
+# Trainee CRUD Functions
+
+def insert_trainees(form_id: int, trainees_data: List[Dict[str, Any]]) -> bool:
+    """Insert multiple trainees for a training form."""
+    try:
+        with db_session() as session:
+            for trainee_data in trainees_data:
+                trainee = Trainee(
+                    form_id=form_id,
+                    name=trainee_data["name"],
+                    email=trainee_data["email"],
+                    department=trainee_data.get("department", "Engineering"),
+                )
+                session.add(trainee)
+        return True
+    except Exception as e:
+        logging.error(f"Error inserting trainees: {str(e)}")
+        return False
+
+
+def update_trainees(form_id: int, trainees_data: List[Dict[str, Any]]) -> bool:
+    """Update trainees for a training form by replacing all existing ones."""
+    try:
+        with db_session() as session:
+            # Delete existing trainees for this form
+            session.query(Trainee).filter_by(form_id=form_id).delete()
+            
+            # Insert new trainees
+            for trainee_data in trainees_data:
+                trainee = Trainee(
+                    form_id=form_id,
+                    name=trainee_data["name"],
+                    email=trainee_data["email"],
+                    department=trainee_data.get("department", "Engineering"),
+                )
+                session.add(trainee)
+        return True
+    except Exception as e:
+        logging.error(f"Error updating trainees: {str(e)}")
+        return False
+
+
+def get_trainees(form_id: int) -> List[Dict[str, Any]]:
+    """Get all trainees for a training form."""
+    with db_session() as session:
+        trainees = session.query(Trainee).filter_by(form_id=form_id).all()
+        return [trainee.to_dict() for trainee in trainees]
+
+
+def delete_trainee(trainee_id: int) -> bool:
+    """Delete a specific trainee."""
+    try:
+        with db_session() as session:
+            trainee = session.query(Trainee).filter_by(id=trainee_id).first()
+            if trainee:
+                session.delete(trainee)
+                return True
+            return False
+    except Exception as e:
+        logging.error(f"Error deleting trainee: {str(e)}")
         return False
