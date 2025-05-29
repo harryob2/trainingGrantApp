@@ -916,6 +916,7 @@ def export_claim5():
         internal_trainers_sheet = wb["Internal Trainers"]
         personnel_sheet = wb["Personnel Costs Lookup Table"]
         travel_sheet = wb["Travel"]
+        materials_sheet = wb["Materials"]
         
         # Initialize personnel list to track unique employees
         personnel = []
@@ -943,6 +944,9 @@ def export_claim5():
 
         # Start row for travel data (header is on row 11)
         travel_row = 12
+
+        # Start row for materials data (header is on row 13)
+        materials_row = 14
 
         def process_trainee_sheet(form):
             nonlocal trainee_row
@@ -1061,10 +1065,43 @@ def export_claim5():
             except Exception as e:
                 logging.error(f"Error processing travel expenses for form {form['id']}: {str(e)}", exc_info=True)
 
+        def process_material_expenses(form):
+            nonlocal materials_row
+            try:
+                # Get material expenses for this form
+                from models import get_material_expenses
+                material_expenses = get_material_expenses(form['id'])
+                
+                if not material_expenses:
+                    return  # No material expenses for this form
+                
+                # Process each material expense
+                for expense in material_expenses:
+                    # Column 1: Date
+                    materials_sheet.cell(row=materials_row, column=1).value = expense.get("purchase_date", "")
+                    
+                    # Column 2: Supplier name
+                    materials_sheet.cell(row=materials_row, column=2).value = expense.get("supplier_name", "")
+                    
+                    # Column 3: Invoice number (columns 3 and 4 are merged, so write to 3)
+                    materials_sheet.cell(row=materials_row, column=3).value = expense.get("invoice_number", "")
+                    
+                    # Column 5: Course materials (material cost) - skip column 4 since 3/4 are merged
+                    materials_sheet.cell(row=materials_row, column=5).value = expense.get("material_cost", 0)
+                    
+                    # Column 6: Course details (training name from the form)
+                    materials_sheet.cell(row=materials_row, column=6).value = form.get("training_name", "")
+                    
+                    materials_row += 1
+                    
+            except Exception as e:
+                logging.error(f"Error processing material expenses for form {form['id']}: {str(e)}", exc_info=True)
+
         # Process each approved form
         for form in approved_forms:
             process_trainee_sheet(form)
             process_travel_expenses(form)
+            process_material_expenses(form)
             
             # Handle trainer sheets based on training type
             if form.get("training_type") == "Internal Training":
