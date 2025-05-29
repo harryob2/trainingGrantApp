@@ -282,6 +282,20 @@ def submit_form():
                     # Don't fail the form submission for travel expense errors
                     flash("Warning: There was an issue processing travel expenses, but the form was submitted successfully.", "warning")
 
+            # Process material expenses
+            material_expenses_data = request.form.get("material_expenses_data")
+            if material_expenses_data:
+                try:
+                    from models import insert_material_expenses
+                    material_expenses = json.loads(material_expenses_data)
+                    if material_expenses and isinstance(material_expenses, list):
+                        insert_material_expenses(form_id, material_expenses)
+                        logging.info(f"Inserted {len(material_expenses)} material expenses for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing material expenses: {e}")
+                    # Don't fail the form submission for material expense errors
+                    flash("Warning: There was an issue processing material expenses, but the form was submitted successfully.", "warning")
+
             # Process trainees using the new table structure
             trainees_data = request.form.get("trainees_data")
             if trainees_data:
@@ -529,12 +543,21 @@ def view_form(form_id):
     except Exception as e:
         logging.error(f"Error loading travel expenses for view: {e}")
 
+    # Get material expenses
+    material_expenses = []
+    try:
+        from models import get_material_expenses
+        material_expenses = get_material_expenses(form_id)
+    except Exception as e:
+        logging.error(f"Error loading material expenses for view: {e}")
+
     return render_template(
         "view.html",
         form=form_data,
         trainees=trainees,
         attachments=attachments,
         travel_expenses=travel_expenses,
+        material_expenses=material_expenses,
         now=datetime.now(),
         is_admin=is_admin_user(current_user),
     )
@@ -580,11 +603,6 @@ def edit_form(form_id):
             form.ida_class.data = form_data.get("ida_class", "")
 
             # Expense fields
-            form.materials_cost.data = form_data.get("materials_cost", 0)
-            form.other_cost.data = form_data.get("other_cost", 0)
-            form.other_expense_description.data = form_data.get(
-                "other_expense_description", ""
-            )
             form.concur_claim.data = form_data.get("concur_claim", "")
 
             # Load trainees data from the new table structure
@@ -707,6 +725,20 @@ def edit_form(form_id):
                     # Don't fail the form update for travel expense errors
                     flash("Warning: There was an issue processing travel expenses, but the form was updated successfully.", "warning")
             
+            # Process material expenses
+            material_expenses_data = request.form.get("material_expenses_data")
+            if material_expenses_data:
+                try:
+                    from models import update_material_expenses
+                    material_expenses = json.loads(material_expenses_data)
+                    if isinstance(material_expenses, list):
+                        update_material_expenses(form_id, material_expenses)
+                        logging.info(f"Updated material expenses for form {form_id}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logging.error(f"Error processing material expenses: {e}")
+                    # Don't fail the form update for material expense errors
+                    flash("Warning: There was an issue processing material expenses, but the form was updated successfully.", "warning")
+            
             # Process trainees using the new table structure
             trainees_data = request.form.get("trainees_data")
             if trainees_data:
@@ -753,6 +785,14 @@ def edit_form(form_id):
     except Exception as e:
         logging.error(f"Error loading travel expenses for form {form_id}: {e}")
 
+    # Load existing material expenses
+    existing_material_expenses = []
+    try:
+        from models import get_material_expenses
+        existing_material_expenses = get_material_expenses(form_id)
+    except Exception as e:
+        logging.error(f"Error loading material expenses for form {form_id}: {e}")
+
     return render_template(
         "index.html",
         form=form,
@@ -760,6 +800,7 @@ def edit_form(form_id):
         form_id=form_id,
         existing_attachments=existing_attachments,
         existing_travel_expenses=existing_travel_expenses,
+        existing_material_expenses=existing_material_expenses,
     )
 
 

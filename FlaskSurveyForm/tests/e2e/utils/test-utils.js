@@ -254,9 +254,6 @@ async function fillBasicExternalTrainingForm(page, options = {}) {
 async function addExpenses(page, options = {}) {
   const defaults = {
     travelCost: "5",
-    materialsCost: "5",
-    otherCost: "5",
-    otherDescription: "Test expenses",
     concurClaim: "ABC123"
   };
 
@@ -267,41 +264,8 @@ async function addExpenses(page, options = {}) {
     await page.locator('input[name="travel_cost"]').fill(settings.travelCost);
   }
 
-  if (settings.materialsCost) {
-    await page
-      .locator('input[name="materials_cost"]')
-      .fill(settings.materialsCost);
-  }
-
-  if (settings.otherCost) {
-    await page.locator('input[name="other_cost"]').fill(settings.otherCost);
-
-    // Try to set the description, but don't fail if the element isn't visible
-    if (settings.otherDescription) {
-      try {
-        // Try to click a button or make other_expense_description visible if needed
-        const descField = page.locator(
-          'textarea[name="other_expense_description"]'
-        );
-        const isVisible = await descField.isVisible().catch(() => false);
-
-        // Only attempt to fill if it's visible
-        if (isVisible) {
-          await descField.fill(settings.otherDescription);
-        } else {
-          console.log("Other expense description field not visible, skipping");
-        }
-      } catch (e) {
-        console.log("Could not set other expense description:", e.message);
-      }
-    }
-  }
-
   // Add concur claim if any expenses are added and a claim number is provided
-  const hasExpenses =
-    settings.travelCost ||
-    settings.materialsCost ||
-    settings.otherCost;
+  const hasExpenses = settings.travelCost;
 
   if (hasExpenses && settings.concurClaim) {
     // No need to wait for the message, just fill the field

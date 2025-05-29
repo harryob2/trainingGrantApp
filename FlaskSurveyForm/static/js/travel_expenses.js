@@ -58,6 +58,271 @@ class TravelExpensesManager {
         if (mainForm) {
             mainForm.addEventListener('submit', () => this.prepareDataForSubmission());
         }
+
+        // Enhanced dynamic error clearing with visual feedback
+        this.setupDynamicErrorClearing();
+    }
+
+    setupDynamicErrorClearing() {
+        // Travel date field
+        const travelDateField = document.getElementById('travel_date');
+        if (travelDateField) {
+            travelDateField.addEventListener('input', () => this.clearFieldErrors(travelDateField, 'travel_date'));
+            travelDateField.addEventListener('change', () => {
+                this.clearFieldErrors(travelDateField, 'travel_date');
+                this.validateTravelDate(); // Re-validate for date range
+            });
+        }
+
+        // Destination field
+        const destinationField = document.getElementById('destination');
+        if (destinationField) {
+            destinationField.addEventListener('input', () => {
+                if (destinationField.value.trim()) {
+                    this.clearFieldErrors(destinationField, 'destination');
+                }
+            });
+        }
+
+        // Travel mode radio buttons
+        const travelModeInputs = document.querySelectorAll('input[name="travel_mode"]');
+        travelModeInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                this.clearFieldErrors(input, 'travel_mode');
+                this.handleTravelModeChange();
+            });
+        });
+
+        // Cost field
+        const costField = document.getElementById('cost');
+        if (costField) {
+            costField.addEventListener('input', () => {
+                if (costField.value && parseFloat(costField.value) > 0) {
+                    this.clearFieldErrors(costField, 'cost');
+                }
+            });
+        }
+
+        // Distance field
+        const distanceField = document.getElementById('distance_km');
+        if (distanceField) {
+            distanceField.addEventListener('input', () => {
+                if (distanceField.value && parseFloat(distanceField.value) > 0) {
+                    this.clearFieldErrors(distanceField, 'distance');
+                }
+            });
+        }
+
+        // Traveler checkboxes - need to handle dynamically as they're populated later
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('#traveler-checkboxes input[type="checkbox"]')) {
+                const checkedBoxes = document.querySelectorAll('#traveler-checkboxes input[type="checkbox"]:checked');
+                if (checkedBoxes.length > 0) {
+                    this.clearFieldErrors(null, 'travelers');
+                }
+            }
+        });
+    }
+
+    clearFieldErrors(field, fieldType) {
+        // Get the current error container (check both possible class names for compatibility)
+        const errorContainer = this.modal.querySelector('.validation-error') || this.modal.querySelector('.validation-errors-container');
+        if (!errorContainer) return; // No errors to clear
+        
+        // Determine which error messages to remove based on the field type
+        let errorTextToRemove = [];
+        
+        switch(fieldType) {
+            case 'travel_date':
+                errorTextToRemove = ['Travel date is required', 'Travel date cannot be before training start date', 'Travel date cannot be after training end date'];
+                break;
+            case 'destination':
+                errorTextToRemove = ['Destination is required'];
+                break;
+            case 'travelers':
+                errorTextToRemove = ['Please select at least one traveler'];
+                break;
+            case 'travel_mode':
+                errorTextToRemove = ['Please select a travel mode'];
+                break;
+            case 'cost':
+                errorTextToRemove = ['Cost is required for rail, bus, and flight expenses'];
+                break;
+            case 'distance':
+                errorTextToRemove = ['Distance in km is required for mileage expenses'];
+                break;
+        }
+        
+        // Get current error list
+        const errorList = errorContainer.querySelector('ul');
+        if (!errorList) return;
+        
+        const errorItems = errorList.querySelectorAll('li');
+        const remainingErrors = [];
+        
+        // Filter out the errors that should be removed for this field
+        errorItems.forEach(item => {
+            const errorText = item.textContent.trim();
+            const shouldRemove = errorTextToRemove.some(textToRemove => errorText.includes(textToRemove));
+            
+            if (!shouldRemove) {
+                remainingErrors.push(errorText);
+            }
+        });
+        
+        // Update the error container
+        if (remainingErrors.length === 0) {
+            // No errors left, remove the entire container
+            errorContainer.remove();
+        } else {
+            // Update the error list with remaining errors
+            errorList.innerHTML = remainingErrors.map(error => `<li>${error}</li>`).join('');
+        }
+        
+        // Update error highlighting to reflect current state
+        this.updateErrorHighlighting();
+    }
+
+    validateTravelDate() {
+        const travelDate = document.getElementById('travel_date').value;
+        if (!travelDate) return;
+
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        
+        if (startDate && travelDate < startDate) {
+            this.addSpecificError('travel_date', 'Travel date cannot be before training start date');
+        } else if (endDate && travelDate > endDate) {
+            this.addSpecificError('travel_date', 'Travel date cannot be after training end date');
+        }
+    }
+
+    validateCostOrDistance() {
+        const travelMode = document.querySelector('input[name="travel_mode"]:checked');
+        if (!travelMode) return;
+
+        if (travelMode.value === 'mileage') {
+            const distance = document.getElementById('distance_km').value;
+            if (distance && parseFloat(distance) > 0) {
+                this.removeSpecificError('distance');
+            }
+        } else {
+            const cost = document.getElementById('cost').value;
+            if (cost && parseFloat(cost) > 0) {
+                this.removeSpecificError('cost');
+            }
+        }
+    }
+
+    validateForm() {
+        const errors = [];
+        
+        // Travel date validation
+        const travelDate = document.getElementById('travel_date').value;
+        if (!travelDate) {
+            errors.push({ field: 'travel_date', message: 'Travel date is required' });
+        } else {
+            // Check if date is within training period
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (startDate && travelDate < startDate) {
+                errors.push({ field: 'travel_date', message: 'Travel date cannot be before training start date' });
+            }
+            if (endDate && travelDate > endDate) {
+                errors.push({ field: 'travel_date', message: 'Travel date cannot be after training end date' });
+            }
+        }
+
+        // Destination validation
+        const destination = document.getElementById('destination').value.trim();
+        if (!destination) {
+            errors.push({ field: 'destination', message: 'Destination is required' });
+        }
+
+        // Traveler validation (multiple selection)
+        const selectedTravelers = document.querySelectorAll('#traveler-checkboxes input[type="checkbox"]:checked');
+        if (selectedTravelers.length === 0) {
+            errors.push({ field: 'travelers', message: 'Please select at least one traveler' });
+        }
+
+        // Travel mode validation
+        const travelMode = document.querySelector('input[name="travel_mode"]:checked');
+        if (!travelMode) {
+            errors.push({ field: 'travel_mode', message: 'Please select a travel mode' });
+        } else {
+            if (travelMode.value === 'mileage') {
+                const distance = document.getElementById('distance_km').value;
+                if (!distance || parseFloat(distance) <= 0) {
+                    errors.push({ field: 'distance', message: 'Distance in km is required for mileage expenses' });
+                }
+            } else {
+                const cost = document.getElementById('cost').value;
+                if (!cost || parseFloat(cost) <= 0) {
+                    errors.push({ field: 'cost', message: 'Cost is required for rail, bus, and flight expenses' });
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    addSpecificError(field, message) {
+        // Remove existing error for this field first
+        this.removeSpecificError(field);
+        
+        let errorContainer = this.modal.querySelector('.validation-errors-container');
+        if (!errorContainer) {
+            errorContainer = document.createElement('div');
+            errorContainer.className = 'validation-errors-container alert alert-danger';
+            errorContainer.innerHTML = '<ul class="mb-0"></ul>';
+            
+            const modalBody = this.modal.querySelector('.modal-body');
+            modalBody.insertBefore(errorContainer, modalBody.firstChild);
+        }
+
+        const errorList = errorContainer.querySelector('ul');
+        const errorItem = document.createElement('li');
+        errorItem.className = `error-${field}`;
+        errorItem.textContent = message;
+        errorList.appendChild(errorItem);
+
+        // Show the container
+        errorContainer.style.display = 'block';
+    }
+
+    removeSpecificError(field) {
+        const errorItem = this.modal.querySelector(`.error-${field}`);
+        if (errorItem) {
+            errorItem.remove();
+            
+            // Hide container if no errors remain
+            const errorContainer = this.modal.querySelector('.validation-errors-container');
+            const remainingErrors = errorContainer.querySelectorAll('li');
+            if (remainingErrors.length === 0) {
+                errorContainer.style.display = 'none';
+            }
+        }
+    }
+
+    showValidationErrors(errors) {
+        // Clear existing error messages first
+        const existingErrors = this.modal.querySelectorAll('.validation-error, .validation-errors-container');
+        existingErrors.forEach(error => error.remove());
+
+        // Show new errors at the top of the modal
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'validation-error alert alert-danger';
+        errorContainer.innerHTML = '<ul class="mb-0">' + 
+            errors.map(error => typeof error === 'object' ? error.message : error).map(msg => `<li>${msg}</li>`).join('') + 
+            '</ul>';
+
+        const modalBody = this.modal.querySelector('.modal-body');
+        modalBody.insertBefore(errorContainer, modalBody.firstChild);
+
+        // Add error styling to specific fields
+        const errorMessages = errors.map(error => typeof error === 'object' ? error.message : error);
+        this.highlightErrorFields(errorMessages);
     }
 
     loadExistingData() {
@@ -156,14 +421,14 @@ class TravelExpensesManager {
     openModal(editIndex = -1) {
         this.editingIndex = editIndex;
         
+        // Update traveler checkboxes with current data FIRST
+        this.updateTravelerCheckboxes();
+        
         if (editIndex >= 0 && this.travelExpenses[editIndex]) {
             this.populateModalForEdit(this.travelExpenses[editIndex]);
         } else {
             this.resetModal();
         }
-
-        // Update traveler checkboxes with current data
-        this.updateTravelerCheckboxes();
         
         // Set date constraints based on training dates
         this.setDateConstraints();
@@ -213,15 +478,15 @@ class TravelExpensesManager {
         this.editingIndex = -1;
         this.form.reset();
         
-        // Uncheck all traveler checkboxes
-        const checkboxes = document.querySelectorAll('#traveler-checkboxes input[type="checkbox"]');
-        checkboxes.forEach(checkbox => checkbox.checked = false);
-        
-        this.handleTravelModeChange();
-        
         // Clear any validation messages
-        const errorMessages = this.modal.querySelectorAll('.text-danger');
+        const errorMessages = this.modal.querySelectorAll('.text-danger, .validation-error, .validation-errors-container');
         errorMessages.forEach(msg => msg.remove());
+
+        // Clear any error styling from fields
+        this.clearAllHighlighting();
+        
+        // Reset travel mode visibility
+        this.handleTravelModeChange();
     }
 
     setDateConstraints() {
@@ -267,59 +532,6 @@ class TravelExpensesManager {
             if (distanceGroup) distanceGroup.style.display = 'none';
             if (distanceField) distanceField.value = '';
         }
-    }
-
-    validateForm() {
-        const errors = [];
-        
-        // Travel date validation
-        const travelDate = document.getElementById('travel_date').value;
-        if (!travelDate) {
-            errors.push('Travel date is required');
-        } else {
-            // Check if date is within training period
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
-            
-            if (startDate && travelDate < startDate) {
-                errors.push('Travel date cannot be before training start date');
-            }
-            if (endDate && travelDate > endDate) {
-                errors.push('Travel date cannot be after training end date');
-            }
-        }
-
-        // Destination validation
-        const destination = document.getElementById('destination').value.trim();
-        if (!destination) {
-            errors.push('Destination is required');
-        }
-
-        // Traveler validation (multiple selection)
-        const selectedTravelers = document.querySelectorAll('#traveler-checkboxes input[type="checkbox"]:checked');
-        if (selectedTravelers.length === 0) {
-            errors.push('Please select at least one traveler');
-        }
-
-        // Travel mode validation
-        const travelMode = document.querySelector('input[name="travel_mode"]:checked');
-        if (!travelMode) {
-            errors.push('Please select a travel mode');
-        } else {
-            if (travelMode.value === 'mileage') {
-                const distance = document.getElementById('distance_km').value;
-                if (!distance || parseFloat(distance) <= 0) {
-                    errors.push('Distance in km is required for mileage expenses');
-                }
-            } else {
-                const cost = document.getElementById('cost').value;
-                if (!cost || parseFloat(cost) <= 0) {
-                    errors.push('Cost is required for rail, bus, and flight expenses');
-                }
-            }
-        }
-
-        return errors;
     }
 
     saveTravelExpense() {
@@ -369,22 +581,6 @@ class TravelExpensesManager {
         this.updateDisplay();
         const modalInstance = bootstrap.Modal.getInstance(this.modal);
         modalInstance.hide();
-    }
-
-    showValidationErrors(errors) {
-        // Clear existing error messages
-        const existingErrors = this.modal.querySelectorAll('.validation-error');
-        existingErrors.forEach(error => error.remove());
-
-        // Show new errors
-        const errorContainer = document.createElement('div');
-        errorContainer.className = 'validation-error alert alert-danger';
-        errorContainer.innerHTML = '<ul class="mb-0">' + 
-            errors.map(error => `<li>${error}</li>`).join('') + 
-            '</ul>';
-
-        const modalBody = this.modal.querySelector('.modal-body');
-        modalBody.insertBefore(errorContainer, modalBody.firstChild);
     }
 
     deleteTravelExpense(index) {
@@ -506,6 +702,81 @@ class TravelExpensesManager {
     refreshTravelerData() {
         this.loadExistingData();
         this.updateTravelerCheckboxes();
+    }
+
+    updateErrorHighlighting() {
+        // Get current error messages from the error container
+        const errorContainer = this.modal.querySelector('.validation-error') || this.modal.querySelector('.validation-errors-container');
+        if (!errorContainer) {
+            // No errors, clear all highlighting
+            this.clearAllHighlighting();
+            return;
+        }
+
+        const errorList = errorContainer.querySelector('ul');
+        if (!errorList) return;
+
+        const errorItems = errorList.querySelectorAll('li');
+        const currentErrors = Array.from(errorItems).map(item => item.textContent.trim());
+        
+        // Update highlighting based on current errors
+        this.highlightErrorFields(currentErrors);
+    }
+
+    highlightErrorFields(errors) {
+        // Clear all previous error styling first
+        this.clearAllHighlighting();
+
+        // Add error styling to fields mentioned in current error messages
+        errors.forEach(error => {
+            if (error.includes('Travel date')) {
+                const field = document.getElementById('travel_date');
+                if (field) field.classList.add('is-invalid');
+            }
+            if (error.includes('Destination')) {
+                const field = document.getElementById('destination');
+                if (field) field.classList.add('is-invalid');
+            }
+            if (error.includes('select at least one traveler')) {
+                const checkboxContainer = document.getElementById('traveler-checkboxes');
+                if (checkboxContainer) checkboxContainer.classList.add('is-invalid');
+            }
+            if (error.includes('select a travel mode')) {
+                const radioButtons = document.querySelectorAll('input[name="travel_mode"]');
+                radioButtons.forEach(radio => {
+                    const label = radio.closest('.form-check');
+                    if (label) label.classList.add('is-invalid');
+                });
+            }
+            if (error.includes('Cost is required')) {
+                const field = document.getElementById('cost');
+                if (field) field.classList.add('is-invalid');
+            }
+            if (error.includes('Distance in km')) {
+                const field = document.getElementById('distance_km');
+                if (field) field.classList.add('is-invalid');
+            }
+        });
+    }
+
+    clearAllHighlighting() {
+        // Clear highlighting from regular input fields
+        const fields = ['travel_date', 'destination', 'cost', 'distance_km'];
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) field.classList.remove('is-invalid');
+        });
+
+        // Clear highlighting from traveler checkboxes container
+        const checkboxContainer = document.getElementById('traveler-checkboxes');
+        if (checkboxContainer) checkboxContainer.classList.remove('is-invalid');
+
+        // Clear highlighting from travel mode radio buttons
+        const radioButtons = document.querySelectorAll('input[name="travel_mode"]');
+        radioButtons.forEach(radio => {
+            const label = radio.closest('.form-check');
+            if (label) label.classList.remove('is-invalid');
+        });
     }
 }
 

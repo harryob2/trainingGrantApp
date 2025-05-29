@@ -231,20 +231,6 @@ class TrainingForm(FlaskForm):
         validators=[RequiredIfExternal("Invoice Number is required for external training.")],
         description="Invoice number for external training course",
     )
-
-    # Optional or complex validation
-    materials_cost = FloatField(
-        "Materials", validators=[Optional(), NumberRange(min=0)]
-    )
-    other_cost = FloatField(
-        "Other Expenses", validators=[Optional(), NumberRange(min=0)]
-    )
-    # Use custom validators for these complex conditions
-    other_expense_description = TextAreaField(
-        "Other Expense Description",
-        validators=[Optional()],
-        description="Required when other expenses are entered",
-    )
     concur_claim = StringField("Concur Claim Number", validators=[Optional()])
 
     # Hidden fields
@@ -324,23 +310,11 @@ class TrainingForm(FlaskForm):
     def validate_concur_claim(self, field):
         """Validate that Concur Claim Number is provided when expenses > 0 are entered"""
         has_expenses = (
-            (self.materials_cost.data and self.materials_cost.data > 0)
-            or (self.other_cost.data and self.other_cost.data > 0)
+            (self.course_cost.data and self.course_cost.data > 0)
         )
         if has_expenses and (not field.data or not field.data.strip()):
             raise ValidationError(
                 "Concur Claim Number is required when expenses are entered."
-            )
-
-    def validate_other_expense_description(self, field):
-        """Validate that other expense description is provided when other expenses > 0"""
-        if (
-            self.other_cost.data
-            and self.other_cost.data > 0
-            and (not field.data or not field.data.strip())
-        ):
-            raise ValidationError(
-                "Description is required when other expenses are entered."
             )
 
     def validate_trainees_data(self, field):
@@ -381,17 +355,8 @@ class TrainingForm(FlaskForm):
             "invoice_number": (
                 self.invoice_number.data if not is_internal else None
             ),
-            "training_description": self.training_description.data or "",
-            "materials_cost": (
-                float(self.materials_cost.data) if self.materials_cost.data else 0.0
-            ),
-            "other_cost": float(self.other_cost.data) if self.other_cost.data else 0.0,
-            "other_expense_description": (
-                self.other_expense_description.data
-                if self.other_cost.data and self.other_cost.data > 0
-                else None
-            ),
             "concur_claim": self.concur_claim.data,
+            "training_description": self.training_description.data or "",
             "ida_class": self.ida_class.data,
         }
 

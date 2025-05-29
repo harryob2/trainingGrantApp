@@ -180,42 +180,37 @@ content %}
           {% endif %}
         </div>
 
-        <!-- Expenses Section -->
+        <!-- Material Expenses Section -->
         <div class="mb-4">
-          <h4 class="fs-6 text-primary mb-3">Other Expenses Breakdown</h4>
-          <div class="row expense-row mb-4">
-            <div class="col-md-6">
-              <div class="card border-primary">
-                <div class="card-body">
-                  <h5 class="card-title text-muted small">Materials</h5>
-                  <div class="fs-5">
-                    €{{ "%.2f"|format(form.materials_cost|default(0)) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="card border-primary">
-                <div class="card-body">
-                  <h5 class="card-title text-muted small">Other</h5>
-                  <div class="fs-5">
-                    €{{ "%.2f"|format(form.other_cost|default(0)) }}
-                  </div>
-                  {% if form.other_expense_description %}
-                  <div class="mt-2 small text-muted">
-                    {{ form.other_expense_description }}
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            <div class="col-12 mt-3">
-              <p class="mb-0">
-                <strong>Concur Claim Number:</strong>
-                {{ form.concur_claim or 'Not provided' }}
-              </p>
-            </div>
+          <h4 class="fs-6 text-primary mb-3">Material Expenses</h4>
+          {% if material_expenses %}
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Purchase Date</th>
+                  <th>Supplier</th>
+                  <th>Invoice Number</th>
+                  <th>Cost (excl. VAT)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for expense in material_expenses %}
+                <tr>
+                  <td>{{ expense.purchase_date }}</td>
+                  <td>{{ expense.supplier_name }}</td>
+                  <td>{{ expense.invoice_number }}</td>
+                  <td>€{{ "%.2f"|format(expense.material_cost) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
+          {% else %}
+          <div class="alert alert-info mb-0">
+            No material expenses recorded for this training
+          </div>
+          {% endif %}
         </div>
 
         <!-- Attachments Section -->

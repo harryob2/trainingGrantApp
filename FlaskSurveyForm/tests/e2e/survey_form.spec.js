@@ -60,10 +60,9 @@ test.describe("Survey Form Submission", () => {
       .locator('textarea[name="training_description"]')
       .fill("test test 777");
 
-    // 9. Enter Expenses (simplified version without other expenses)
+    // 9. Enter Expenses (updated for new expense structure)
     await page.locator('input[name="travel_cost"]').fill("5");
-    await page.locator('input[name="materials_cost"]').fill("5");
-    // Skip other cost to avoid description issues
+    // Note: materials_cost has been replaced by Material Expenses system
     await page.locator('input[name="concur_claim"]').fill("abc2222");
 
     // 10. Add Trainee: Enter 'gre' and select the first option
@@ -132,10 +131,9 @@ test.describe("Survey Form Submission", () => {
       console.log("Added trainee data via JavaScript fallback");
     }
 
-    // --- Add Expenses (simplified to avoid issues with other expense description) ---
+    // --- Add Expenses (updated for new expense structure) ---
     await page.locator('input[name="travel_cost"]').fill("250.50");
-    await page.locator('input[name="materials_cost"]').fill("75");
-    // Skip other cost to avoid issues with description field
+    // Note: materials_cost has been replaced by Material Expenses system
     await page.locator('input[name="concur_claim"]').fill("EXT-2024-0789");
 
     // --- Submit Form ---

@@ -127,7 +127,7 @@ function hasTrainees() {
  * Check if any expense fields have values
  */
 function hasExpenses() {
-    const expenseFields = ['course_cost', 'materials_cost', 'other_cost'];
+    const expenseFields = ['course_cost'];
     return expenseFields.some(fieldId => {
         const field = document.getElementById(fieldId);
         if (!field) return false;
@@ -171,6 +171,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Remove any existing validation messages for this field
             this.clearMessage(element);
 
+            // Add red outline to the field
+            this.addErrorHighlighting(element);
+
             const messageElement = document.createElement("div");
             messageElement.className = "validation-message alert alert-danger mt-2";
             messageElement.style.cssText = "padding: 0.5rem; font-size: 0.9rem;";
@@ -197,11 +200,50 @@ document.addEventListener("DOMContentLoaded", function () {
             return messageElement;
         },
 
+        // Add red outline highlighting to error fields
+        addErrorHighlighting: function(element) {
+            const fieldId = element.id || element.name;
+
+            // Handle different field types for visual highlighting
+            if (fieldId === 'training_type' || element.closest('#training-type-card-group')) {
+                // Training type cards
+                const cards = document.querySelectorAll('#training-type-card-group .training-type-card');
+                cards.forEach(card => card.classList.add('is-invalid'));
+            } else if (fieldId === 'location_type' || element.closest('input[name="location_type"]')) {
+                // Location type radio buttons
+                const radioContainer = document.querySelector('input[name="location_type"]')?.closest('.form-group, .col-md-12');
+                if (radioContainer) radioContainer.classList.add('is-invalid');
+                
+                // Also highlight individual radio buttons
+                document.querySelectorAll('input[name="location_type"]').forEach(radio => {
+                    const formCheck = radio.closest('.form-check');
+                    if (formCheck) formCheck.classList.add('is-invalid');
+                });
+            } else if (fieldId === 'trainee-search-input' || element.closest('.trainee-search-container')) {
+                // Trainee search area
+                const traineeContainer = document.getElementById('trainee-search-input');
+                if (traineeContainer) traineeContainer.classList.add('is-invalid');
+                
+                const searchContainer = element.closest('.trainee-search-container');
+                if (searchContainer) searchContainer.classList.add('is-invalid');
+            } else if (fieldId === 'trainer_name_search') {
+                // Trainer search field
+                element.classList.add('is-invalid');
+            } else {
+                // Regular form fields
+                element.classList.add('is-invalid');
+            }
+        },
+
         // Clear validation message for a specific field
         clearMessage: function(element) {
             const fieldId = element.id || element.name;
+            
             // Remove our validation messages
             document.querySelectorAll(`.validation-message[data-target="${fieldId}"]`).forEach(msg => msg.remove());
+            
+            // Clear red outline highlighting
+            this.clearErrorHighlighting(element);
             
             // Also clear any server-side validation messages in the same container
             const container = element.closest('.form-group, .mb-3, .trainee-search-box, .col-md-12');
@@ -218,9 +260,66 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         },
 
-        // Clear all validation messages
+        // Clear red outline highlighting from fields
+        clearErrorHighlighting: function(element) {
+            const fieldId = element.id || element.name;
+
+            // Handle different field types for clearing highlighting
+            if (fieldId === 'training_type' || element.closest('#training-type-card-group')) {
+                // Training type cards
+                const cards = document.querySelectorAll('#training-type-card-group .training-type-card');
+                cards.forEach(card => card.classList.remove('is-invalid'));
+            } else if (fieldId === 'location_type' || element.closest('input[name="location_type"]')) {
+                // Location type radio buttons
+                const radioContainer = document.querySelector('input[name="location_type"]')?.closest('.form-group, .col-md-12');
+                if (radioContainer) radioContainer.classList.remove('is-invalid');
+                
+                // Also clear individual radio buttons
+                document.querySelectorAll('input[name="location_type"]').forEach(radio => {
+                    const formCheck = radio.closest('.form-check');
+                    if (formCheck) formCheck.classList.remove('is-invalid');
+                });
+            } else if (fieldId === 'trainee-search-input' || element.closest('.trainee-search-container')) {
+                // Trainee search area
+                const traineeContainer = document.getElementById('trainee-search-input');
+                if (traineeContainer) traineeContainer.classList.remove('is-invalid');
+                
+                const searchContainer = element.closest('.trainee-search-container');
+                if (searchContainer) searchContainer.classList.remove('is-invalid');
+            } else if (fieldId === 'trainer_name_search') {
+                // Trainer search field
+                element.classList.remove('is-invalid');
+            } else {
+                // Regular form fields
+                element.classList.remove('is-invalid');
+            }
+        },
+
+        // Clear all validation messages and highlighting
         clearAllMessages: function() {
             document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+            this.clearAllHighlighting();
+        },
+
+        // Clear all error highlighting from the form
+        clearAllHighlighting: function() {
+            // Clear regular form fields
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            
+            // Clear training type cards
+            document.querySelectorAll('#training-type-card-group .training-type-card').forEach(card => {
+                card.classList.remove('is-invalid');
+            });
+            
+            // Clear location radio buttons
+            document.querySelectorAll('input[name="location_type"]').forEach(radio => {
+                const formCheck = radio.closest('.form-check');
+                if (formCheck) formCheck.classList.remove('is-invalid');
+            });
+            
+            // Clear trainee search container
+            const traineeContainer = document.querySelector('.trainee-search-container');
+            if (traineeContainer) traineeContainer.classList.remove('is-invalid');
         },
 
         // Set up auto-clearing when user starts fixing issues
@@ -307,8 +406,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const trainingHours = document.getElementById("training_hours");
         const courseCost = document.getElementById("course_cost");
         const concurClaim = document.getElementById("concur_claim");
-        const otherCost = document.getElementById("other_cost");
-        const otherDesc = document.getElementById("other_expense_description");
         const attachments = document.getElementById("attachments");
 
         // Validate training type selection
@@ -483,16 +580,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (!firstInvalidElement) firstInvalidElement = concurClaim;
             }
             isValid = false;
-        }
-
-        // Other expense description validation
-        if (otherCost && otherDesc) {
-            const otherCostVal = parseCurrency(otherCost.value);
-            if (!isNaN(otherCostVal) && otherCostVal > 0 && !otherDesc.value.trim()) {
-                showValidationMessage(otherDesc, "Description is required when other expenses are entered.");
-                if (!firstInvalidElement) firstInvalidElement = otherDesc;
-                isValid = false;
-            }
         }
 
         // If validation failed, prevent submission and focus first invalid element

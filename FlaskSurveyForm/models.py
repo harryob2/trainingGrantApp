@@ -72,10 +72,6 @@ class TrainingForm(Base):
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
     concur_claim = Column(String)
-    travel_cost = Column(Float, default=0)
-    materials_cost = Column(Float, default=0)
-    other_cost = Column(Float, default=0)
-    other_expense_description = Column(Text)
     course_cost = Column(Float, default=0)
     invoice_number = Column(String)
     training_description = Column(Text, nullable=False)
@@ -87,6 +83,9 @@ class TrainingForm(Base):
     )
     travel_expenses = relationship(
         "TravelExpense", back_populates="training_form", cascade="all, delete-orphan"
+    )
+    material_expenses = relationship(
+        "MaterialExpense", back_populates="training_form", cascade="all, delete-orphan"
     )
     trainees = relationship(
         "Trainee", back_populates="training_form", cascade="all, delete-orphan"
@@ -118,13 +117,9 @@ class TrainingForm(Base):
         
         if include_costs:
             result.update({
-                "travel_cost": float(self.travel_cost or 0),
-                "materials_cost": float(self.materials_cost or 0),
-                "other_cost": float(self.other_cost or 0),
                 "course_cost": float(self.course_cost or 0),
                 "invoice_number": self.invoice_number,
                 "concur_claim": self.concur_claim,
-                "other_expense_description": self.other_expense_description,
                 "travel_expenses": [expense.to_dict() for expense in self.travel_expenses],
             })
         
@@ -233,6 +228,32 @@ class TravelExpense(Base):
         }
 
 
+class MaterialExpense(Base):
+    __tablename__ = "material_expenses"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    form_id = Column(
+        Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
+    )
+    purchase_date = Column(Date, nullable=False)
+    supplier_name = Column(String, nullable=False)
+    invoice_number = Column(String, nullable=False)
+    material_cost = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    training_form = relationship("TrainingForm", back_populates="material_expenses")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert MaterialExpense to dictionary."""
+        return {
+            "id": self.id,
+            "form_id": self.form_id,
+            "purchase_date": self.purchase_date.isoformat() if self.purchase_date else None,
+            "supplier_name": self.supplier_name,
+            "invoice_number": self.invoice_number,
+            "material_cost": float(self.material_cost) if self.material_cost else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 def _apply_training_form_filters(query, search_term="", date_from=None, date_to=None, 
                                 training_type=None, approval_status=None):
     """Apply common filters to TrainingForm queries."""
@@ -334,9 +355,6 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
             travel_cost=0,  # No longer used - travel expenses handled separately
-            materials_cost=form_data.get("materials_cost", 0),
-            other_cost=form_data.get("other_cost", 0),
-            other_expense_description=form_data.get("other_expense_description"),
             course_cost=form_data.get("course_cost", 0),
             invoice_number=form_data.get("invoice_number"),
             training_description=form_data["training_description"],
@@ -489,6 +507,71 @@ def delete_travel_expense(expense_id: int) -> bool:
             return False
     except Exception as e:
         logging.error(f"Error deleting travel expense: {str(e)}")
+        return False
+
+
+# Material Expense CRUD Functions
+
+def insert_material_expenses(form_id: int, material_expenses_data: List[Dict[str, Any]]) -> bool:
+    """Insert multiple material expenses for a training form."""
+    try:
+        with db_session() as session:
+            for expense_data in material_expenses_data:
+                expense = MaterialExpense(
+                    form_id=form_id,
+                    purchase_date=parse_date(expense_data["purchase_date"]),
+                    supplier_name=expense_data["supplier_name"],
+                    invoice_number=expense_data["invoice_number"],
+                    material_cost=expense_data["material_cost"],
+                )
+                session.add(expense)
+        return True
+    except Exception as e:
+        logging.error(f"Error inserting material expenses: {str(e)}")
+        return False
+
+
+def update_material_expenses(form_id: int, material_expenses_data: List[Dict[str, Any]]) -> bool:
+    """Update material expenses for a training form by replacing all existing ones."""
+    try:
+        with db_session() as session:
+            # Delete existing material expenses for this form
+            session.query(MaterialExpense).filter_by(form_id=form_id).delete()
+            
+            # Insert new material expenses
+            for expense_data in material_expenses_data:
+                expense = MaterialExpense(
+                    form_id=form_id,
+                    purchase_date=parse_date(expense_data["purchase_date"]),
+                    supplier_name=expense_data["supplier_name"],
+                    invoice_number=expense_data["invoice_number"],
+                    material_cost=expense_data["material_cost"],
+                )
+                session.add(expense)
+        return True
+    except Exception as e:
+        logging.error(f"Error updating material expenses: {str(e)}")
+        return False
+
+
+def get_material_expenses(form_id: int) -> List[Dict[str, Any]]:
+    """Get all material expenses for a training form."""
+    with db_session() as session:
+        expenses = session.query(MaterialExpense).filter_by(form_id=form_id).all()
+        return [expense.to_dict() for expense in expenses]
+
+
+def delete_material_expense(expense_id: int) -> bool:
+    """Delete a specific material expense."""
+    try:
+        with db_session() as session:
+            expense = session.query(MaterialExpense).filter_by(id=expense_id).first()
+            if expense:
+                session.delete(expense)
+                return True
+            return False
+    except Exception as e:
+        logging.error(f"Error deleting material expense: {str(e)}")
         return False
 
 

@@ -98,71 +98,11 @@ test.describe("Form Validation Errors", () => {
     console.log("--- Finished test: Missing Concur Claim with Expenses ---");
   });
 
-  // Test 4: Other Expense Description validation
-  test("4. should show error if Other Cost is entered but description is empty", async ({
+  // Test 4: Other Expense Description validation - SKIPPED (replaced by Material Expenses)
+  test.skip("4. should show error if Other Cost is entered but description is empty", async ({
     page
   }) => {
-    console.log("--- Starting test: Missing Other Expense Description ---");
-
-    // Setup: Fill form with other cost but no description
-    await gotoHome(page);
-
-    // Fill necessary form fields but skip other description
-    await page
-      .locator(".training-type-card")
-      .filter({ hasText: "Internal Training" })
-      .click();
-      await page.locator("label").filter({ hasText: "Onsite" }).click();
-      await setTrainerName(page, "Test Trainer");
-    await page.locator('input[name="training_hours"]').fill("1");
-    await page.locator('input[name="start_date"]').fill("2023-01-01");
-    await page.locator('input[name="end_date"]').fill("2023-01-01");
-    await page
-      .locator('textarea[name="training_description"]')
-      .fill("Test Description");
-
-    // Add a trainee to satisfy form validation
-    await addTrainee(page, "gre");
-
-    // Add other cost but no description
-    await page.locator('input[name="other_cost"]').fill("15");
-
-    // Include concur to avoid concur validation error
-    await page.locator('input[name="concur_claim"]').fill("CLAIM123");
-
-    // Action: Submit the form
-    await submitForm(page);
-
-    // Test is successful either way:
-    // 1. If validation exists, we should still be on the form page
-    // 2. If validation was removed, form will be submitted successfully
-    console.log(`Form submission led to URL: ${page.url()}`);
-
-    if (page.url().includes("/success")) {
-      console.log(
-        "Form was submitted successfully - other expense description validation may have been removed"
-      );
-    } else {
-      console.log(
-        "Form submission was prevented - description validation is still in place"
-      );
-      // Look for validation indications if not submitted
-      const hasValidationText = await page
-        .locator("body")
-        .textContent()
-        .then((text) => {
-          return (
-            text.includes("Description") ||
-            text.includes("required") ||
-            text.includes("validation")
-          );
-        });
-      console.log(
-        `Page ${hasValidationText ? "has" : "does not have"} validation text`
-      );
-    }
-
-    console.log("--- Finished test: Missing Other Expense Description ---");
+    console.log("--- SKIPPED: Other expense functionality has been replaced by Material Expenses system ---");
   });
 
   // Test 5: End Date validation

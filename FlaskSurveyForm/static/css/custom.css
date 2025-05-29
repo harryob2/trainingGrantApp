@@ -43,6 +43,80 @@
   margin-top: 0.25rem;
 }
 
+/* Enhanced validation styles for main form */
+/* Training type cards validation */
+.training-type-card.is-invalid {
+  border-color: var(--bs-danger) !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Location type radio buttons validation */
+.form-check.is-invalid {
+  border: 1px solid var(--bs-danger);
+  border-radius: 4px;
+  padding: 0.5rem;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.form-check.is-invalid .form-check-label {
+  color: var(--bs-danger);
+}
+
+/* Trainee search container validation */
+.trainee-search-container.is-invalid {
+  border: 2px solid var(--bs-danger);
+  border-radius: 6px;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.trainee-search-container.is-invalid .trainee-search-box {
+  border-color: var(--bs-danger);
+}
+
+/* Shake animation for invalid elements */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Input field validation enhancement */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--bs-danger) !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+  background-image: none !important; /* Remove Bootstrap's default icon */
+}
+
+/* Floating labels with validation */
+.form-floating .form-control.is-invalid {
+  border-color: var(--bs-danger) !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.form-floating .form-control.is-invalid:focus {
+  border-color: var(--bs-danger) !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* Validation message styling */
+.validation-message {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.validation-message.alert {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Clear button styling for invalid fields */
+.is-invalid + .btn,
+.is-invalid ~ .btn {
+  border-color: var(--bs-danger);
+}
+
 /* Make certain elements stand out */
 .card-header {
   font-weight: 500;

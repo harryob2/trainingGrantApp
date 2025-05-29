@@ -312,7 +312,7 @@
                                         form.invoice_number.label }}
                                     </div>
                                     <div class="form-text">
-                                        Invoice number for the external training course.
+                                        Course invoice number from the external training provider.
                                     </div>
                                 </div>
 
@@ -422,36 +422,31 @@
                             </div>
                         </div>
 
-                        <!-- Other Expenses Section (renamed from "Expenses") -->
-                        <div class="row mb-4">
+                        <!-- Material Expenses Section -->
+                        <div class="row mb-4" id="material-expenses-section">
                             <div class="col-md-12">
-                                <h3 class="fs-5 form-section-title">Other Expenses</h3>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            {{ form.materials_cost(class="form-control money",
-                                            placeholder=" ") }} {{ form.materials_cost.label }}
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            {{ form.other_cost(class="form-control money",
-                                            placeholder=" ") }} {{ form.other_cost.label }}
-                                        </div>
-                                    </div>
-
-                                    <div id="other-expense-description-container" class="col-md-12 mb-3 d-none">
-                                        <div class="form-floating">
-                                            {{ form.other_expense_description(class="form-control",
-                                            style="height: 100px", placeholder=" ") }} {{
-                                            form.other_expense_description.label (style="position: absolute; top: -7px; width: 115%;")}}
-                                        </div>
-                                        <div class="form-text text-danger other-expense-required-text">
-                                            * Required when other expenses are entered
-                                        </div>
-                                    </div>
+                                <h3 class="fs-5 form-section-title">Material Expenses</h3>
+                                <p class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Optional. Add expenses for materials used in the execution and delivery of the training.
+                                </p>
+                                
+                                <!-- Add Material Expense Button -->
+                                <div class="mb-3">
+                                    <button type="button" id="add-material-expense-btn" class="btn btn-outline-primary">
+                                        <i class="bi bi-plus-lg me-1"></i> Add Material Expense
+                                    </button>
                                 </div>
+
+                                <!-- No Material Expenses Message -->
+                                <div id="no-material-expenses-message" class="alert alert-dark border text-center py-4">
+                                    <i class="bi bi-box-seam fs-4 d-block mb-2 text-light"></i>
+                                    <p class="mb-0 text-light">No material expenses have been added yet</p>
+                                    <small class="text-light">Click "Add Material Expense" to get started</small>
+                                </div>
+
+                                <!-- Material Expenses List -->
+                                <div id="material-expenses-list"></div>
                             </div>
                         </div>
 
@@ -467,6 +462,12 @@
                         <!-- Hidden field for existing travel expenses data -->
                         <input type="hidden" id="travel_expenses_data" name="travel_expenses_data" 
                                value="{{ existing_travel_expenses | tojson | e }}">
+                        {% endif %}
+
+                        {% if edit_mode and existing_material_expenses %}
+                        <!-- Hidden field for existing material expenses data -->
+                        <input type="hidden" id="material_expenses_data" name="material_expenses_data" 
+                               value="{{ existing_material_expenses | tojson | e }}">
                         {% endif %}
                         
                         <!-- Attachments Section (moved to end) -->
@@ -698,15 +699,67 @@
         </div>
     </div>
 </div>
+
+<!-- Material Expense Modal -->
+<!-- Field Naming Convention for clarity:
+     Main form invoice_number = Course invoice from external training provider
+     material_invoice_number = Invoice for material purchases
+     travel expenses = No invoice fields (only costs/distances) -->
+<div class="modal fade" id="materialExpenseModal" tabindex="-1" aria-labelledby="materialExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="materialExpenseModalLabel">Add Material Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="material-expense-form">
+                    <div class="row g-3">
+                        <!-- Purchase Date -->
+                        <div class="col-md-6">
+                            <label for="material_purchase_date" class="form-label">Purchase Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="material_purchase_date" required>
+                            <div class="form-text">Must be between training start and end dates</div>
+                        </div>
+
+                        <!-- Supplier Name -->
+                        <div class="col-md-6">
+                            <label for="material_supplier_name" class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="material_supplier_name" placeholder="e.g., Office Supplies Ltd" required>
+                        </div>
+
+                        <!-- Invoice Number -->
+                        <div class="col-md-6">
+                            <label for="material_invoice_number" class="form-label">Invoice Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="material_invoice_number" placeholder="e.g., INV-2023-001" required>
+                            <div class="form-text">Invoice number from the material supplier</div>
+                        </div>
+
+                        <!-- Material Cost -->
+                        <div class="col-md-6">
+                            <label for="material_cost" class="form-label">Cost (€, excl. VAT) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="material_cost" step="0.01" min="0" placeholder="e.g., 125.50" required>
+                            <div class="form-text">Cost excluding VAT</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="save-material-expense-btn" class="btn btn-primary">Save Material Expense</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %} {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="{{ url_for('static', filename='data/employees.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/employee_search.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/form_setup.js') }}"></script>
 <script src="{{ url_for('static', filename='js/attachment.js') }}"></script>
-<script src="{{ url_for('static', filename='js/other_expense.js') }}"></script>
 <script src="{{ url_for('static', filename='js/form_helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/travel_expenses.js') }}"></script>
+<script src="{{ url_for('static', filename='js/material_expenses.js') }}"></script>
 <script src="{{ url_for('static', filename='js/form_validation.js') }}"></script>
 <script>
     // Simple error clearing for better UX with server-side validation
