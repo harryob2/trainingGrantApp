@@ -97,7 +97,7 @@ class MaterialExpensesManager {
         
         switch(fieldId) {
             case 'material_purchase_date':
-                errorTextToRemove = ['Purchase date is required', 'Purchase date cannot be before training start date', 'Purchase date cannot be after training end date'];
+                errorTextToRemove = ['Purchase date is required', 'Purchase date cannot be after training end date'];
                 break;
             case 'material_supplier_name':
                 errorTextToRemove = ['Supplier name is required'];
@@ -201,10 +201,11 @@ class MaterialExpensesManager {
         const endDate = document.getElementById('end_date').value;
         const purchaseDateField = document.getElementById('material_purchase_date');
         
-        if (startDate && endDate && purchaseDateField) {
-            // Set min and max dates based on training period
-            purchaseDateField.min = startDate;
+        if (endDate && purchaseDateField) {
+            // Only set max date based on training end date - materials can be purchased before training starts
             purchaseDateField.max = endDate;
+            // Remove any min constraint to allow purchases before training
+            purchaseDateField.removeAttribute('min');
         }
     }
 
@@ -216,13 +217,9 @@ class MaterialExpensesManager {
         if (!purchaseDate) {
             errors.push('Purchase date is required');
         } else {
-            // Check if date is within training period
-            const startDate = document.getElementById('start_date').value;
+            // Check if date is not after training end date (materials can be purchased before training starts)
             const endDate = document.getElementById('end_date').value;
             
-            if (startDate && purchaseDate < startDate) {
-                errors.push('Purchase date cannot be before training start date');
-            }
             if (endDate && purchaseDate > endDate) {
                 errors.push('Purchase date cannot be after training end date');
             }

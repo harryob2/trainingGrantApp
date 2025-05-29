@@ -354,7 +354,6 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             end_date=parse_date(form_data["end_date"]),
             approved=form_data.get("approved", False),
             concur_claim=form_data.get("concur_claim"),
-            travel_cost=0,  # No longer used - travel expenses handled separately
             course_cost=form_data.get("course_cost", 0),
             invoice_number=form_data.get("invoice_number"),
             training_description=form_data["training_description"],
