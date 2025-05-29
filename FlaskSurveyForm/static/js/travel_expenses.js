@@ -347,18 +347,86 @@ class TravelExpensesManager {
             };
         }
 
-        // Load existing travel expenses (for edit mode)
-        const existingDataField = document.getElementById('travel_expenses_data');
-        if (existingDataField && existingDataField.value) {
+        // Load existing travel expenses (for edit mode) - use script tag approach
+        const existingDataScript = document.getElementById('existing-travel-expenses-data');
+        if (existingDataScript) {
             try {
-                this.travelExpenses = JSON.parse(existingDataField.value) || [];
+                const rawExpenses = JSON.parse(existingDataScript.textContent) || [];
+                console.log('[TravelExpenses] Raw expenses from script tag:', rawExpenses);
+                
+                // Transform the data from database format to JavaScript format
+                // Database stores individual records per traveler, but we need grouped records
+                this.travelExpenses = this.transformDatabaseExpenses(rawExpenses);
+                console.log('[TravelExpenses] Transformed expenses:', this.travelExpenses);
             } catch (e) {
-                console.error('Error parsing existing travel expenses:', e);
+                console.error('Error parsing existing travel expenses from script tag:', e);
+                console.error('Script content was:', existingDataScript ? existingDataScript.textContent : 'null');
+                this.travelExpenses = [];
+            }
+        } else {
+            console.log('[TravelExpenses] No travel expenses script tag found, checking hidden field as fallback');
+            
+            // Fallback to hidden field (for backwards compatibility)
+            const existingDataField = document.getElementById('travel_expenses_data');
+            if (existingDataField && existingDataField.value) {
+                console.log('[TravelExpenses] Using hidden field fallback');
+                console.log('[TravelExpenses] Raw field value:', existingDataField.value);
+                
+                const cleanValue = existingDataField.value.trim();
+                if (!cleanValue || cleanValue === '' || cleanValue === 'null') {
+                    console.log('[TravelExpenses] Empty or null field value, using empty array');
+                    this.travelExpenses = [];
+                } else {
+                    try {
+                        const rawExpenses = JSON.parse(cleanValue) || [];
+                        console.log('[TravelExpenses] Raw expenses from database:', rawExpenses);
+                        this.travelExpenses = this.transformDatabaseExpenses(rawExpenses);
+                        console.log('[TravelExpenses] Transformed expenses:', this.travelExpenses);
+                    } catch (e) {
+                        console.error('Error parsing existing travel expenses:', e);
+                        console.error('Problem value was:', cleanValue);
+                        this.travelExpenses = [];
+                    }
+                }
+            } else {
+                console.log('[TravelExpenses] No travel expenses data found');
                 this.travelExpenses = [];
             }
         }
 
         this.updateTravelerCheckboxes();
+    }
+
+    transformDatabaseExpenses(rawExpenses) {
+        // Group expenses by travel_date, destination, and travel_mode
+        const groupedExpenses = {};
+        
+        rawExpenses.forEach(expense => {
+            // Create a unique key for grouping
+            const key = `${expense.travel_date}_${expense.destination}_${expense.travel_mode}_${expense.cost || 0}_${expense.distance_km || 0}`;
+            
+            if (!groupedExpenses[key]) {
+                // Create new grouped expense
+                groupedExpenses[key] = {
+                    travel_date: expense.travel_date,
+                    destination: expense.destination,
+                    travel_mode: expense.travel_mode,
+                    cost: expense.cost,
+                    distance_km: expense.distance_km,
+                    travelers: []
+                };
+            }
+            
+            // Add traveler to the group
+            groupedExpenses[key].travelers.push({
+                traveler_type: expense.traveler_type,
+                traveler_email: expense.traveler_email,
+                traveler_name: expense.traveler_name
+            });
+        });
+        
+        // Convert grouped expenses object to array
+        return Object.values(groupedExpenses);
     }
 
     updateTravelerCheckboxes() {

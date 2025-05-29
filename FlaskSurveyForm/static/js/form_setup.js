@@ -26,26 +26,34 @@ document.addEventListener("DOMContentLoaded", function () {
         return false;
     }
 
+    // Check if we're in edit mode
+    const isEditMode = document.querySelector('form[action*="/edit/"]') !== null;
+    console.log('[FormSetup] Edit mode detected:', isEditMode);
+
     // Initialize Training Catalog Search
     const trainingCatalogSearchInput = document.getElementById("training_catalog_search_input");
     const trainingCatalogSearchResultsDivId = "training_catalog_search_results";
     const trainingFormDetails = document.getElementById("training-form-details");
     const addManuallyBtn = document.getElementById("add-manually-btn");
-    
+
+    // Show form details immediately if in edit mode
+    if (isEditMode && trainingFormDetails) {
+        trainingFormDetails.classList.remove('d-none');
+        console.log('[FormSetup] Edit mode: showing form details immediately');
+    }
+
     if (trainingCatalogSearchInput && document.getElementById(trainingCatalogSearchResultsDivId)) {
         console.log("[FormSetup] Setting up Training Catalog Search.");
         initAutocomplete({
             inputId: "training_catalog_search_input",
             resultsId: trainingCatalogSearchResultsDivId,
             lookupUrl: "/api/lookup/trainings",
-            fuseKeys: ['name', 'area', 'course_code'], // searchable fields from catalog
+            fuseKeys: ["training_name", "area", "training_desc"],
             renderItem: (training) => {
-                if (training.id === 0 && training.name === "Other (Manual Entry)") { // Special rendering for "Other"
-                    return `<div class="fw-bold p-2">${training.name}</div>`;
-                }
                 return `
-                    <div class="fw-medium">${training.name}</div>
-                    <div class="text-muted small">${training.area || ''} ${training.course_code ? `(${training.course_code})` : ''}</div>
+                    <div class="fw-medium">${training.training_name}</div>
+                    ${training.area ? `<div class="text-muted small">${training.area}</div>` : ''}
+                    ${training.training_desc ? `<div class="text-muted small">${training.training_desc}</div>` : ''}
                 `;
             },
             onSelect: (training) => {
@@ -63,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Populate training name field
                 if (trainingNameField) {
-                    trainingNameField.value = training.id === 0 ? "" : training.name;
+                    trainingNameField.value = training.id === 0 ? "" : training.training_name;
                     trainingNameField.placeholder = training.id === 0 ? 
                         "Enter the training name/title" : "";
                 }
@@ -79,39 +87,34 @@ document.addEventListener("DOMContentLoaded", function () {
                     idaClassField.value = training.ida_class;
                 }
 
-                // Set training type based on catalog data
-                if (training.id !== 0 && training.training_type) {
-                    let found = false;
+                // Handle training type selection
+                if (training.training_type && training.id !== 0) {
+                    // Clear existing selections
                     trainingTypeRadios.forEach(radio => {
-                        console.log('[DEBUG] Checking radio value:', radio.value, 'against', training.training_type);
-                        if (radio.value === training.training_type) {
-                            radio.checked = true;
-                            found = true;
-                            
-                            // Update card selection - Remove active-card from all cards first
-                            trainingTypeCards.forEach(card => {
-                                card.classList.remove('selected');
-                            });
-                            
-                            // Then add active-card to the matching card
-                            trainingTypeCards.forEach(card => {
-                                if (card.dataset.value === training.training_type) {
-                                    card.classList.add('selected');
-                                    console.log('[DEBUG] Activated card for type:', card.dataset.value);
-                                }
-                            });
-
-                            // Trigger change event
-                            radio.dispatchEvent(new Event('change', { bubbles: true }));
-                            console.log('[DEBUG] Set training type to:', radio.value);
-                        }
+                        radio.checked = false;
                     });
-                    if (!found) {
-                        console.warn('[DEBUG] No matching radio found for training_type:', training.training_type);
-                    }
-                } else {
-                    if (training.id !== 0) {
-                        console.warn('[DEBUG] training.training_type missing in selected training:', training);
+                    trainingTypeCards.forEach(card => {
+                        card.classList.remove('selected');
+                    });
+
+                    // Set the appropriate training type
+                    const targetRadio = Array.from(trainingTypeRadios).find(radio => 
+                        radio.value === training.training_type
+                    );
+                    const targetCard = Array.from(trainingTypeCards).find(card => 
+                        card.getAttribute('data-value') === training.training_type
+                    );
+
+                    if (targetRadio && targetCard) {
+                        targetRadio.checked = true;
+                        targetCard.classList.add('selected');
+                        
+                        // Trigger change event to update form visibility
+                        targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        console.log(`[TrainingCatalogSearch] Selected training type: ${training.training_type}`);
+                    } else {
+                        console.warn('[TrainingCatalogSearch] Could not find matching radio/card for training type:', training.training_type);
                     }
                 }
 
@@ -135,13 +138,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     trainingFormDetails.classList.remove('d-none');
                 }
 
-                console.log(`[TrainingCatalogSearch] Selected: ID=${training.id}, Name=${training.name}`);
+                console.log(`[TrainingCatalogSearch] Selected: ID=${training.id}, Name=${training.training_name}`);
             },
             clearInputOnSelect: true, 
             showOtherOptionOnNoResults: true,
             noResultsText: "No matching trainings. Select 'Other' to enter manually.",
             otherOptionText: "Other (Manually Enter Training Details)",
-            otherOptionValue: { id: 0, name: "Other (Manual Entry)" }
+            otherOptionValue: { id: 0, training_name: "Other (Manual Entry)" }
         });
     } else {
         console.warn("[FormSetup] Training Catalog Search input or results container not found. Skipping init.");
@@ -152,18 +155,24 @@ document.addEventListener("DOMContentLoaded", function () {
         addManuallyBtn.addEventListener('click', function() {
             if (trainingFormDetails) {
                 trainingFormDetails.classList.remove('d-none');
-                // Clear any selected training
-                const trainingNameField = document.getElementById('training_name');
-                const trainingDescField = document.getElementById('training_description');
                 
-                if (trainingNameField) {
-                    trainingNameField.value = '';
-                    trainingNameField.placeholder = "Enter the training name/title";
-                }
-                
-                if (trainingDescField) {
-                    trainingDescField.value = '';
-                    trainingDescField.placeholder = "Please describe the training (course title, area, etc.)";
+                // Only clear fields if NOT in edit mode
+                if (!isEditMode) {
+                    // Clear any selected training
+                    const trainingNameField = document.getElementById('training_name');
+                    const trainingDescField = document.getElementById('training_description');
+                    
+                    if (trainingNameField) {
+                        trainingNameField.value = '';
+                        trainingNameField.placeholder = "Enter the training name/title";
+                    }
+                    
+                    if (trainingDescField) {
+                        trainingDescField.value = '';
+                        trainingDescField.placeholder = "Please describe the training (course title, area, etc.)";
+                    }
+                } else {
+                    console.log('[FormSetup] Edit mode: preserving existing training name and description');
                 }
             }
         });

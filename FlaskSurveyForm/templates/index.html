@@ -458,16 +458,19 @@
                         </div>
                         {% endfor %} {% endif %}
 
-                        {% if edit_mode and existing_travel_expenses %}
-                        <!-- Hidden field for existing travel expenses data -->
-                        <input type="hidden" id="travel_expenses_data" name="travel_expenses_data" 
-                               value="{{ existing_travel_expenses | tojson | e }}">
-                        {% endif %}
-
-                        {% if edit_mode and existing_material_expenses %}
-                        <!-- Hidden field for existing material expenses data -->
-                        <input type="hidden" id="material_expenses_data" name="material_expenses_data" 
-                               value="{{ existing_material_expenses | tojson | e }}">
+                        {% if edit_mode %}
+                        <!-- Hidden fields for JavaScript (safer approach) -->
+                        <input type="hidden" id="travel_expenses_data" name="travel_expenses_data" value="">
+                        <input type="hidden" id="material_expenses_data" name="material_expenses_data" value="">
+                        
+                        <!-- Pass data via script tags to avoid HTML escaping issues -->
+                        <script type="application/json" id="existing-travel-expenses-data">
+                        {{ (existing_travel_expenses or []) | tojson }}
+                        </script>
+                        
+                        <script type="application/json" id="existing-material-expenses-data">
+                        {{ (existing_material_expenses or []) | tojson }}
+                        </script>
                         {% endif %}
                         
                         <!-- Attachments Section (moved to end) -->

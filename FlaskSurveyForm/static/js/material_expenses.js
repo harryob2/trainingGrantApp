@@ -141,13 +141,44 @@ class MaterialExpensesManager {
     }
 
     loadExistingData() {
-        // Load existing material expenses (for edit mode)
-        const existingDataField = document.getElementById('material_expenses_data');
-        if (existingDataField && existingDataField.value) {
+        // Load existing material expenses (for edit mode) - use script tag approach
+        const existingDataScript = document.getElementById('existing-material-expenses-data');
+        if (existingDataScript) {
             try {
-                this.materialExpenses = JSON.parse(existingDataField.value) || [];
+                const rawExpenses = JSON.parse(existingDataScript.textContent) || [];
+                console.log('[MaterialExpenses] Raw expenses from script tag:', rawExpenses);
+                this.materialExpenses = rawExpenses;
             } catch (e) {
-                console.error('Error parsing existing material expenses:', e);
+                console.error('Error parsing existing material expenses from script tag:', e);
+                console.error('Script content was:', existingDataScript ? existingDataScript.textContent : 'null');
+                this.materialExpenses = [];
+            }
+        } else {
+            console.log('[MaterialExpenses] No material expenses script tag found, checking hidden field as fallback');
+            
+            // Fallback to hidden field (for backwards compatibility)
+            const existingDataField = document.getElementById('material_expenses_data');
+            if (existingDataField && existingDataField.value) {
+                console.log('[MaterialExpenses] Using hidden field fallback');
+                console.log('[MaterialExpenses] Raw field value:', existingDataField.value);
+                
+                const cleanValue = existingDataField.value.trim();
+                if (!cleanValue || cleanValue === '' || cleanValue === 'null') {
+                    console.log('[MaterialExpenses] Empty or null field value, using empty array');
+                    this.materialExpenses = [];
+                } else {
+                    try {
+                        const rawExpenses = JSON.parse(cleanValue) || [];
+                        console.log('[MaterialExpenses] Raw expenses from database:', rawExpenses);
+                        this.materialExpenses = rawExpenses;
+                    } catch (e) {
+                        console.error('Error parsing existing material expenses:', e);
+                        console.error('Problem value was:', cleanValue);
+                        this.materialExpenses = [];
+                    }
+                }
+            } else {
+                console.log('[MaterialExpenses] No material expenses data found');
                 this.materialExpenses = [];
             }
         }

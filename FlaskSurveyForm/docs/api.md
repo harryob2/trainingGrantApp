@@ -49,35 +49,45 @@ username=user@domain.com&password=userpassword&csrf_token=...
 
 **Response**: Redirect to login page
 
-### Form Management Routes
+### Home and Navigation Routes
 
 #### GET /
-**Purpose**: Application dashboard/home page
+**Purpose**: Application home/dashboard page
 
 **Authentication**: User
 
-**Response**: HTML dashboard with navigation options
+**Response**: HTML home dashboard with navigation options
 
 **Features**:
 - User-specific content based on role
 - Quick access to form submission
-- Recent submissions summary
+- Recent activity overview
 
-#### GET /submit
-**Purpose**: Display training form submission interface
+#### GET /new
+**Purpose**: Display new training form submission interface with progressive disclosure
 
 **Authentication**: User
 
 **Response**: HTML form for training submission
 
 **Features**:
-- Dynamic form validation
-- Employee lookup integration
-- Training catalog autocomplete
-- File upload interface
+- Training catalog search and selection
+- Progressive form disclosure with multi-section layout
+- Dynamic form validation based on training type
+- Employee lookup integration with autocomplete
+- Enhanced file upload interface with form-specific organization
+- Multi-section layout:
+  - Training Catalog Search
+  - Training Details
+  - Add Trainees
+  - Travel Expenses (future feature)
+  - Material Expenses (future feature)
+  - Attachments
+
+### Form Management Routes
 
 #### POST /submit
-**Purpose**: Process training form submission
+**Purpose**: Process enhanced training form submission with new fields and related data
 
 **Authentication**: User
 
@@ -87,15 +97,20 @@ POST /submit
 Content-Type: multipart/form-data
 
 training_type=External+Training&
+training_name=Python+Programming+Fundamentals&
 supplier_name=Training+Corp&
 location_type=Offsite&
 location_details=Conference+Center&
 start_date=2024-01-15&
 end_date=2024-01-16&
+training_hours=16.0&
 training_description=Advanced+Skills+Training&
 course_cost=1500.00&
+invoice_number=INV-2024-001&
+trainer_email=trainer@company.com&
+ida_class=Class+B+-+Nat%2FInternational+Industry+Cert&
 attachments=@file1.pdf&
-trainees_data=[{"email":"user1@company.com","name":"John Doe"}]&
+trainees_data=[{"email":"user1@company.com","name":"John Doe","department":"Engineering"}]&
 csrf_token=...
 ```
 
@@ -103,81 +118,103 @@ csrf_token=...
 - **Success**: Redirect to success page
 - **Validation Error**: Return form with error messages
 
-**Form Processing**:
-- File upload handling
-- Data validation
-- Database storage
+**Enhanced Form Processing**:
+- File upload handling with form-specific organization (`uploads/form_ID/`)
+- Trainee data processing and validation
+- Travel and material expense handling (future features)
+- Enhanced data validation with conditional requirements
+- Database storage with relationship management
 - Email notifications
 
+**New Required Fields**:
+- `training_name`: Name/title of the training course (always required)
+- `trainer_email`: Email of trainer (captured for internal training)
+- `invoice_number`: Invoice number (required for external training)
+- `ida_class`: Training classification (Class A-D)
+
 #### GET /edit/<int:form_id>
-**Purpose**: Display form editing interface
+**Purpose**: Display enhanced form editing interface
 
 **Authentication**: User (own forms) or Admin
 
 **Parameters**:
 - `form_id`: Training form ID to edit
 
-**Response**: HTML form pre-populated with existing data
+**Response**: HTML form pre-populated with existing data including new fields
 
 **Authorization**:
 - Users can only edit their own unapproved forms
 - Admins can edit any form
 
+**Enhanced Features**:
+- Progressive disclosure maintained in edit mode
+- All new fields properly loaded and editable
+- Trainee management in edit mode
+- File attachment management
+
 #### POST /edit/<int:form_id>
-**Purpose**: Update existing training form
+**Purpose**: Update existing training form with enhanced data
 
 **Authentication**: User (own forms) or Admin
 
 **Parameters**:
 - `form_id`: Training form ID to update
 
-**Request**: Same format as POST /submit
+**Request**: Same format as POST /submit with enhanced fields
 
 **Response**:
 - **Success**: Redirect to form view
 - **Error**: Return form with error messages
 
 #### GET /view/<int:form_id>
-**Purpose**: Display training form details
+**Purpose**: Display comprehensive training form details with all related data
 
 **Authentication**: User
 
 **Parameters**:
 - `form_id`: Training form ID to view
 
-**Response**: HTML page with form details and attachments
+**Response**: HTML page with complete form details
 
-**Features**:
-- Read-only form display
-- Attachment download links
-- Approval status
-- Admin approval controls (for admins)
+**Enhanced Features**:
+- Read-only form display with all new fields
+- Comprehensive trainee list with department information
+- Travel and material expense details (when implemented)
+- Enhanced attachment display with descriptions
+- Form-specific file organization
+- Approval status and admin controls
 
 ### Data Management Routes
 
 #### GET /list
-**Purpose**: Display training submissions with search and filter
+**Purpose**: Display training submissions with enhanced search and filter capabilities
 
 **Authentication**: User
 
 **Query Parameters**:
-- `search`: Search term for text fields
+- `search`: Enhanced search across training name, description, trainer name, trainer email, supplier name
 - `date_from`: Start date filter (YYYY-MM-DD)
 - `date_to`: End date filter (YYYY-MM-DD)
 - `training_type`: Filter by training type
-- `sort_by`: Sort field (submission_date, start_date, end_date, cost)
+- `approval_status`: Filter by approval status (approved, unapproved)
+- `sort_by`: Sort field (submission_date, start_date, end_date, cost, training_name)
 - `sort_order`: Sort direction (ASC, DESC)
 - `page`: Page number for pagination
 
 **Response**: HTML page with filtered and paginated results
 
+**Enhanced Search Capabilities**:
+- Training name prioritized in search
+- Trainer email included in search
+- Improved result relevance
+
 **Example**:
 ```http
-GET /list?search=python&date_from=2024-01-01&training_type=External+Training&sort_by=start_date&sort_order=DESC&page=2
+GET /list?search=python&date_from=2024-01-01&training_type=External+Training&approval_status=approved&sort_by=training_name&sort_order=ASC&page=1
 ```
 
 #### GET /my_submissions
-**Purpose**: Display current user's training submissions
+**Purpose**: Display current user's training submissions with enhanced filtering
 
 **Authentication**: User
 
@@ -185,30 +222,44 @@ GET /list?search=python&date_from=2024-01-01&training_type=External+Training&sor
 
 **Response**: HTML page with user's submissions only
 
+**Enhanced Features**:
+- Personal submission history
+- Status tracking for user's forms
+- Quick access to edit unapproved forms
+
 #### GET /leaderboard
-**Purpose**: Display training statistics and leaderboard
+**Purpose**: Display training statistics, analytics, and leaderboard
 
 **Authentication**: User
 
-**Response**: HTML page with training statistics
+**Response**: HTML page with comprehensive training statistics
 
-**Features**:
-- Total submissions by user
-- Training hours summary
-- Cost analysis
-- Monthly/quarterly breakdowns
+**Enhanced Features**:
+- Total submissions by user with training names
+- Training hours summary and trends
+- Cost analysis with breakdowns
+- Monthly/quarterly statistics
+- Top trainees by training hours
+- Department-wise analytics
+- Training type distribution
+- Trainer participation statistics
 
 ### Administrative Routes
 
 #### GET /manage_admins
-**Purpose**: Admin user management interface
+**Purpose**: Enhanced admin user management interface
 
 **Authentication**: Admin
 
 **Response**: HTML page with admin user list and management controls
 
+**Features**:
+- Add/remove admin users
+- Admin user information display
+- Role management interface
+
 #### POST /manage_admins
-**Purpose**: Add or remove admin users
+**Purpose**: Add or remove admin users with enhanced validation
 
 **Authentication**: Admin
 
@@ -227,7 +278,7 @@ remove_admin=admin@company.com&csrf_token=...
 **Response**: Redirect to admin management page with status message
 
 #### GET /approve/<int:form_id>
-**Purpose**: Approve training form submission
+**Purpose**: Approve training form submission with enhanced logging
 
 **Authentication**: Admin
 
@@ -236,12 +287,31 @@ remove_admin=admin@company.com&csrf_token=...
 
 **Response**: Redirect to form view with approval confirmation
 
+**Enhanced Features**:
+- Comprehensive audit logging
+- Email notifications (future feature)
+- Approval timestamp tracking
+
+### Utility Routes
+
+#### GET /success
+**Purpose**: Display enhanced form submission success page
+
+**Authentication**: User
+
+**Response**: HTML success confirmation page
+
+**Features**:
+- Confirmation of submission
+- Next steps information
+- Link to view submitted form
+
 ## API Endpoints
 
 ### Data Lookup APIs
 
 #### GET /api/employees
-**Purpose**: Employee directory lookup for autocomplete
+**Purpose**: Enhanced employee directory lookup for autocomplete
 
 **Authentication**: User
 
@@ -260,13 +330,14 @@ remove_admin=admin@company.com&csrf_token=...
 ]
 ```
 
-**Features**:
-- Cached for performance
-- Filtered employee list
+**Enhanced Features**:
+- Cached for performance optimization
+- Comprehensive employee data
 - Department information included
+- Optimized search performance
 
 #### GET /api/lookup/<string:entity_type>
-**Purpose**: Generic lookup service for various entity types
+**Purpose**: Enhanced generic lookup service for various entity types
 
 **Authentication**: User
 
@@ -279,19 +350,28 @@ remove_admin=admin@company.com&csrf_token=...
 [
   {
     "id": 1,
-    "name": "Python Programming",
+    "training_name": "Python Programming Fundamentals",
     "area": "Software Development",
+    "training_desc": "Comprehensive Python programming course",
     "ida_class": "Class B - Nat/International Industry Cert",
     "training_type": "External Training",
     "supplier_name": "Tech Training Corp",
-    "training_hours": 16.0
+    "training_hours": 16.0,
+    "course_cost": 1500.0,
+    "challenge_lvl": "Intermediate",
+    "skill_impact": "High"
   },
   ...
 ]
 ```
 
+**Enhanced Features**:
+- Comprehensive training catalog data
+- Enhanced search capabilities
+- Rich metadata for training selection
+
 #### GET /api/export_claim5_options
-**Purpose**: Get available options for Claim 5 export
+**Purpose**: Get available options for enhanced Claim 5 export
 
 **Authentication**: User
 
@@ -304,29 +384,43 @@ remove_admin=admin@company.com&csrf_token=...
     ...
   ],
   "years": [2023, 2024, 2025],
-  "approved_forms_count": 45
+  "approved_forms_count": 45,
+  "total_training_hours": 720,
+  "total_cost": 75000.00
 }
 ```
+
+**Enhanced Features**:
+- Additional statistical information
+- Training hours and cost summaries
+- Enhanced filtering options
 
 ### File Management APIs
 
 #### GET /uploads/<path:filename>
-**Purpose**: Secure file download
+**Purpose**: Secure file download with enhanced organization and access control
 
 **Authentication**: User
 
 **Parameters**:
-- `filename`: Secure filename of uploaded file
+- `filename`: Secure filename path including form organization (e.g., "form_123/20240115_143022_certificate.pdf")
 
 **Response**: File content with appropriate headers
 
-**Security**:
-- Filename validation
-- Access control (users can only access files from their forms or approved forms)
-- Secure file serving
+**Enhanced Security**:
+- Form-based file organization validation
+- Enhanced access control (users can only access files from their forms or approved forms)
+- Secure file serving with path validation
+- Audit logging for file access
+
+**File Path Structure**:
+```
+uploads/form_123/20240115_143022_certificate.pdf
+uploads/form_124/20240116_091234_invoice.pdf
+```
 
 #### POST /export_claim5
-**Purpose**: Generate and download Claim 5 Excel export
+**Purpose**: Generate and download enhanced Claim 5 Excel export
 
 **Authentication**: User
 
@@ -338,13 +432,19 @@ Content-Type: application/x-www-form-urlencoded
 quarter=2024-Q1&csrf_token=...
 ```
 
-**Response**: Excel file download
+**Response**: Enhanced Excel file download with multiple worksheets
 
-**Features**:
-- Filtered by quarter
+**Enhanced Features**:
+- Filtered by quarter with enhanced date handling
 - Only approved forms included
 - Formatted for Claim 5 requirements
-- Multiple worksheets (summary and details)
+- Multiple comprehensive worksheets:
+  - Summary with totals and statistics
+  - Training details with all new fields
+  - Trainee information with departments
+  - Travel expenses (when implemented)
+  - Material expenses (when implemented)
+- Enhanced formatting and data validation
 
 ## Error Handling
 
@@ -352,7 +452,7 @@ quarter=2024-Q1&csrf_token=...
 
 - **200 OK**: Successful request
 - **302 Found**: Redirect response
-- **400 Bad Request**: Invalid request data
+- **400 Bad Request**: Invalid request data or validation errors
 - **401 Unauthorized**: Authentication required
 - **403 Forbidden**: Insufficient privileges
 - **404 Not Found**: Resource not found
@@ -362,8 +462,9 @@ quarter=2024-Q1&csrf_token=...
 
 **HTML Responses** (Web Interface):
 - Error messages displayed via Flask flash messages
-- Form validation errors shown inline
+- Enhanced form validation errors shown inline with context
 - Redirect to appropriate error pages
+- User-friendly error explanations
 
 **JSON Responses** (API Endpoints):
 ```json
@@ -371,7 +472,8 @@ quarter=2024-Q1&csrf_token=...
   "error": "Error message",
   "code": "ERROR_CODE",
   "details": {
-    "field": "Specific field error"
+    "field": "Specific field error",
+    "context": "Additional error context"
   }
 }
 ```
@@ -381,56 +483,70 @@ quarter=2024-Q1&csrf_token=...
 #### Authentication Errors
 - **401 Unauthorized**: User not logged in
 - **403 Forbidden**: Insufficient privileges for admin routes
+- **LDAP Connection**: Enhanced LDAP error handling with user-friendly messages
 
 #### Validation Errors
-- **400 Bad Request**: Form validation failures
-- **400 Bad Request**: Invalid file uploads
-- **400 Bad Request**: Missing required fields
+- **400 Bad Request**: Enhanced form validation failures with specific field guidance
+- **400 Bad Request**: File upload validation (type, size, organization)
+- **400 Bad Request**: Missing required fields with conditional validation
+- **Trainee Validation**: Invalid trainee data format or missing information
 
 #### Resource Errors
 - **404 Not Found**: Training form not found
-- **404 Not Found**: File not found
-- **403 Forbidden**: Access denied to resource
+- **404 Not Found**: File not found in form-specific organization
+- **403 Forbidden**: Access denied to resource (enhanced authorization)
 
 ## Rate Limiting and Security
 
 ### Security Headers
-- **CSRF Protection**: All forms include CSRF tokens
-- **Secure Cookies**: Session cookies with secure flags
+- **CSRF Protection**: Enhanced CSRF tokens for all forms
+- **Secure Cookies**: Session cookies with secure flags and proper configuration
 - **Content Security Policy**: XSS protection headers
+- **File Upload Security**: Enhanced file type and content validation
 
 ### Input Validation
-- **Form Validation**: Server-side validation for all inputs
-- **File Validation**: Type and size restrictions
-- **SQL Injection Prevention**: ORM-based queries only
+- **Enhanced Form Validation**: Server-side validation for all inputs with business logic
+- **File Validation**: Strict type, size, and organization restrictions
+- **SQL Injection Prevention**: ORM-based queries only with parameterized statements
+- **Conditional Validation**: Dynamic validation based on form state
 
 ### Access Control
 - **Authentication Required**: All routes except login
-- **Role-Based Access**: Admin routes restricted
-- **Resource Ownership**: Users can only access own data
+- **Enhanced Role-Based Access**: Admin routes with granular permissions
+- **Resource Ownership**: Users can only access own data with admin override
+- **File Access Control**: Form-specific file access with enhanced security
 
 ## Usage Examples
 
 ### JavaScript API Usage
 
-#### Employee Lookup
+#### Enhanced Employee Lookup
 ```javascript
 fetch('/api/employees')
   .then(response => response.json())
   .then(employees => {
-    // Populate autocomplete dropdown
+    // Populate enhanced autocomplete dropdown
     employees.forEach(emp => {
-      console.log(`${emp.displayName} (${emp.email})`);
+      console.log(`${emp.displayName} (${emp.email}) - ${emp.department}`);
     });
   });
 ```
 
-#### Form Submission
+#### Enhanced Form Submission
 ```javascript
 const formData = new FormData();
 formData.append('training_type', 'External Training');
+formData.append('training_name', 'Python Programming Fundamentals');
 formData.append('supplier_name', 'Training Corp');
 formData.append('start_date', '2024-01-15');
+formData.append('end_date', '2024-01-16');
+formData.append('training_hours', '16.0');
+formData.append('course_cost', '1500.00');
+formData.append('invoice_number', 'INV-2024-001');
+formData.append('ida_class', 'Class B - Nat/International Industry Cert');
+formData.append('trainees_data', JSON.stringify([
+  {"email": "user1@company.com", "name": "John Doe", "department": "Engineering"}
+]));
 formData.append('csrf_token', getCsrfToken());
 
 fetch('/submit', {
@@ -444,15 +560,23 @@ fetch('/submit', {
 });
 ```
 
-#### Training Catalog Lookup
+#### Enhanced Training Catalog Lookup
 ```javascript
 fetch('/api/lookup/trainings')
   .then(response => response.json())
   .then(trainings => {
-    // Filter and display training options
+    // Filter and display enhanced training options
     const filtered = trainings.filter(t => 
-      t.training_type === 'External Training'
+      t.training_type === 'External Training' && t.skill_impact === 'High'
     );
+    
+    // Populate form with selected training
+    if (selectedTraining) {
+      document.getElementById('training_name').value = selectedTraining.training_name;
+      document.getElementById('training_hours').value = selectedTraining.training_hours;
+      document.getElementById('course_cost').value = selectedTraining.course_cost;
+      document.getElementById('ida_class').value = selectedTraining.ida_class;
+    }
   });
 ```
 
@@ -465,21 +589,28 @@ curl -X POST http://localhost:5000/login \
   -c cookies.txt
 ```
 
-#### Get Employee List
+#### Get Enhanced Employee List
 ```bash
 curl -X GET http://localhost:5000/api/employees \
   -b cookies.txt \
   -H "Accept: application/json"
 ```
 
-#### Submit Training Form
+#### Submit Enhanced Training Form
 ```bash
 curl -X POST http://localhost:5000/submit \
   -b cookies.txt \
   -F "training_type=External Training" \
+  -F "training_name=Python Programming Fundamentals" \
   -F "supplier_name=Training Corp" \
   -F "start_date=2024-01-15" \
+  -F "end_date=2024-01-16" \
+  -F "training_hours=16.0" \
+  -F "course_cost=1500.00" \
+  -F "invoice_number=INV-2024-001" \
+  -F "ida_class=Class B - Nat/International Industry Cert" \
   -F "attachments=@training_cert.pdf" \
+  -F "trainees_data=[{\"email\":\"user1@company.com\",\"name\":\"John Doe\",\"department\":\"Engineering\"}]" \
   -F "csrf_token=..."
 ```
 
@@ -489,9 +620,12 @@ curl -X POST http://localhost:5000/submit \
 - **Version**: 1.0
 - **Stability**: Stable
 - **Backward Compatibility**: Maintained for web interface routes
+- **Enhanced Features**: New fields and functionality added with backward compatibility
 
 ### Future Considerations
-- **REST API**: Potential future REST API implementation
-- **API Versioning**: URL-based versioning (/api/v1/)
-- **OpenAPI Specification**: Swagger documentation
-- **Rate Limiting**: Request throttling for API endpoints 
+- **REST API**: Potential future REST API implementation with comprehensive endpoints
+- **API Versioning**: URL-based versioning (/api/v1/) for future versions
+- **OpenAPI Specification**: Swagger documentation for enhanced API documentation
+- **Rate Limiting**: Request throttling for API endpoints
+- **Webhook Support**: Future webhook integration for notifications
+- **Real-time Updates**: WebSocket support for real-time form status updates 

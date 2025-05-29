@@ -2,239 +2,402 @@
 
 ## Overview
 
-The Flask Survey Form System uses WTForms for form handling, validation, and rendering. The form system implements dynamic validation based on training type, comprehensive field validation, and secure file upload handling.
+The Flask Survey Form System uses WTForms for form handling, validation, and rendering. The enhanced form system implements dynamic validation based on training type, comprehensive field validation, secure file upload handling, and progressive disclosure for improved user experience. The current form features a sophisticated multi-section layout with training catalog integration and enhanced user interface components.
 
 ## Form Architecture
 
 ### Core Components
 
-1. **TrainingForm** (`forms.py`): Main training submission form
-2. **SearchForm** (`forms.py`): Search and filtering interface
-3. **LoginForm** (`forms.py`): User authentication form
-4. **InvoiceForm** (`forms.py`): Invoice attachment handling
-5. **Dynamic Validation** (`forms.py`): Context-aware validation logic
-6. **File Upload** (`forms.py`, `utils.py`): Secure file handling
+1. **TrainingForm** (`forms.py`): Main training submission form with enhanced multi-section progressive disclosure layout
+2. **SearchForm** (`forms.py`): Advanced search and filtering interface with enhanced capabilities
+3. **LoginForm** (`forms.py`): User authentication form with LDAP integration
+4. **InvoiceForm** (`forms.py`): Invoice attachment handling for financial tracking
+5. **Enhanced Dynamic Validation** (`forms.py`): Context-aware validation logic with conditional requirements
+6. **Secure File Upload** (`forms.py`, `utils.py`): Form-specific file organization and enhanced security
 
-### Form Processing Flow
+### Enhanced Form Processing Flow
 
 ```
-Form Display → User Input → Client Validation → Server Validation → Data Processing → Database Storage
+Training Catalog Search → Form Population → Progressive Section Disclosure → Enhanced User Input → 
+Client-Side Validation → Server-Side Validation → Trainee Processing → File Organization → 
+Comprehensive Database Storage
 ```
 
-## TrainingForm - Main Form
+## TrainingForm - Enhanced Main Form
 
-### Form Structure
+### Enhanced Form Structure
 
 ```python
 class TrainingForm(FlaskForm):
-    # Always Required Fields
+    # Always Required Fields (Enhanced)
     training_type = RadioField("Training Type", choices=[...], validators=[DataRequired()])
+    training_name = StringField("Training Name", validators=[DataRequired()], 
+                               description="The name/title of the training course")
     location_type = RadioField("Location", choices=[...], validators=[DataRequired()])
     start_date = DateField("Start Date", validators=[DataRequired()])
     end_date = DateField("End Date", validators=[DataRequired()])
     training_description = TextAreaField("Training Description", validators=[DataRequired()])
     ida_class = SelectField("Training Class", choices=[...], validators=[DataRequired()])
+    training_hours = FloatField("Training Hours", validators=[DataRequired(), NumberRange(min=0)])
     
-    # Conditionally Required Fields
-    trainer_name = StringField("Trainer Name", validators=[DynamicRequiredIf("training_type", "Internal Training")])
-    supplier_name = StringField("Supplier Name", validators=[DynamicRequiredIf("training_type", "External Training")])
-    location_details = StringField("Location Details", validators=[DynamicRequiredIf("location_type", "Offsite")])
-    training_hours = FloatField("Training Hours", validators=[DynamicRequiredIf("training_type", "Internal Training")])
-    course_cost = FloatField("Course Cost", validators=[DynamicRequiredIf("training_type", "External Training", 
-                NumberRange(min=0, message="Course Cost cannot be negative."))], 
-    default=0)
+    # Enhanced Conditionally Required Fields
+    trainer_name = StringField("Trainer Name", validators=[RequiredIfInternal()])
+    supplier_name = StringField("Supplier Name", validators=[RequiredIfExternal()])
+    location_details = StringField("Location Details", validators=[RequiredIfOffsite()])
+    course_cost = FloatField("Course Cost", validators=[RequiredIfExternal(), NumberRange(min=0)])
+    invoice_number = StringField("Invoice Number", validators=[RequiredIfExternal()])
     
-    # Optional or complex validation
-    travel_cost = FloatField("Travel Expenses", validators=[Optional(), NumberRange(min=0)])
-    materials_cost = FloatField("Materials", validators=[Optional(), NumberRange(min=0)])
-    other_cost = FloatField("Other Expenses", validators=[Optional(), NumberRange(min=0)])
-    other_expense_description = TextAreaField("Other Expense Description", validators=[Optional()])
+    # Optional Fields
     concur_claim = StringField("Concur Claim Number", validators=[Optional()])
     
-    # File Upload
-    attachments = MultipleFileField("Attachments", validators=[DynamicRequiredIf("location_type", "Virtual")])
-    attachment_descriptions = TextAreaField("Attachment Descriptions", validators=[Optional()])
-    
-    # Trainee Information
-    trainee_emails = TextAreaField("Trainee Emails", validators=[Optional()])
-    
-    # Hidden Fields
+    # Enhanced Hidden Fields for JavaScript Integration
     department = HiddenField("Department", default="Engineering")
     trainees_data = HiddenField("Trainees Data")
+    trainer_email = HiddenField("Trainer Email")
+    
+    # Enhanced File Upload with Form-Specific Organization
+    attachments = MultipleFileField("Attachments", validators=[RequiredAttachmentsIfVirtual()])
+    attachment_descriptions = TextAreaField("Attachment Descriptions", validators=[Optional()])
+    
+    # Enhanced Trainee Information Management
+    trainee_emails = TextAreaField("Trainee Emails", validators=[Optional()])
 ```
 
-### Field Categories
+### Enhanced Field Categories
 
-#### Always Required Fields
-- **training_type**: Internal or External training
-- **location_type**: Onsite, Offsite, or Virtual
-- **start_date**: Training start date
-- **end_date**: Training end date
-- **training_description**: Detailed description of training
-- **ida_class**: Training classification (Class A-D)
+#### Always Required Fields (Enhanced)
+- **training_type**: Internal or External training (visual card selection interface)
+- **training_name**: **NEW**: Name/title of the training course (always required, autocomplete from catalog)
+- **location_type**: Onsite, Offsite, or Virtual (radio button interface)
+- **start_date**: Training start date (date picker with validation)
+- **end_date**: Training end date (date picker with validation)
+- **training_description**: Detailed description of training (rich text area)
+- **ida_class**: **ENHANCED**: Training classification (Class A-D, always required)
+- **training_hours**: **ENHANCED**: Duration in hours (required for all trainings, number input)
 
-#### Conditionally Required Fields
-- **trainer_name**: Required for Internal Training
-- **supplier_name**: Required for External Training
-- **location_details**: Required for Offsite training
-- **training_hours**: Required for Internal Training
-- **course_cost**: Required for External Training
-- **attachments**: Required for Virtual training
+#### Enhanced Conditionally Required Fields
+- **trainer_name**: Required for Internal Training (employee search with autocomplete)
+- **trainer_email**: **NEW**: Captured automatically for Internal Training (hidden field populated by search)
+- **supplier_name**: Required for External Training (text input with validation)
+- **location_details**: Required for Offsite training (text input)
+- **course_cost**: Required for External Training (number input with currency validation)
+- **invoice_number**: **NEW**: Required for External Training (text input with format validation)
+- **attachments**: Required for Virtual training (multiple file upload with drag-and-drop)
 
 #### Optional Fields
-- **travel_cost**: Travel expenses
-- **materials_cost**: Training materials cost
-- **other_cost**: Other miscellaneous expenses
-- **other_expense_description**: Description of other expenses
-- **concur_claim**: Concur expense claim number
-- **trainee_emails**: Comma/space separated trainee emails
+- **concur_claim**: Concur expense claim number (text input with format validation)
+- **trainee_emails**: Comma/space separated trainee emails (textarea for bulk import)
 
-## Form Layout and Structure
+## Enhanced Form Layout and Structure
 
-### Section Organization
+### Progressive Disclosure Architecture
 
-The training form is organized into five main sections in the following order:
+The enhanced training form implements a sophisticated progressive disclosure pattern with six main sections:
 
-1. **Training Details** - Core training information
-2. **Add Trainees** - Trainee management and selection
-3. **Travel Expenses** - Travel expense management (placeholder)
-4. **Other Expenses** - Additional costs and expenses
-5. **Attachments** - File uploads and documentation
+1. **Training Catalog Search** - Quick selection from predefined courses
+2. **Training Details** - Core training information with dynamic visibility
+3. **Add Trainees** - Individual trainee management with search capabilities
+4. **Travel Expenses** - Future feature for travel cost tracking
+5. **Material Expenses** - Future feature for material cost tracking
+6. **Attachments** - File uploads with descriptions and organization
 
-### Section Details
+### Enhanced Section Details
 
-#### 1. Training Details Section
-- **Purpose**: Capture core training information and requirements
-- **Fields**: Training type, name, trainer/supplier, location, dates, hours, classification, description
-- **Conditional Logic**: Fields shown/hidden based on training type and location type
-- **Validation**: Dynamic validation based on training type selection
+#### 1. Training Catalog Search Section
+**Purpose**: Enable rapid form population from comprehensive training catalog
 
-#### 2. Add Trainees Section
-- **Purpose**: Manage trainee selection and information
-- **Features**: 
-  - Employee search with autocomplete
-  - Individual trainee addition
-  - Bulk email import
-  - Trainee list management
-- **Integration**: Connected to employee lookup system
-- **Validation**: Ensures at least one trainee is added
+**Features**: 
+- **Autocomplete Search**: Search by training name, area, or description
+- **Rich Metadata Display**: Show training details, costs, and classifications
+- **One-Click Population**: Automatically populate form fields from selected training
+- **Manual Override**: "Add Manually" option for custom trainings
+- **Enhanced UI**: Visual search results with training cards
 
-#### 3. Travel Expenses Section
-- **Purpose**: Manage detailed travel expense records (future feature)
-- **Current Status**: Placeholder section with informational content
-- **Planned Features**: 
-  - Travel date selection (within training period)
-  - Destination specification
-  - Traveler selection (from trainees/trainer)
-  - Transportation mode selection
-  - Cost/distance tracking
+**Integration**: 
+- Connected to training catalog database with full metadata
+- Real-time search with performance optimization
+- Form field population with all available data
 
-#### 4. Other Expenses Section
-- **Purpose**: Capture additional training-related costs
-- **Fields**: Travel cost, materials cost, other expenses, Concur claim number
-- **Conditional Logic**: Description required when other expenses > 0
-- **Validation**: Concur claim required when any expenses entered
+**User Experience**: 
+- Positioned prominently at top of form
+- Immediate visual feedback on selection
+- Seamless transition to form details
 
-#### 5. Attachments Section
-- **Purpose**: Handle file uploads and documentation
-- **Features**:
-  - Drag-and-drop file upload
-  - Multiple file support
-  - File description management
-  - File type validation
-- **Requirements**: Mandatory for virtual training
-- **Security**: File type and size validation
+#### 2. Enhanced Training Details Section
+**Purpose**: Capture comprehensive training information with intelligent field management
 
-### Form Flow and User Experience
+**Enhanced Fields**: 
+- **Visual Training Type Selection**: Card-based interface with icons and descriptions
+- **Training Name**: Always visible with autocomplete suggestions
+- **Conditional Trainer/Supplier**: Dynamic visibility based on training type
+- **Enhanced Location Management**: Radio buttons with conditional detail fields
+- **Date Range Selection**: Improved date pickers with validation
+- **Training Hours**: Number input with decimal support
+- **Cost and Invoice**: Grouped together for external training
+- **IDA Classification**: Always visible dropdown selection
+- **Rich Description**: Enhanced textarea with character count
 
-#### Progressive Disclosure
-- Form sections revealed progressively as user completes required information
-- Training catalog search available at the top for quick form population
-- Dynamic field visibility based on user selections
+**Conditional Logic**: 
+- Dynamic field visibility based on training type selection
+- Real-time validation feedback
+- Progressive field revelation as selections are made
 
-#### Validation Strategy
-- **Client-side**: Immediate feedback for basic validation
-- **Server-side**: Comprehensive validation with detailed error messages
-- **Progressive**: Validation occurs as user moves through sections
+**Validation Strategy**: 
+- Immediate client-side feedback
+- Context-aware requirements
+- Enhanced error messaging with guidance
 
-#### Responsive Design
-- Mobile-friendly layout with collapsible sections
-- Touch-friendly controls for mobile devices
-- Accessible form controls with proper labeling
+#### 3. Enhanced Add Trainees Section
+**Purpose**: Comprehensive trainee management with advanced selection capabilities
 
-## Dynamic Validation System
+**Enhanced Features**: 
+- **Employee Search**: Advanced autocomplete with department filtering
+- **Individual Addition**: Click-to-add interface with validation
+- **Bulk Email Import**: Textarea for comma/space separated emails
+- **Trainee List Management**: Interactive list with remove capabilities
+- **Department Tracking**: Automatic department assignment
+- **Duplicate Prevention**: Email-based duplicate checking
 
-### DynamicRequiredIf Validator
+**Integration**: 
+- Real-time employee lookup with caching
+- Department validation and assignment
+- Enhanced user experience with visual feedback
 
-The system implements a custom validator that makes fields required based on other field values:
+**Validation**: 
+- Minimum one trainee requirement
+- Email format validation
+- Duplicate detection and prevention
 
+#### 4. Travel Expenses Section (Future Feature)
+**Purpose**: Detailed travel expense tracking for training-related travel
+
+**Current Status**: Section placeholder with informational content
+
+**Planned Enhanced Features**: 
+- **Travel Date Management**: Date selection within training period
+- **Destination Specification**: Text input with validation
+- **Traveler Selection**: Dropdown from trainees/trainer list
+- **Transportation Mode**: Radio buttons (Mileage, Rail, Flight)
+- **Cost/Distance Tracking**: Dynamic fields based on transport mode
+- **Multiple Entries**: Support for multiple travel records
+
+#### 5. Material Expenses Section (Future Feature)
+**Purpose**: Comprehensive material cost tracking for training delivery
+
+**Current Status**: Section placeholder with informational content
+
+**Planned Enhanced Features**:
+- **Purchase Date Tracking**: Date picker with validation
+- **Supplier Information**: Text input with history
+- **Invoice Number Management**: Text input with format validation
+- **Material Cost Recording**: Currency input with validation
+- **Multiple Entries**: Support for multiple material records
+
+#### 6. Enhanced Attachments Section
+**Purpose**: Sophisticated file upload and document management
+
+**Enhanced Features**:
+- **Multiple File Support**: Drag-and-drop interface with progress indicators
+- **File Description Management**: Individual descriptions for each file
+- **Advanced File Validation**: Type, size, and content verification
+- **Form-Specific Organization**: Automatic organization by form ID
+- **Preview Capabilities**: File preview and metadata display
+
+**Requirements**: 
+- **Mandatory for Virtual Training**: Conditional requirement validation
+- **File Type Restrictions**: Comprehensive list of allowed types
+- **Size Limitations**: Per-file and total size limits
+
+**Security**: 
+- Secure filename generation with timestamps
+- File type verification and content validation
+- Form-specific access control
+
+### Enhanced Form Flow and User Experience
+
+#### Progressive Disclosure Strategy
+- **Step-by-Step Revelation**: Form sections revealed as user progresses
+- **Training Catalog First**: Prominent position for quick form population
+- **Intelligent Field Management**: Dynamic visibility based on user selections
+- **Visual Progress Indicators**: Clear indication of completion status
+
+#### Enhanced Training Type Selection
+- **Visual Card Interface**: Attractive cards with icons and descriptions
+- **Immediate Field Updates**: Real-time form field visibility changes
+- **Clear Visual Hierarchy**: Distinct styling for selected options
+- **Accessibility Support**: Keyboard navigation and screen reader support
+
+#### Enhanced Validation Strategy
+- **Progressive Validation**: Validation occurs as user moves through sections
+- **Context-Aware Messages**: Specific guidance based on current selections
+- **Visual Error Indicators**: Clear highlighting of problem areas
+- **Success Feedback**: Positive reinforcement for completed sections
+
+#### Responsive Design Enhancement
+- **Mobile-First Approach**: Optimized for mobile devices
+- **Touch-Friendly Controls**: Large touch targets and intuitive gestures
+- **Collapsible Sections**: Space-efficient layout on smaller screens
+- **Accessible Form Controls**: WCAG compliant form elements
+
+## Enhanced Dynamic Validation System
+
+### Enhanced Custom Validators
+
+The system implements sophisticated custom validators for conditional field requirements:
+
+#### Enhanced RequiredIf Validator
 ```python
-def DynamicRequiredIf(condition_field, condition_value, additional_validator=None):
-    """Dynamic required validator based on a condition"""
+def RequiredIf(condition_field, condition_value, message=None):
+    """Enhanced validator that makes field required if another field has a specific value"""
     
     def _validator(form, field):
         try:
             other_field = getattr(form, condition_field)
         except AttributeError:
-            raise ValidationError(f"No field named '{condition_field}' in form for RequiredIf validator.")
+            raise ValidationError(
+                f"No field named '{condition_field}' in form for RequiredIf validator."
+            )
         
+        logger.debug(f"RequiredIf: Checking {field.name} based on {condition_field} == {condition_value}")
+        logger.debug(f"RequiredIf: Other field value: {other_field.data}")
+        logger.debug(f"RequiredIf: Current field value: {field.data}")
+        
+        # If the condition is met and the field is empty or None, it's required
         if other_field.data == condition_value:
-            # If condition is met, field is required
-            validators = [DataRequired()] if not additional_validator else [DataRequired(), additional_validator]
-            field.validators = validators
+            if not field.data or (isinstance(field.data, str) and not field.data.strip()):
+                error_message = message or f"This field is required when {condition_field} is {condition_value}."
+                logger.debug(f"RequiredIf: Validation failed - {error_message}")
+                raise ValidationError(error_message)
+            else:
+                logger.debug(f"RequiredIf: Validation passed - field has value")
         else:
-            # Make it optional if condition is not met
-            field.validators = [Optional()] if not additional_validator else [Optional(), additional_validator]
+            logger.debug(f"RequiredIf: Condition not met, field is optional")
     
     return _validator
 ```
 
-### Validation Rules
-
-#### Training Type Dependencies
+#### Enhanced Specialized Validators
 ```python
-# Internal Training Requirements
+def RequiredIfExternal(message=None):
+    """Enhanced validator for External Training requirements"""
+    return RequiredIf("training_type", "External Training", message)
+
+def RequiredIfInternal(message=None):
+    """Enhanced validator for Internal Training requirements"""
+    return RequiredIf("training_type", "Internal Training", message)
+
+def RequiredIfOffsite(message=None):
+    """Enhanced validator for Offsite location requirements"""
+    return RequiredIf("location_type", "Offsite", message)
+
+def RequiredIfVirtual(message=None):
+    """Enhanced validator for Virtual location requirements"""
+    return RequiredIf("location_type", "Virtual", message)
+```
+
+#### Enhanced File Upload Validator
+```python
+def RequiredAttachmentsIfVirtual(message=None):
+    """Enhanced validator for attachments when location type is Virtual"""
+    
+    def _validator(form, field):
+        try:
+            location_field = getattr(form, "location_type")
+        except AttributeError:
+            raise ValidationError("No location_type field found in form.")
+        
+        logger.debug(f"RequiredAttachmentsIfVirtual: Checking attachments based on location_type == Virtual")
+        logger.debug(f"RequiredAttachmentsIfVirtual: Location type value: {location_field.data}")
+        logger.debug(f"RequiredAttachmentsIfVirtual: Attachments field data: {field.data}")
+        
+        # If location is Virtual, check if attachments are provided
+        if location_field.data == "Virtual":
+            # Check if any files were uploaded
+            has_attachments = field.data and any(f.filename for f in field.data if f)
+            logger.debug(f"RequiredAttachmentsIfVirtual: Has attachments: {has_attachments}")
+            
+            if not has_attachments:
+                error_message = message or "At least one attachment is required for Virtual training."
+                logger.debug(f"RequiredAttachmentsIfVirtual: Validation failed - {error_message}")
+                raise ValidationError(error_message)
+            else:
+                logger.debug(f"RequiredAttachmentsIfVirtual: Validation passed - attachments found")
+        else:
+            logger.debug(f"RequiredAttachmentsIfVirtual: Location is not Virtual, attachments are optional")
+    
+    return _validator
+```
+
+### Enhanced Validation Rules
+
+#### Training Type Dependencies (Enhanced)
+```python
+# Internal Training Requirements (Enhanced)
 trainer_name = StringField("Trainer Name", 
-    validators=[DynamicRequiredIf("training_type", "Internal Training")])
+    validators=[RequiredIfInternal("Trainer Name is required for internal training.")],
+    description="For internal training, select from employee list")
+
+trainer_email = HiddenField("Trainer Email")  # Auto-captured when trainer selected
+
 training_hours = FloatField("Training Hours", 
-    validators=[DynamicRequiredIf("training_type", "Internal Training", 
-                NumberRange(min=0, message="Training Hours cannot be negative."))])
+    validators=[
+        DataRequired(message="Training Hours is required."),
+        NumberRange(min=0, message="Training Hours cannot be negative.")
+    ])
 
-# External Training Requirements
+# External Training Requirements (Enhanced)
 supplier_name = StringField("Supplier Name", 
-    validators=[DynamicRequiredIf("training_type", "External Training")])
+    validators=[RequiredIfExternal("Supplier Name is required for external training.")],
+    description="For external training, enter supplier name")
+
 course_cost = FloatField("Course Cost", 
-    validators=[DynamicRequiredIf("training_type", "External Training", 
-                NumberRange(min=0, message="Course Cost cannot be negative."))], 
-    default=0)
+    validators=[
+        RequiredIfExternal("Course Cost is required for external training."), 
+        NumberRange(min=0, message="Course Cost cannot be negative.")
+    ])
+
+invoice_number = StringField("Invoice Number",
+    validators=[RequiredIfExternal("Invoice Number is required for external training.")],
+    description="Invoice number for external training course")
 ```
 
-#### Location Type Dependencies
+#### Enhanced Location Type Dependencies
 ```python
-# Offsite Training Requirements
+# Offsite Training Requirements (Enhanced)
 location_details = StringField("Location Details", 
-    validators=[DynamicRequiredIf("location_type", "Offsite")])
+    validators=[RequiredIfOffsite("Location Details is required for offsite training.")],
+    description="Required for offsite training")
 
-# Virtual Training Requirements
+# Virtual Training Requirements (Enhanced)
 attachments = MultipleFileField("Attachments", 
-    validators=[DynamicRequiredIf("location_type", "Virtual")])
+    validators=[RequiredAttachmentsIfVirtual("At least one attachment is required for virtual training.")],
+    description="Required for virtual training")
 ```
 
-## Custom Validation Methods
+## Enhanced Custom Validation Methods
 
-### Date Validation
+### Enhanced Date Validation
 ```python
 def validate_end_date(self, field):
-    """Ensure end date is not before start date"""
+    """Enhanced validation to ensure end date is not before start date"""
     if field.data and self.start_date.data:
         if field.data < self.start_date.data:
             raise ValidationError("End date cannot be before start date.")
 ```
 
-### Concur Claim Validation
+### Enhanced Location Type Validation
+```python
+def validate_location_type(self, field):
+    """Enhanced validation for location type based on training type"""
+    if field.data == "Virtual" and self.training_type.data == "Internal Training":
+        # Allow virtual internal training with informational guidance
+        pass
+```
+
+### Enhanced Concur Claim Validation
 ```python
 def validate_concur_claim(self, field):
-    """Validate Concur claim number format"""
+    """Enhanced validation for Concur claim number format"""
     if field.data:
         # Remove spaces and check if it's alphanumeric
         claim_clean = field.data.replace(" ", "")
@@ -244,85 +407,101 @@ def validate_concur_claim(self, field):
             raise ValidationError("Concur claim number seems too short.")
 ```
 
-### Expense Description Validation
+### Enhanced Course Cost Validation
 ```python
-def validate_other_expense_description(self, field):
-    """Require description when other expenses are entered"""
-    if self.other_cost.data and self.other_cost.data > 0:
-        if not field.data or not field.data.strip():
-            raise ValidationError("Description is required when other expenses are entered.")
+def validate_course_cost(self, field):
+    """Enhanced validation for course cost in external training"""
+    if self.training_type.data == "External Training":
+        if not field.data or field.data <= 0:
+            raise ValidationError("Course cost must be greater than 0 for external training.")
 ```
 
-### File Upload Validation
-```python
-def validate_attachments(self, field):
-    """Validate file uploads for virtual training"""
-    if self.location_type.data == "Virtual":
-        if not field.data or not any(f.filename for f in field.data if f):
-            raise ValidationError("At least one attachment is required for virtual training.")
-```
-
-### Trainee Data Validation
+### Enhanced Trainee Data Validation
 ```python
 def validate_trainees_data(self, field):
-    """Validate trainee data JSON"""
+    """Enhanced validation for trainee data JSON with comprehensive checks"""
     if field.data:
         try:
             trainees = json.loads(field.data)
             if not isinstance(trainees, list):
                 raise ValidationError("Invalid trainee data format.")
+            if len(trainees) == 0:
+                raise ValidationError("At least one trainee must be added.")
+            
+            # Validate individual trainee records
+            for trainee in trainees:
+                if not isinstance(trainee, dict):
+                    raise ValidationError("Invalid trainee record format.")
+                required_fields = ['email', 'name', 'department']
+                for field_name in required_fields:
+                    if field_name not in trainee or not trainee[field_name]:
+                        raise ValidationError(f"Trainee {field_name} is required.")
+                        
         except json.JSONDecodeError:
             raise ValidationError("Invalid trainee data format.")
 ```
 
-## Form Data Processing
+## Enhanced Form Data Processing
 
-### Email Processing
+### Enhanced Email Processing
 ```python
 def process_emails(self):
-    """Process comma/space separated emails into a list"""
+    """Enhanced processing of comma/space separated emails with validation"""
     if not self.trainee_emails.data:
         return []
     
     # Split by comma or space and clean up
     emails = re.split(r'[,\s]+', self.trainee_emails.data.strip())
-    return [email.strip() for email in emails if email.strip()]
+    processed_emails = []
+    
+    for email in emails:
+        email = email.strip()
+        if email:
+            # Basic email validation
+            if '@' in email and '.' in email.split('@')[1]:
+                processed_emails.append(email)
+    
+    return processed_emails
 ```
 
-### Form Data Preparation
+### Enhanced Form Data Preparation
 ```python
 def prepare_form_data(self):
-    """Prepare form data for database storage"""
-    # Process trainee emails
+    """Enhanced preparation of form data for comprehensive database storage"""
+    # Process trainee emails with enhanced validation
     trainee_emails = self.process_emails()
     
-    # Create trainee data structure
+    # Create enhanced trainee data structure
     trainees_data = []
     for email in trainee_emails:
         if email:  # Skip empty emails
+            # Enhanced name extraction and department assignment
+            name_part = email.split("@")[0]
+            formatted_name = name_part.replace(".", " ").replace("_", " ").title()
+            
             trainees_data.append({
                 "email": email,
-                "name": email.split("@")[0].replace(".", " ").title()  # Basic name extraction
+                "name": formatted_name,
+                "department": "Engineering"  # Default with future enhancement for lookup
             })
     
-    # Prepare form data dictionary
+    # Prepare comprehensive form data dictionary
     data = {
         "training_type": self.training_type.data,
+        "training_name": self.training_name.data,  # Always required now
         "trainer_name": self.trainer_name.data if self.training_type.data == "Internal Training" else None,
+        "trainer_email": self.trainer_email.data if self.training_type.data == "Internal Training" else None,
         "supplier_name": self.supplier_name.data if self.training_type.data == "External Training" else None,
         "location_type": self.location_type.data,
         "location_details": self.location_details.data if self.location_type.data == "Offsite" else None,
         "start_date": self.start_date.data,
         "end_date": self.end_date.data,
-        "training_hours": self.training_hours.data if self.training_type.data == "Internal Training" else None,
-        "trainees_data": json.dumps(trainees_data),
+        "training_hours": self.training_hours.data,
+        "trainees_data": json.dumps(trainees_data) if trainees_data else "[]",
         "training_description": self.training_description.data,
         "ida_class": self.ida_class.data,
-        "travel_cost": self.travel_cost.data or 0,
-        "materials_cost": self.materials_cost.data or 0,
-        "other_cost": self.other_cost.data or 0,
-        "other_expense_description": self.other_expense_description.data,
         "course_cost": self.course_cost.data if self.training_type.data == "External Training" else 0,
+        "invoice_number": self.invoice_number.data if self.training_type.data == "External Training" else None,
         "concur_claim": self.concur_claim.data,
         "submitter": current_user.email,
         "department": self.department.data
@@ -331,58 +510,103 @@ def prepare_form_data(self):
     return data
 ```
 
-## File Upload System
+## Enhanced File Upload System
 
-### Allowed File Types
+### Enhanced Allowed File Types
 ```python
 ALLOWED_EXTENSIONS = {
-    "pdf", "doc", "docx", "xls", "xlsx", 
-    "jpg", "jpeg", "png", "csv", "txt"
+    "pdf",      # Portable Document Format
+    "doc",      # Microsoft Word (legacy)
+    "docx",     # Microsoft Word (modern)
+    "xls",      # Microsoft Excel (legacy)
+    "xlsx",     # Microsoft Excel (modern)
+    "jpg",      # JPEG images
+    "jpeg",     # JPEG images
+    "png",      # PNG images
+    "csv",      # Comma-separated values
+    "txt"       # Plain text files
 }
 ```
 
-### File Validation
+### Enhanced File Validation
 ```python
 def allowed_file(filename):
-    """Check if a filename has an allowed extension"""
+    """Enhanced check if a filename has an allowed extension"""
     return (filename and "." in filename and 
             filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS)
 ```
 
-### Secure File Saving
+### Enhanced Secure File Saving with Form Organization
 ```python
-def save_file(file):
-    """Save an uploaded file with a unique filename"""
+def save_file(file, form_id):
+    """Enhanced file saving with form-specific organization"""
     if not file or not file.filename or not allowed_file(file.filename):
         return None
     
     try:
+        # Sanitize the filename
         filename = secure_filename(file.filename)
+        
+        # Generate unique filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_filename = f"{timestamp}_{filename}"
-        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
         
+        # Create form-specific directory
+        form_upload_path = get_form_upload_path(form_id)
+        
+        # Construct file path
+        file_path = os.path.join(form_upload_path, unique_filename)
+        
+        # Save the file
         file.save(file_path)
         return unique_filename
+        
     except Exception as e:
         logging.error(f"Error saving file: {e}")
         return None
+
+def get_form_upload_path(form_id):
+    """Get the upload path for a specific form"""
+    form_folder = f"form_{form_id}"
+    upload_path = os.path.join(UPLOAD_FOLDER, form_folder)
+    
+    # Create directory if it doesn't exist
+    os.makedirs(upload_path, exist_ok=True)
+    
+    return upload_path
 ```
 
-### File Upload Processing
+### Enhanced File Upload Processing
 ```python
-# In form submission handler
+# Enhanced file upload processing in form submission handler
 uploaded_files = []
+attachment_descriptions = []
+
+# Process enhanced attachment descriptions
+if form.attachment_descriptions.data:
+    attachment_descriptions = [
+        desc.strip() for desc in form.attachment_descriptions.data.split('\n')
+        if desc.strip()
+    ]
+
+# Process file uploads with form-specific organization
 if form.attachments.data:
     for file in form.attachments.data:
         if file and file.filename:
-            filename = save_file(file)
+            filename = save_file(file, form_id)
             if filename:
                 uploaded_files.append(filename)
+            else:
+                flash(f"Failed to upload file: {file.filename}", "warning")
 
-# Save attachment metadata to database
+# Save enhanced attachment metadata to database
 for i, filename in enumerate(uploaded_files):
-    description = attachment_descriptions[i] if i < len(attachment_descriptions) else ""
+    description = (
+        attachment_descriptions[i] 
+        if i < len(attachment_descriptions) 
+        else ""
+    )
+    
     attachment = Attachment(
         form_id=form_id,
         filename=filename,
@@ -391,17 +615,20 @@ for i, filename in enumerate(uploaded_files):
     session.add(attachment)
 ```
 
-## SearchForm - Filtering Interface
+## Enhanced SearchForm - Advanced Filtering Interface
 
-### Form Structure
+### Enhanced Form Structure
 ```python
 class SearchForm(FlaskForm):
-    search = StringField("Search", validators=[Optional()])
+    search = StringField("Search", validators=[Optional()], 
+                        description="Search across training names, descriptions, and trainer information")
     date_from = DateField("From Date", validators=[Optional()], format="%Y-%m-%d")
     date_to = DateField("To Date", validators=[Optional()], format="%Y-%m-%d")
     training_type = SelectField("Training Type", 
         choices=[("", "All Types")] + [(type, type) for type in TRAINING_TYPES],
         validators=[Optional()])
+    approval_status = SelectField("Approval Status", 
+        choices=APPROVAL_STATUS_OPTIONS, validators=[Optional()])
     sort_by = SelectField("Sort By", choices=SORT_OPTIONS, default="submission_date")
     sort_order = SelectField("Order", 
         choices=[("DESC", "Newest First"), ("ASC", "Oldest First")], 
@@ -409,102 +636,161 @@ class SearchForm(FlaskForm):
     submit = SubmitField("Search")
 ```
 
-### Date Range Validation
+### Enhanced Date Range Validation
 ```python
 def validate_date_to(self, field):
-    """Ensure 'to' date is not before 'from' date"""
+    """Enhanced validation to ensure 'to' date is not before 'from' date"""
     if field.data and self.date_from.data:
         if field.data < self.date_from.data:
             raise ValidationError("'To' date cannot be before 'From' date.")
 ```
 
-## LoginForm - Authentication
+## Enhanced LoginForm - Authentication
 
-### Form Structure
+### Enhanced Form Structure
 ```python
 class LoginForm(FlaskForm):
-    username = StringField("Username (Email)", validators=[DataRequired(), Email()])
-    password = PasswordField("Password", validators=[DataRequired()])
+    username = StringField("Username (Email)", 
+                          validators=[DataRequired(), Email()],
+                          description="Enter your corporate email address")
+    password = PasswordField("Password", validators=[DataRequired()],
+                            description="Enter your network password")
     submit = SubmitField("Login")
 ```
 
-### Email Validation
-- Uses WTForms Email validator
-- Ensures proper email format
-- Required field validation
+### Enhanced Email Validation
+- Uses WTForms Email validator with enhanced error messages
+- Ensures proper corporate email format
+- Enhanced field validation with user guidance
 
-## InvoiceForm - Invoice Attachments
+## Enhanced InvoiceForm - Financial Tracking
 
-### Form Structure
+### Enhanced Form Structure
 ```python
 class InvoiceForm(FlaskForm):
-    invoice_number = StringField("Invoice Number", validators=[Optional()])
-    cost = DecimalField("Cost (€)", validators=[DataRequired(), NumberRange(min=0)], places=2)
-    description = TextAreaField("Description", validators=[Optional()])
+    invoice_number = StringField("Invoice Number", validators=[Optional()],
+                                description="External invoice reference number")
+    cost = DecimalField("Cost (€)", 
+                       validators=[DataRequired(), NumberRange(min=0)], 
+                       places=2,
+                       description="Training cost in Euros")
+    description = TextAreaField("Description", validators=[Optional()],
+                               description="Additional cost description")
     attachment = FileField("Invoice Attachment", 
-        validators=[Optional(), FileAllowed(list(ALLOWED_EXTENSIONS), "Only document files are allowed.")])
+        validators=[Optional(), FileAllowed(list(ALLOWED_EXTENSIONS), "Only document files are allowed.")],
+        description="Upload invoice document")
     submit = SubmitField("Add Invoice")
 ```
 
-## Form Rendering and Templates
+## Enhanced Form Rendering and Templates
 
-### Template Integration
+### Enhanced Template Integration
 
-#### Form Rendering
+#### Progressive Form Disclosure with Training Catalog
 ```html
-<!-- Basic field rendering -->
-{{ form.training_type.label(class="form-label") }}
-{{ form.training_type(class="form-control") }}
-{% if form.training_type.errors %}
-    <div class="invalid-feedback d-block">
-        {% for error in form.training_type.errors %}
-            {{ error }}
-        {% endfor %}
+<!-- Enhanced Training Catalog Search (Always Visible) -->
+<div class="col-md-12 mb-4">
+    <label for="training_catalog_search_input" class="form-label">Search Training Catalog</label>
+    <div class="catalog-search-box">
+        <input type="text" id="training_catalog_search_input" class="form-control" 
+               placeholder="Type to search catalog by title or area...">
+        <div id="training_catalog_search_results" class="autocomplete-results" style="display: none;"></div>
     </div>
-{% endif %}
+    <div class="mt-3">
+        <button type="button" id="add-manually-btn" class="btn btn-outline-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Training Manually
+        </button>
+    </div>
+</div>
 
-<!-- Dynamic field rendering with conditions -->
-<div id="trainer-name-group" class="mb-3" style="display: none;">
+<!-- Enhanced Form Details (Initially Hidden) -->
+<div id="training-form-details" class="col-12 d-none">
+    <hr />
+    
+    <!-- Enhanced Training Details Section -->
+    <div class="col-md-12 mb-3">
+        <h3 class="fs-5 form-section-title">Training Details</h3>
+    </div>
+    
+    <!-- Enhanced Training Type Selection with Visual Cards -->
+    <!-- Enhanced Form Fields with Progressive Disclosure -->
+    <!-- Enhanced Trainee Management Section -->
+    <!-- Enhanced Attachments Section -->
+</div>
+```
+
+#### Enhanced Dynamic Field Rendering with Visual Components
+```html
+<!-- Enhanced Training Type Selection with Visual Cards -->
+<div class="training-type-card selected" data-value="Internal Training" tabindex="0">
+    <div class="training-type-icon mb-3">
+        <!-- Enhanced Building SVG Icon -->
+    </div>
+    <div class="training-type-title fw-bold mb-2">Internal Training</div>
+    <div class="training-type-desc">Trainings conducted by a fellow Stryker Limerick Employee</div>
+</div>
+
+<!-- Enhanced Conditional Field Containers -->
+<div id="internal-trainer-container" class="col-md-12 mb-3 d-none">
     {{ form.trainer_name.label(class="form-label") }}
-    {{ form.trainer_name(class="form-control", **{"data-lookup": "employees"}) }}
-    {% if form.trainer_name.errors %}
-        <div class="invalid-feedback d-block">
-            {% for error in form.trainer_name.errors %}
-                {{ error }}
-            {% endfor %}
-        {% endif %}
+    <div class="trainee-search-box">
+        <input type="text" class="form-control" id="trainer_name_search" 
+               placeholder="Search by name or email..." autocomplete="off" />
+        <div id="trainer-search-results" class="trainee-search-results hidden"></div>
+    </div>
+    {{ form.trainer_name(class="form-control d-none", id="trainer_name_hidden") }}
+    <div class="form-text trainer-search-hint">
+        Type at least 2 characters to search for an employee
     </div>
 </div>
 ```
 
-#### JavaScript Integration
+#### Enhanced JavaScript Integration
 ```javascript
-// Dynamic field visibility based on training type
+// Enhanced dynamic field visibility based on training type
 document.getElementById('training_type').addEventListener('change', function() {
     const trainingType = this.value;
-    const trainerGroup = document.getElementById('trainer-name-group');
-    const supplierGroup = document.getElementById('supplier-name-group');
+    const trainerGroup = document.getElementById('internal-trainer-container');
+    const supplierGroup = document.getElementById('external-supplier-container');
+    const courseCostGroup = document.getElementById('course-cost-container');
+    const invoiceNumberGroup = document.getElementById('invoice-number-container');
     
     if (trainingType === 'Internal Training') {
         trainerGroup.style.display = 'block';
         supplierGroup.style.display = 'none';
+        courseCostGroup.style.display = 'none';
+        invoiceNumberGroup.style.display = 'none';
     } else if (trainingType === 'External Training') {
         trainerGroup.style.display = 'none';
         supplierGroup.style.display = 'block';
+        courseCostGroup.style.display = 'block';
+        invoiceNumberGroup.style.display = 'block';
     }
 });
+
+// Enhanced training catalog integration
+function populateFormFromCatalog(training) {
+    document.getElementById('training_name').value = training.training_name;
+    document.getElementById('training_hours').value = training.training_hours;
+    document.getElementById('ida_class').value = training.ida_class;
+    if (training.training_type === 'External Training') {
+        document.getElementById('course_cost').value = training.course_cost;
+        document.getElementById('supplier_name').value = training.supplier_name;
+    }
+    document.getElementById('training_description').value = training.training_desc;
+}
 ```
 
-### CSRF Protection
+### Enhanced CSRF Protection
 
-All forms include CSRF protection:
+All forms include enhanced CSRF protection:
 ```html
-{{ form.hidden_tag() }}  <!-- Includes CSRF token -->
+{{ form.hidden_tag() }}  <!-- Includes enhanced CSRF token -->
 ```
 
-## Form Processing Workflow
+## Enhanced Form Processing Workflow
 
-### Submission Processing
+### Enhanced Submission Processing
 ```python
 @app.route("/submit", methods=["GET", "POST"])
 @login_required
@@ -513,48 +799,58 @@ def submit_form():
     
     if form.validate_on_submit():
         try:
-            # Prepare form data
+            # Prepare enhanced form data with validation
             form_data = form.prepare_form_data()
             
-            # Insert into database
+            # Insert into database with relationship management
             form_id = insert_training_form(form_data)
             
-            # Handle file uploads
+            # Handle enhanced file uploads with form organization
             if form.attachments.data:
                 handle_file_uploads(form, form_id)
+            
+            # Process enhanced trainees data
+            if form.trainees_data.data:
+                trainees = json.loads(form.trainees_data.data)
+                insert_trainees(form_id, trainees)
             
             flash("Training form submitted successfully!", "success")
             return redirect(url_for("success"))
             
         except Exception as e:
-            logging.error(f"Error submitting form: {e}")
+            logging.error(f"Error submitting enhanced form: {e}")
             flash("An error occurred while submitting the form.", "danger")
     
     return render_template("index.html", form=form)
 ```
 
-### Edit Processing
+### Enhanced Edit Processing
 ```python
 @app.route("/edit/<int:form_id>", methods=["GET", "POST"])
 @login_required
 def edit_form(form_id):
-    # Get existing form data
+    # Get existing form data with all relationships
     existing_form = get_training_form(form_id)
     
-    # Check permissions
+    # Check enhanced permissions
     if not can_edit_form(current_user, existing_form):
         abort(403)
     
     form = TrainingForm()
     
     if request.method == "GET":
-        # Populate form with existing data
+        # Populate form with existing data including new fields
         populate_form_from_data(form, existing_form)
     
     if form.validate_on_submit():
-        # Update form data
+        # Update form data with enhanced fields
         form_data = form.prepare_form_data()
         update_training_form(form_id, form_data)
+        
+        # Update enhanced trainees data
+        if form.trainees_data.data:
+            trainees = json.loads(form.trainees_data.data)
+            update_trainees(form_id, trainees)
         
         flash("Training form updated successfully!", "success")
         return redirect(url_for("view_form", form_id=form_id))
@@ -562,62 +858,64 @@ def edit_form(form_id):
     return render_template("index.html", form=form, edit_mode=True)
 ```
 
-## Error Handling
+## Enhanced Error Handling
 
-### Validation Error Display
+### Enhanced Validation Error Display
 ```python
-# Server-side validation errors are automatically displayed in templates
+# Enhanced server-side validation errors with context
 {% if form.field_name.errors %}
-    <div class="invalid-feedback d-block">
+    <div class="text-danger">
         {% for error in form.field_name.errors %}
-            {{ error }}
+            <small>{{ error }}</small>
         {% endfor %}
     </div>
 {% endif %}
 ```
 
-### Flash Messages
+### Enhanced Flash Messages
 ```python
-# Success messages
+# Enhanced success messages
 flash("Training form submitted successfully!", "success")
 
-# Error messages
-flash("Please correct the errors below.", "danger")
+# Enhanced error messages with guidance
+flash("Please correct the errors below and try again.", "danger")
 
-# Warning messages
-flash("Some fields require attention.", "warning")
+# Enhanced warning messages
+flash("Some fields require attention before submission.", "warning")
 
-# Info messages
-flash("Form saved as draft.", "info")
+# Enhanced info messages
+flash("Form saved as draft and can be edited later.", "info")
 ```
 
-## Form Security
+## Enhanced Form Security
 
-### Input Sanitization
+### Enhanced Input Sanitization
 - All form inputs are automatically escaped by Jinja2 templates
-- WTForms provides built-in XSS protection
-- File uploads are validated for type and size
+- WTForms provides built-in XSS protection with enhanced validation
+- File uploads are validated for type, size, and content
 
-### CSRF Protection
-- All forms include CSRF tokens
-- Tokens are validated on form submission
-- Protection against cross-site request forgery
+### Enhanced CSRF Protection
+- All forms include enhanced CSRF tokens with validation
+- Tokens are validated on form submission with detailed error handling
+- Protection against cross-site request forgery with logging
 
-### File Upload Security
-- File type validation using allowed extensions
-- Secure filename generation using `secure_filename()`
-- File size limits enforced
-- Files stored outside web root
+### Enhanced File Upload Security
+- Comprehensive file type validation using allowed extensions
+- Secure filename generation using `secure_filename()` with timestamps
+- File size limits enforced at application and browser level
+- Files stored in form-specific directories outside web root
 
-## Performance Considerations
+## Enhanced Performance Considerations
 
-### Form Optimization
-- **Lazy Loading**: Employee and training catalog data loaded via AJAX
-- **Caching**: Lookup data cached in memory
-- **Validation**: Client-side validation reduces server load
-- **File Handling**: Efficient file upload processing
+### Enhanced Form Optimization
+- **Lazy Loading**: Employee and training catalog data loaded via optimized AJAX
+- **Enhanced Caching**: Lookup data cached in memory with invalidation strategies
+- **Progressive Validation**: Client-side validation reduces server load
+- **Efficient File Handling**: Optimized file upload processing with progress indicators
+- **Progressive Disclosure**: Only load sections when needed with performance monitoring
 
-### Database Optimization
-- **Prepared Statements**: ORM uses parameterized queries
-- **Transaction Management**: Atomic form submissions
-- **Indexing**: Database indexes on frequently queried fields 
+### Enhanced Database Optimization
+- **Prepared Statements**: ORM uses parameterized queries with optimization
+- **Transaction Management**: Atomic form submissions with rollback capabilities
+- **Enhanced Indexing**: Database indexes on frequently queried fields including new ones
+- **Relationship Optimization**: Efficient loading of related data with minimal queries 

@@ -2,22 +2,22 @@
 
 ## Overview
 
-The Flask Survey Form System implements a comprehensive file management system for handling training-related attachments. The system provides secure file upload, storage, retrieval, and management capabilities with proper access controls and validation.
+The Flask Survey Form System implements a comprehensive file management system for handling training-related attachments. The system provides secure file upload, storage, retrieval, and management capabilities with proper access controls and validation. Files are organized by form ID for better organization and security.
 
 ## File Management Architecture
 
 ### Components
 
-1. **File Upload** (`utils.py`, `forms.py`): Secure file upload handling
-2. **File Storage** (`uploads/` directory): Organized file storage system
+1. **File Upload** (`utils.py`, `forms.py`): Secure file upload handling with form-specific organization
+2. **File Storage** (`uploads/` directory): Form-organized file storage system
 3. **File Serving** (`app.py`): Secure file download and access control
-4. **File Metadata** (`models.py`): Database tracking of file information
+4. **File Metadata** (`models.py`): Database tracking of file information with descriptions
 5. **File Validation** (`utils.py`, `forms.py`): Security and type validation
 
 ### File Processing Flow
 
 ```
-File Upload → Validation → Secure Storage → Metadata Storage → Access Control → File Serving
+File Upload → Validation → Form-Specific Storage → Metadata Storage → Access Control → File Serving
 ```
 
 ## File Upload System
@@ -71,8 +71,8 @@ def allowed_file(filename):
 
 #### 1. File Reception and Validation
 ```python
-def save_file(file):
-    """Save an uploaded file with a unique filename"""
+def save_file(file, form_id):
+    """Save an uploaded file with form-specific organization"""
     if not file or not file.filename or not allowed_file(file.filename):
         return None
     
@@ -84,8 +84,11 @@ def save_file(file):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_filename = f"{timestamp}_{filename}"
         
+        # Create form-specific directory
+        form_upload_path = get_form_upload_path(form_id)
+        
         # Construct file path
-        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        file_path = os.path.join(form_upload_path, unique_filename)
         
         # Save the file
         file.save(file_path)
@@ -113,7 +116,7 @@ if form.attachment_descriptions.data:
 if form.attachments.data:
     for file in form.attachments.data:
         if file and file.filename:
-            filename = save_file(file)
+            filename = save_file(file, form_id)
             if filename:
                 uploaded_files.append(filename)
             else:
@@ -150,6 +153,10 @@ uploads/
 ├── form_11/           # Files for training form ID 11
 │   ├── 20240116_091234_invoice.pdf
 │   └── 20240116_091240_receipt.jpg
+├── form_12/           # Files for training form ID 12
+│   ├── 20240117_101520_training_materials.zip
+│   ├── 20240117_101525_course_outline.pdf
+│   └── 20240117_101530_completion_cert.pdf
 └── ...
 ```
 
@@ -160,6 +167,7 @@ uploads/
 - Directory named `form_{form_id}`
 - All attachments for a form stored in its directory
 - Enables easy cleanup and organization
+- Improves security by isolating form files
 
 #### Unique Filename Generation
 ```python
@@ -196,7 +204,7 @@ def get_form_upload_path(form_id):
 
 ## File Metadata Management
 
-### Attachment Model
+### Enhanced Attachment Model
 
 ```python
 class Attachment(Base):
@@ -209,6 +217,46 @@ class Attachment(Base):
     
     # Relationship to training form
     training_form = relationship("TrainingForm", back_populates="attachments")
+    
+    def to_dict(self):
+        """Convert attachment to dictionary"""
+        return {
+            "id": self.id,
+            "form_id": self.form_id,
+            "filename": self.filename,
+            "description": self.description,
+            "display_name": self.get_display_name(),
+            "file_size": self.get_file_size(),
+            "upload_date": self.get_upload_date()
+        }
+    
+    def get_display_name(self):
+        """Get user-friendly filename"""
+        # Remove timestamp prefix for display
+        if '_' in self.filename:
+            return '_'.join(self.filename.split('_')[1:])
+        return self.filename
+    
+    def get_file_size(self):
+        """Get file size in human-readable format"""
+        try:
+            file_path = os.path.join(UPLOAD_FOLDER, f"form_{self.form_id}", self.filename)
+            if os.path.exists(file_path):
+                size = os.path.getsize(file_path)
+                return format_file_size(size)
+        except Exception:
+            pass
+        return "Unknown"
+    
+    def get_upload_date(self):
+        """Extract upload date from filename"""
+        try:
+            if '_' in self.filename:
+                timestamp_str = self.filename.split('_')[0]
+                return datetime.strptime(timestamp_str, "%Y%m%d").strftime("%Y-%m-%d")
+        except Exception:
+            pass
+        return "Unknown"
 ```
 
 ### Metadata Operations
@@ -234,15 +282,7 @@ def get_form_attachments(form_id):
     """Get all attachments for a training form"""
     with db_session() as session:
         attachments = session.query(Attachment).filter_by(form_id=form_id).all()
-        return [
-            {
-                "id": att.id,
-                "filename": att.filename,
-                "description": att.description,
-                "form_id": att.form_id
-            }
-            for att in attachments
-        ]
+        return [attachment.to_dict() for attachment in attachments]
 ```
 
 #### Delete Attachment
@@ -329,35 +369,38 @@ def log_file_download(user_email, filename, form_id):
 
 ## File Upload in Forms
 
-### Form Field Configuration
+### Enhanced Form Field Configuration
 
 ```python
-# Multiple file upload field
+# Multiple file upload field with virtual training requirement
 attachments = MultipleFileField(
     "Attachments",
-    validators=[DynamicRequiredIf("location_type", "Virtual")],
+    validators=[RequiredAttachmentsIfVirtual("At least one attachment is required for virtual training.")],
     description="Required for virtual training"
 )
 
-# File descriptions field
+# Enhanced file descriptions field
 attachment_descriptions = TextAreaField(
     "Attachment Descriptions (one per line)",
     validators=[Optional()],
-    description="Optional descriptions for each attachment"
+    description="Optional descriptions for each attachment (one per line)"
 )
 ```
 
 ### Frontend File Upload Interface
 
-#### HTML Template
+#### Enhanced HTML Template
 ```html
-<!-- File upload field -->
+<!-- File upload field with enhanced features -->
 <div class="mb-3">
     {{ form.attachments.label(class="form-label") }}
-    {{ form.attachments(class="form-control", multiple=True, accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.csv,.txt") }}
+    {{ form.attachments(class="form-control", multiple=True, 
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.csv,.txt",
+        **{"data-max-files": "10", "data-max-size": "33554432"}) }}
     <div class="form-text">
-        Allowed file types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, CSV, TXT (Max 32MB each)
+        Allowed file types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, CSV, TXT (Max 32MB each, 10 files max)
     </div>
+    <div id="file-upload-preview" class="mt-2"></div>
     {% if form.attachments.errors %}
         <div class="invalid-feedback d-block">
             {% for error in form.attachments.errors %}
@@ -367,23 +410,35 @@ attachment_descriptions = TextAreaField(
     {% endif %}
 </div>
 
-<!-- File descriptions -->
+<!-- Enhanced file descriptions -->
 <div class="mb-3">
     {{ form.attachment_descriptions.label(class="form-label") }}
-    {{ form.attachment_descriptions(class="form-control", rows="3", placeholder="Enter description for each file (one per line)") }}
+    {{ form.attachment_descriptions(class="form-control", rows="3", 
+        placeholder="Enter description for each file (one per line)") }}
     <div class="form-text">
         Optional: Provide a description for each attachment (one per line)
     </div>
 </div>
 ```
 
-#### JavaScript File Handling
+#### Enhanced JavaScript File Handling
 ```javascript
-// File upload preview and validation
+// Enhanced file upload preview and validation
 document.getElementById('attachments').addEventListener('change', function(e) {
     const files = e.target.files;
     const maxSize = 32 * 1024 * 1024; // 32MB
+    const maxFiles = 10;
     const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'csv', 'txt'];
+    
+    // Check file count
+    if (files.length > maxFiles) {
+        alert(`Too many files selected. Maximum is ${maxFiles} files.`);
+        e.target.value = '';
+        return;
+    }
+    
+    let totalSize = 0;
+    const fileList = [];
     
     for (let file of files) {
         // Check file size
@@ -393,6 +448,8 @@ document.getElementById('attachments').addEventListener('change', function(e) {
             return;
         }
         
+        totalSize += file.size;
+        
         // Check file type
         const extension = file.name.split('.').pop().toLowerCase();
         if (!allowedTypes.includes(extension)) {
@@ -400,74 +457,133 @@ document.getElementById('attachments').addEventListener('change', function(e) {
             e.target.value = '';
             return;
         }
+        
+        fileList.push({
+            name: file.name,
+            size: formatFileSize(file.size),
+            type: extension.toUpperCase()
+        });
     }
     
-    // Update file count display
-    updateFileCount(files.length);
+    // Update file preview
+    updateFilePreview(fileList, totalSize);
 });
 
-function updateFileCount(count) {
-    const countDisplay = document.getElementById('file-count');
-    if (countDisplay) {
-        countDisplay.textContent = `${count} file(s) selected`;
+function updateFilePreview(files, totalSize) {
+    const preview = document.getElementById('file-upload-preview');
+    if (files.length === 0) {
+        preview.innerHTML = '';
+        return;
     }
+    
+    let html = '<div class="card mt-2"><div class="card-body p-2">';
+    html += '<h6 class="mb-2">Selected Files:</h6>';
+    html += '<div class="row g-2">';
+    
+    files.forEach((file, index) => {
+        html += `
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    <div class="flex-grow-1">
+                        <div class="small fw-bold">${file.name}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">${file.type} - ${file.size}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += `<div class="mt-2 text-muted small">Total: ${files.length} files (${formatFileSize(totalSize)})</div>`;
+    html += '</div></div>';
+    
+    preview.innerHTML = html;
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 ```
 
 ## File Display and Management
 
-### File List Display
+### Enhanced File List Display
 
 #### Template for File Listing
 ```html
-<!-- Display attachments in form view -->
-{% if form.attachments %}
+<!-- Enhanced display attachments in form view -->
+{% if attachments %}
     <div class="mb-3">
-        <h6>Attachments:</h6>
-        <ul class="list-group">
-            {% for attachment in form.attachments %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>{{ attachment.filename.split('_', 1)[1] if '_' in attachment.filename else attachment.filename }}</strong>
-                        {% if attachment.description %}
-                            <br><small class="text-muted">{{ attachment.description }}</small>
-                        {% endif %}
+        <h6>Attachments ({{ attachments|length }}):</h6>
+        <div class="row g-2">
+            {% for attachment in attachments %}
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start">
+                                <div class="file-icon me-2">
+                                    <i class="bi bi-file-earmark-{{ get_file_icon(attachment.filename) }} fs-4 text-primary"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">{{ attachment.display_name }}</div>
+                                    {% if attachment.description %}
+                                        <div class="text-muted small mb-1">{{ attachment.description }}</div>
+                                    {% endif %}
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        {{ attachment.file_size }} • {{ attachment.upload_date }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('uploaded_file', filename='form_' + form.id|string + '/' + attachment.filename) }}" 
+                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-download"></i> Download
+                                </a>
+                                {% if can_edit_form(current_user, form) %}
+                                    <button class="btn btn-sm btn-outline-danger ms-1" 
+                                            onclick="deleteAttachment({{ attachment.id }})">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <a href="{{ url_for('uploaded_file', filename='form_' + form.id|string + '/' + attachment.filename) }}" 
-                           class="btn btn-sm btn-outline-primary" target="_blank">
-                            <i class="fas fa-download"></i> Download
-                        </a>
-                        {% if can_edit_form(current_user, form) %}
-                            <button class="btn btn-sm btn-outline-danger ms-1" 
-                                    onclick="deleteAttachment({{ attachment.id }})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        {% endif %}
-                    </div>
-                </li>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     </div>
+{% else %}
+    <div class="text-muted">No attachments</div>
 {% endif %}
 ```
 
-#### File Management JavaScript
+#### Enhanced File Management JavaScript
 ```javascript
 function deleteAttachment(attachmentId) {
     if (confirm('Are you sure you want to delete this attachment?')) {
         fetch(`/api/attachments/${attachmentId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': getCsrfToken()
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json'
             }
         })
         .then(response => {
             if (response.ok) {
                 location.reload();
             } else {
-                alert('Error deleting attachment');
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Error deleting attachment');
+                });
             }
+        })
+        .catch(error => {
+            alert('Error deleting attachment: ' + error.message);
         });
     }
 }
@@ -475,11 +591,28 @@ function deleteAttachment(attachmentId) {
 function getCsrfToken() {
     return document.querySelector('meta[name=csrf-token]').getAttribute('content');
 }
+
+function getFileIcon(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    const iconMap = {
+        'pdf': 'pdf',
+        'doc': 'word',
+        'docx': 'word',
+        'xls': 'excel',
+        'xlsx': 'excel',
+        'jpg': 'image',
+        'jpeg': 'image',
+        'png': 'image',
+        'csv': 'csv',
+        'txt': 'text'
+    };
+    return iconMap[extension] || 'text';
+}
 ```
 
 ## File Cleanup and Maintenance
 
-### Orphaned File Cleanup
+### Enhanced Orphaned File Cleanup
 
 ```python
 def cleanup_orphaned_files():
@@ -492,6 +625,7 @@ def cleanup_orphaned_files():
             db_files.add(f"form_{att.form_id}/{att.filename}")
         
         # Scan filesystem for files
+        orphaned_count = 0
         for form_dir in os.listdir(UPLOAD_FOLDER):
             if form_dir.startswith("form_"):
                 form_path = os.path.join(UPLOAD_FOLDER, form_dir)
@@ -501,8 +635,15 @@ def cleanup_orphaned_files():
                         if file_key not in db_files:
                             # Orphaned file - remove it
                             file_path = os.path.join(form_path, filename)
-                            os.remove(file_path)
-                            logging.info(f"Removed orphaned file: {file_path}")
+                            try:
+                                os.remove(file_path)
+                                orphaned_count += 1
+                                logging.info(f"Removed orphaned file: {file_path}")
+                            except Exception as e:
+                                logging.error(f"Failed to remove orphaned file {file_path}: {e}")
+        
+        logging.info(f"Cleanup completed: {orphaned_count} orphaned files removed")
+        return orphaned_count
 ```
 
 ### Form Deletion Cleanup
@@ -514,19 +655,27 @@ def cleanup_form_files(form_id):
     form_path = os.path.join(UPLOAD_FOLDER, form_folder)
     
     if os.path.exists(form_path):
-        # Remove all files in the form directory
-        for filename in os.listdir(form_path):
-            file_path = os.path.join(form_path, filename)
-            os.remove(file_path)
-        
-        # Remove the directory
-        os.rmdir(form_path)
-        logging.info(f"Cleaned up files for form {form_id}")
+        try:
+            # Remove all files in the form directory
+            file_count = 0
+            for filename in os.listdir(form_path):
+                file_path = os.path.join(form_path, filename)
+                os.remove(file_path)
+                file_count += 1
+            
+            # Remove the directory
+            os.rmdir(form_path)
+            logging.info(f"Cleaned up files for form {form_id}: {file_count} files removed")
+            return file_count
+        except Exception as e:
+            logging.error(f"Error cleaning up files for form {form_id}: {e}")
+            return 0
+    return 0
 ```
 
 ## File Export and Backup
 
-### Export Functionality
+### Enhanced Export Functionality
 
 #### Include Files in Export
 ```python
@@ -536,77 +685,134 @@ def export_form_with_attachments(form_id, export_path):
     attachments = get_form_attachments(form_id)
     
     # Create export directory
-    export_dir = os.path.join(export_path, f"form_{form_id}")
+    export_dir = os.path.join(export_path, f"form_{form_id}_export")
     os.makedirs(export_dir, exist_ok=True)
     
     # Copy form attachments
+    copied_files = []
     for attachment in attachments:
         source_path = os.path.join(UPLOAD_FOLDER, f"form_{form_id}", attachment['filename'])
-        dest_path = os.path.join(export_dir, attachment['filename'])
+        dest_filename = attachment['display_name']
+        dest_path = os.path.join(export_dir, dest_filename)
         
         if os.path.exists(source_path):
-            shutil.copy2(source_path, dest_path)
+            try:
+                shutil.copy2(source_path, dest_path)
+                copied_files.append({
+                    'original': attachment['filename'],
+                    'exported': dest_filename,
+                    'description': attachment['description']
+                })
+            except Exception as e:
+                logging.error(f"Failed to copy {source_path} to {dest_path}: {e}")
     
-    # Create form metadata file
+    # Create enhanced form metadata file
     metadata = {
         'form_id': form_id,
-        'form_data': form.__dict__,
-        'attachments': attachments,
-        'export_date': datetime.now().isoformat()
+        'form_data': form,
+        'attachments': copied_files,
+        'export_date': datetime.now().isoformat(),
+        'export_version': '2.0'
     }
     
-    with open(os.path.join(export_dir, 'metadata.json'), 'w') as f:
+    with open(os.path.join(export_dir, 'form_metadata.json'), 'w') as f:
         json.dump(metadata, f, indent=2, default=str)
+    
+    logging.info(f"Form {form_id} exported to {export_dir} with {len(copied_files)} attachments")
+    return export_dir, len(copied_files)
 ```
 
-### Backup Strategies
+### Enhanced Backup Strategies
 
-#### Automated Backup
+#### Automated Backup with Metadata
 ```python
-def backup_files():
-    """Create backup of all uploaded files"""
+def backup_files_with_metadata():
+    """Create comprehensive backup of all uploaded files with metadata"""
     backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     backup_path = os.path.join("backups", backup_dir)
     
-    # Copy entire uploads directory
-    shutil.copytree(UPLOAD_FOLDER, backup_path)
+    # Create backup directory structure
+    os.makedirs(backup_path, exist_ok=True)
     
-    # Create backup manifest
+    # Copy entire uploads directory
+    uploads_backup = os.path.join(backup_path, "uploads")
+    shutil.copytree(UPLOAD_FOLDER, uploads_backup)
+    
+    # Create comprehensive backup manifest
     manifest = {
         'backup_date': datetime.now().isoformat(),
-        'file_count': sum(len(files) for _, _, files in os.walk(backup_path)),
-        'total_size': sum(os.path.getsize(os.path.join(dirpath, filename))
-                         for dirpath, _, filenames in os.walk(backup_path)
-                         for filename in filenames)
+        'backup_version': '2.0',
+        'total_forms': 0,
+        'total_files': 0,
+        'total_size': 0,
+        'forms': []
     }
     
-    with open(os.path.join(backup_path, 'manifest.json'), 'w') as f:
+    # Analyze each form's files
+    for form_dir in os.listdir(uploads_backup):
+        if form_dir.startswith("form_"):
+            form_id = int(form_dir.replace("form_", ""))
+            form_path = os.path.join(uploads_backup, form_dir)
+            
+            if os.path.isdir(form_path):
+                form_info = {
+                    'form_id': form_id,
+                    'files': [],
+                    'file_count': 0,
+                    'total_size': 0
+                }
+                
+                for filename in os.listdir(form_path):
+                    file_path = os.path.join(form_path, filename)
+                    if os.path.isfile(file_path):
+                        file_size = os.path.getsize(file_path)
+                        form_info['files'].append({
+                            'filename': filename,
+                            'size': file_size,
+                            'display_name': filename.split('_', 1)[1] if '_' in filename else filename
+                        })
+                        form_info['file_count'] += 1
+                        form_info['total_size'] += file_size
+                
+                manifest['forms'].append(form_info)
+                manifest['total_forms'] += 1
+                manifest['total_files'] += form_info['file_count']
+                manifest['total_size'] += form_info['total_size']
+    
+    # Save manifest
+    with open(os.path.join(backup_path, 'backup_manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=2)
     
-    logging.info(f"Backup created: {backup_path}")
+    logging.info(f"Comprehensive backup created: {backup_path}")
+    logging.info(f"Backup contains {manifest['total_forms']} forms, {manifest['total_files']} files, {format_file_size(manifest['total_size'])}")
+    
+    return backup_path, manifest
 ```
 
 ## Security Considerations
 
-### File Security Measures
+### Enhanced File Security Measures
 
 1. **Path Traversal Prevention**: Use `secure_filename()` for all uploads
-2. **Type Validation**: Strict file type checking
-3. **Size Limits**: Enforce maximum file sizes
-4. **Access Control**: User-based file access permissions
+2. **Type Validation**: Strict file type checking with extension verification
+3. **Size Limits**: Enforce maximum file sizes per file and total upload
+4. **Access Control**: Enhanced user-based file access permissions
 5. **Virus Scanning**: Consider integration with antivirus scanning
 6. **Content Validation**: Basic file content verification
+7. **Form Isolation**: Files isolated by form ID for security
 
 ### Production Security
 
 #### Network Storage Security
 ```python
-# Production file storage configuration
+# Enhanced production file storage configuration
 PRODUCTION_STORAGE = {
     'path': '\\\\strykercorp.com\\lim\\Engineering_DOG\\5. Automation & Controls\\01. Projects\\Training Form Invoices',
     'access_control': 'domain_based',
     'backup_enabled': True,
-    'virus_scanning': True
+    'virus_scanning': True,
+    'encryption': 'at_rest',
+    'audit_logging': True
 }
 ```
 
@@ -614,12 +820,12 @@ PRODUCTION_STORAGE = {
 ```python
 def encrypt_file(file_path, key):
     """Encrypt uploaded files for additional security"""
-    # Implementation for file encryption
+    # Implementation for file encryption at rest
     pass
 
 def decrypt_file(encrypted_path, key):
     """Decrypt files for serving"""
-    # Implementation for file decryption
+    # Implementation for file decryption on access
     pass
 ```
 
@@ -628,13 +834,15 @@ def decrypt_file(encrypted_path, key):
 ### File Serving Optimization
 
 1. **Direct File Serving**: Use web server for static file serving in production
-2. **Caching**: Implement file caching strategies
+2. **Caching**: Implement file metadata caching strategies
 3. **Compression**: Compress files for faster transfer
 4. **CDN Integration**: Use CDN for file distribution
+5. **Lazy Loading**: Load file lists progressively
 
 ### Storage Optimization
 
-1. **File Deduplication**: Identify and remove duplicate files
+1. **File Deduplication**: Identify and remove duplicate files across forms
 2. **Compression**: Compress stored files to save space
 3. **Archival**: Move old files to archival storage
-4. **Cleanup**: Regular cleanup of orphaned files 
+4. **Cleanup Automation**: Regular cleanup of orphaned files
+5. **Storage Monitoring**: Track storage usage and growth patterns 
