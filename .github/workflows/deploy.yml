@@ -638,15 +638,20 @@ jobs:
     steps:
     - name: Deployment Status Summary
       run: |
-        echo "=== Deployment Summary ==="
-        echo "Development: ${{ needs.deploy-development.result }}"
-        echo "Staging: ${{ needs.deploy-staging.result }}"
-        echo "Production: ${{ needs.deploy-production.result }}"
-        echo ""
-        if "${{ needs.deploy-production.result }}" == "success" (
-            echo "SUCCESS: Production deployment completed successfully!"
-        ) else if "${{ needs.deploy-staging.result }}" == "success" (
-            echo "PASS: Staging deployment completed - ready for production"
-        ) else (
-            echo "WARNING: Deployment pipeline completed with issues"
-        ) 
+        Write-Host "=== Deployment Summary ==="
+        Write-Host "Development: ${{ needs.deploy-development.result }}"
+        Write-Host "Staging: ${{ needs.deploy-staging.result }}"
+        Write-Host "Production: ${{ needs.deploy-production.result }}"
+        Write-Host ""
+        
+        $prodResult = "${{ needs.deploy-production.result }}"
+        $stagingResult = "${{ needs.deploy-staging.result }}"
+        
+        if ($prodResult -eq "success") {
+            Write-Host "SUCCESS: Production deployment completed successfully!"
+        } elseif ($stagingResult -eq "success") {
+            Write-Host "PASS: Staging deployment completed - ready for production"
+        } else {
+            Write-Host "WARNING: Deployment pipeline completed with issues"
+        }
+      shell: powershell 
