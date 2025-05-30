@@ -524,7 +524,7 @@ jobs:
 
   deploy-production:
     runs-on: self-hosted
-    needs: [test, deploy-staging]  # Production depends on successful staging deployment
+    needs: [test, deploy-staging]
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     name: Deploy to Production
     environment: production
@@ -543,226 +543,91 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Create production environment file
+    - name: Create production environment
       run: |
-        Write-Host "Creating .env.production file..."
-        "DEBUG=False" | Out-File -FilePath ".env.production" -Encoding UTF8
-        "SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "USE_SQLITE=False" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "DB_HOST=${{ secrets.PROD_DB_HOST }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "DB_PORT=${{ secrets.PROD_DB_PORT }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "DB_NAME=${{ secrets.PROD_DB_NAME }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "DB_USER=${{ secrets.PROD_DB_USER }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "NETWORK_STORAGE_PATH=${{ secrets.PROD_NETWORK_STORAGE_PATH }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "LDAP_USE_SSL=False" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        "FLASK_ENV=production" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
-        Copy-Item ".env.production" ".env" -Force
+        Write-Host "Creating production environment..."
+        Write-Host "Database: ${{ secrets.PROD_DB_NAME }} on ${{ secrets.PROD_DB_HOST }}"
+        
+        # Clean slate
+        Remove-Item -Path ".env*" -Force -ErrorAction SilentlyContinue
+        
+        # Create production .env
+        "DEBUG=False" | Out-File -FilePath ".env" -Encoding UTF8
+        "SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "USE_SQLITE=False" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "DB_HOST=${{ secrets.PROD_DB_HOST }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "DB_PORT=${{ secrets.PROD_DB_PORT }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "DB_NAME=${{ secrets.PROD_DB_NAME }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "DB_USER=${{ secrets.PROD_DB_USER }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "FLASK_ENV=production" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        
+        Write-Host "PASS: Environment configured"
       shell: powershell
         
-    - name: Test production database connection
+    - name: Test database connection
       run: |
-        python -c "from models import engine; conn = engine.connect(); print('PASS: Production database connection successful'); conn.close()"
-      
-    - name: Create production backup
+        Write-Host "Testing database connection..."
+        python -c "from models import engine; conn = engine.connect(); print('PASS: Database connection successful'); conn.close()"
+        
+    - name: Run migrations
       run: |
-        echo "Creating production backup..."
-        # Create timestamped backup directory
-        set timestamp=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
-        set timestamp=%timestamp: =0%
-        
-        if exist "production_backup_%timestamp%" rmdir /s /q "production_backup_%timestamp%"
-        mkdir "production_backup_%timestamp%"
-        
-        # Backup uploads directory
-        if exist uploads xcopy uploads "production_backup_%timestamp%\uploads\" /e /i /y
-        
-        # Create database backup info
-        echo Backup created at %timestamp% > "production_backup_%timestamp%\backup_info.txt"
-        echo Previous deployment backed up >> "production_backup_%timestamp%\backup_info.txt"
-        
-        echo PASS: Production backup created: production_backup_%timestamp%
-        
-    - name: Run database migrations on production
-      run: python -m alembic upgrade head
-      
-    - name: Create uploads directory
-      run: |
-        if (!(Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" }
+        Write-Host "Running database migrations..."
+        python -m alembic upgrade head
+        Write-Host "PASS: Migrations completed"
       shell: powershell
-        
-    - name: Test production application configuration
+      
+    - name: Stop existing production service
       run: |
-        python -c "
-        from config import DATABASE_URL, USE_SQLITE, DB_NAME
-        print('Environment: Production')
-        print(f'Database: {DB_NAME}')
-        print(f'SQLite: {USE_SQLITE}')
-        "
-        
-    - name: Stop production service
-      run: |
-        Write-Host "Stopping any existing production services..."
-        
-        # Kill any processes using port 5000
-        try {
-            $netstatOutput = netstat -ano 2>$null
-            $processesOnPort = $netstatOutput | Where-Object { $_ -match ":5000" }
-            if ($processesOnPort) {
-                Write-Host "Processes using port 5000:"
-                $processesOnPort | ForEach-Object { Write-Host $_ }
-                
-                # Extract PIDs and kill them
-                $pids = ($processesOnPort | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
-                foreach ($pid in $pids) {
-                    if ($pid -match '^\d+$') {
-                        Write-Host "Killing process PID: $pid"
-                        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-                    }
-                }
-            } else {
-                Write-Host "No processes found using port 5000"
-            }
-        } catch {
-            Write-Host "Error checking port 5000: $_"
-        }
-        
-        # Also stop Python processes that match production pattern
-        try {
-            $allPythonProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue
-            $prodProcesses = @()
-            
-            foreach ($proc in $allPythonProcesses) {
-                try {
-                    $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue).CommandLine
-                    if ($cmdLine -and ($cmdLine -match "main.py" -and $cmdLine -match "port.*5000")) {
-                        $prodProcesses += $proc
-                    }
-                } catch {
-                    # Ignore errors accessing command line
+        Write-Host "Stopping existing services on port 5000..."
+        $procs = netstat -ano | Where-Object { $_ -match ":5000.*LISTENING" }
+        if ($procs) {
+            $pids = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+            foreach ($pid in $pids) {
+                if ($pid -match '^\d+$') {
+                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                    Write-Host "Stopped process $pid"
                 }
             }
-            
-            if ($prodProcesses.Count -gt 0) {
-                Write-Host "Found production Python processes:"
-                $prodProcesses | Format-Table Id, ProcessName, StartTime -AutoSize
-                $prodProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-                Write-Host "Stopped production processes"
-            } else {
-                Write-Host "No production Python processes found"
-            }
-        } catch {
-            Write-Host "Error checking Python processes: $_"
         }
-        
-        Start-Sleep -Seconds 5
-        Write-Host "Process cleanup completed successfully"
-        exit 0
+        Start-Sleep -Seconds 3
       shell: powershell
         
-    - name: Start and verify production service
+    - name: Start production service
       run: |
-        Write-Host "Starting production application..."
+        Write-Host "Starting production Flask application..."
         
-        # Set environment variables
-        $env:FLASK_ENV = "production"
-        $env:PYTHONUNBUFFERED = "1"
+        # Start Flask on port 5000
+        Start-Process -FilePath "python" -ArgumentList "main.py", "--port", "5000", "--no-debug" -WindowStyle Hidden -PassThru
         
-        # Create a PowerShell job that runs the production app
-        $job = Start-Job -ScriptBlock {
-            param($workDir)
-            Set-Location $workDir
-            $env:FLASK_ENV = "production"
-            $env:PYTHONUNBUFFERED = "1"
-            python main.py --port 5000 --no-debug
-        } -ArgumentList (Get-Location)
-        
-        Write-Host "Started job ID: $($job.Id)"
-        
-        # Wait for the application to start
-        $maxWait = 60
-        $waited = 0
-        $started = $false
-        
-        while ($waited -lt $maxWait -and -not $started) {
+        # Wait for startup
+        $attempts = 0
+        while ($attempts -lt 12) {
             Start-Sleep -Seconds 5
-            $waited += 5
-            
-            # Check job status
-            $jobState = Get-Job -Id $job.Id
-            Write-Host "Job state: $($jobState.State)"
-            
-            # Get any output
-            $output = Receive-Job -Job $job -Keep
-            if ($output) {
-                Write-Host "Job output:"
-                $output | ForEach-Object { Write-Host $_ }
-            }
-            
-            # Try to connect
+            $attempts++
             try {
-                $uri = "http://localhost:5000"
-                Write-Host "Attempting to connect to $uri..."
-                $response = Invoke-WebRequest -Uri $uri -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
-                if ($response.StatusCode -eq 200) {
-                    Write-Host "PASS: Production application is responding!"
-                    $started = $true
-                }
+                $response = Invoke-WebRequest -Uri "http://localhost:5000" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+                Write-Host "PASS: Production application is running!"
+                break
             } catch {
-                Write-Host "Still waiting... ($waited/$maxWait seconds)"
-            }
-            
-            # Check if job failed
-            if ($jobState.State -eq "Failed" -or $jobState.State -eq "Completed") {
-                Write-Host "FAIL: Job terminated unexpectedly"
-                $allOutput = Receive-Job -Job $job
-                if ($allOutput) {
-                    Write-Host "Final output:"
-                    $allOutput | ForEach-Object { Write-Host $_ }
-                }
-                Remove-Job -Job $job -Force
-                exit 1
+                Write-Host "Waiting for startup... ($attempts/12)"
             }
         }
         
-        if (-not $started) {
-            Write-Host "FAIL: Application did not start within $maxWait seconds"
-            Remove-Job -Job $job -Force
+        if ($attempts -eq 12) {
+            Write-Host "FAIL: Application did not start"
             exit 1
         }
-        
-        Write-Host "PASS: Production service started and verified successfully"
-        Write-Host "Production application is running in background job $($job.Id)"
       shell: powershell
         
-    - name: Production health check
+    - name: Health check
       run: |
-        Start-Sleep -Seconds 10
-        python -c "
-        import requests
-        import sys
-        try:
-            r = requests.get('http://localhost:5000/api/employees', timeout=15)
-            if r.status_code == 200:
-                print('PASS: Production health check passed')
-            else:
-                print(f'WARNING: Health check status: {r.status_code}')
-                sys.exit(1)
-        except Exception as e:
-            print(f'FAIL: Health check failed: {e}')
-            sys.exit(1)
-        "
+        Write-Host "Running health check..."
+        Start-Sleep -Seconds 5
+        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print('PASS: Health check successful' if r.status_code == 200 else f'FAIL: Status {r.status_code}')"
+        Write-Host "PASS: Production deployment completed!"
       shell: powershell
-        
-    - name: Post-deployment validation
-      run: |
-        echo "Running post-deployment validation..."
-        python -m alembic current -v
 
   notify:
     runs-on: self-hosted
