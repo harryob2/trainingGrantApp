@@ -223,10 +223,37 @@ jobs:
         Start-Sleep -Seconds 5
       shell: powershell
         
+    - name: Test staging startup script
+      run: |
+        Write-Host "Testing staging startup script..."
+        try {
+            python scripts/start_staging.py --test-only
+            Write-Host "✅ Staging startup script tests passed"
+        } catch {
+            Write-Host "❌ Staging startup script test failed: $_"
+            exit 1
+        }
+      shell: powershell
+        
     - name: Start staging service
       run: |
-        # Start staging application using dedicated script
-        Start-Process -FilePath "python" -ArgumentList "scripts/start_staging.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+        # Start staging application using dedicated script with output redirection
+        Write-Host "Starting staging application..."
+        $logFile = "staging_startup.log"
+        Start-Process -FilePath "python" -ArgumentList "scripts/start_staging.py" -WindowStyle Hidden -WorkingDirectory (Get-Location) -RedirectStandardOutput $logFile -RedirectStandardError "staging_error.log"
+        Start-Sleep -Seconds 5
+        
+        # Check if process started
+        $process = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "start_staging" }
+        if ($process) {
+            Write-Host "✅ Staging process started (PID: $($process.Id))"
+        } else {
+            Write-Host "❌ Staging process not found"
+            if (Test-Path "staging_error.log") {
+                Write-Host "Error log contents:"
+                Get-Content "staging_error.log"
+            }
+        }
       shell: powershell
         
     - name: Wait for staging service to start
@@ -257,8 +284,42 @@ jobs:
         
         if (-not $started) {
             Write-Host "❌ Application failed to start within $maxWait seconds"
-            # Try to get some debug information
-            Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "staging" }
+            
+            # Diagnostic information
+            Write-Host "`n🔍 Diagnostic Information:"
+            
+            # Check for running Python processes
+            Write-Host "Python processes:"
+            Get-Process -Name "python" -ErrorAction SilentlyContinue | Format-Table Id, ProcessName, @{Name="CommandLine";Expression={$_.CommandLine}; Width=50} -AutoSize
+            
+            # Check if log files exist and show contents
+            if (Test-Path "staging_startup.log") {
+                Write-Host "`nStartup log contents:"
+                Get-Content "staging_startup.log" | Select-Object -Last 20
+            }
+            
+            if (Test-Path "staging_error.log") {
+                Write-Host "`nError log contents:"
+                Get-Content "staging_error.log"
+            }
+            
+            # Try to test the startup script manually for more info
+            Write-Host "`n🧪 Testing startup script manually:"
+            try {
+                python scripts/start_staging.py --help 2>&1 | Write-Host
+            } catch {
+                Write-Host "Failed to run startup script: $_"
+            }
+            
+            # Check port availability
+            Write-Host "`n🔌 Checking port 5001:"
+            try {
+                $portTest = Test-NetConnection -ComputerName localhost -Port 5001 -WarningAction SilentlyContinue
+                Write-Host "Port 5001 available: $($portTest.TcpTestSucceeded)"
+            } catch {
+                Write-Host "Could not test port: $_"
+            }
+            
             exit 1
         }
       shell: powershell
