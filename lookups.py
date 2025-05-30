@@ -1,14 +1,8 @@
 import csv
 import os
 import logging
-from models import TrainingCatalog # Import the new model
+from models import TrainingCatalog, engine # Import the engine from models instead of creating our own
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine # Required for session creation if not using app context
-
-# Assuming DATABASE_URL is defined as it is in your models.py or app.py
-# If running lookups.py standalone for testing, you might need to define it or pass engine/session
-DATABASE_URL = "sqlite:///training_forms.db" # Or get from a config
-engine = create_engine(DATABASE_URL)
 
 # Configure logging if not already configured by the main app
 logger = logging.getLogger(__name__)
@@ -81,8 +75,7 @@ def get_lookup_data(entity_type: str):
         
         trainings = []
         try:
-            # Use a context manager for the session if possible, or ensure it's closed.
-            # If this runs outside Flask app context, direct session creation is needed.
+            # Use the engine from models.py which reads the correct environment configuration
             with Session(engine) as session:
                 catalog_items = session.query(TrainingCatalog).all()
                 for item in catalog_items:
