@@ -26,15 +26,15 @@ def upgrade() -> None:
                autoincrement=True)
     op.alter_column('attachments', 'filename',
                existing_type=sa.TEXT(),
-               type_=sa.String(),
+               type_=sa.String(255),
                existing_nullable=False)
     op.alter_column('attachments', 'description',
                existing_type=sa.TEXT(),
-               type_=sa.String(),
+               type_=sa.TEXT(),
                existing_nullable=True)
     op.alter_column('training_catalog', 'training_type',
                existing_type=sa.TEXT(),
-               type_=sa.String(),
+               type_=sa.String(255),
                existing_nullable=True)
     op.alter_column('training_catalog', 'training_hours',
                existing_type=sa.REAL(),
@@ -42,7 +42,7 @@ def upgrade() -> None:
                existing_nullable=True)
     op.alter_column('training_catalog', 'supplier_name',
                existing_type=sa.TEXT(),
-               type_=sa.String(),
+               type_=sa.String(255),
                existing_nullable=True)
     op.alter_column('training_catalog', 'course_cost',
                existing_type=sa.REAL(),
@@ -80,7 +80,7 @@ def downgrade() -> None:
                type_=sa.REAL(),
                existing_nullable=True)
     op.alter_column('training_catalog', 'supplier_name',
-               existing_type=sa.String(),
+               existing_type=sa.String(255),
                type_=sa.TEXT(),
                existing_nullable=True)
     op.alter_column('training_catalog', 'training_hours',
@@ -88,15 +88,15 @@ def downgrade() -> None:
                type_=sa.REAL(),
                existing_nullable=True)
     op.alter_column('training_catalog', 'training_type',
-               existing_type=sa.String(),
+               existing_type=sa.String(255),
                type_=sa.TEXT(),
                existing_nullable=True)
     op.alter_column('attachments', 'description',
-               existing_type=sa.String(),
+               existing_type=sa.TEXT(),
                type_=sa.TEXT(),
                existing_nullable=True)
     op.alter_column('attachments', 'filename',
-               existing_type=sa.String(),
+               existing_type=sa.String(255),
                type_=sa.TEXT(),
                existing_nullable=False)
     op.alter_column('attachments', 'id',

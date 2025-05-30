@@ -80,25 +80,25 @@ def parse_date(val) -> Optional[date]:
 class TrainingForm(Base):
     __tablename__ = "training_forms"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    training_type = Column(String, nullable=False)
-    training_name = Column(String, nullable=False)
-    trainer_name = Column(String)
-    trainer_email = Column(String)
-    supplier_name = Column(String)
-    location_type = Column(String, nullable=False)
-    location_details = Column(String)
+    training_type = Column(String(255), nullable=False)
+    training_name = Column(String(255), nullable=False)
+    trainer_name = Column(String(255))
+    trainer_email = Column(String(255))
+    supplier_name = Column(String(255))
+    location_type = Column(String(255), nullable=False)
+    location_details = Column(String(500))
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     training_hours = Column(Float)
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
-    concur_claim = Column(String)
+    concur_claim = Column(String(255))
     course_cost = Column(Float, default=0)
-    invoice_number = Column(String)
+    invoice_number = Column(String(255))
     training_description = Column(Text, nullable=False)
-    submitter = Column(String)
+    submitter = Column(String(255))
     created_at = Column(DateTime, default=func.now())
-    ida_class = Column(String)
+    ida_class = Column(String(255))
     attachments = relationship(
         "Attachment", back_populates="training_form", cascade="all, delete-orphan"
     )
@@ -159,17 +159,17 @@ class TrainingForm(Base):
 class TrainingCatalog(Base):
     __tablename__ = "training_catalog"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    area = Column(String)
-    training_name = Column(String)
-    qty_staff_attending = Column(String)
-    training_desc = Column(String)
-    challenge_lvl = Column(String)
-    skill_impact = Column(String)
-    evaluation_method = Column(String)
-    ida_class = Column(String)
-    training_type = Column(String)
+    area = Column(String(255))
+    training_name = Column(String(255))
+    qty_staff_attending = Column(String(255))
+    training_desc = Column(String(500))
+    challenge_lvl = Column(String(255))
+    skill_impact = Column(String(255))
+    evaluation_method = Column(String(255))
+    ida_class = Column(String(255))
+    training_type = Column(String(255))
     training_hours = Column(Float)
-    supplier_name = Column(String)
+    supplier_name = Column(String(255))
     course_cost = Column(Float, default=0)
 
 
@@ -179,16 +179,16 @@ class Attachment(Base):
     form_id = Column(
         Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
     )
-    filename = Column(String, nullable=False)
-    description = Column(String)
+    filename = Column(String(255), nullable=False)
+    description = Column(Text)
     training_form = relationship("TrainingForm", back_populates="attachments")
 
 
 class Admin(Base):
     __tablename__ = "admins"
-    email = Column(String, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
+    email = Column(String(255), primary_key=True)
+    first_name = Column(String(255))
+    last_name = Column(String(255))
 
 
 class Trainee(Base):
@@ -197,9 +197,9 @@ class Trainee(Base):
     form_id = Column(
         Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
     )
-    name = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    department = Column(String, nullable=False)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    department = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=func.now())
     training_form = relationship("TrainingForm", back_populates="trainees")
 
@@ -222,11 +222,11 @@ class TravelExpense(Base):
         Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
     )
     travel_date = Column(Date, nullable=False)
-    destination = Column(String, nullable=False)
-    traveler_type = Column(String, nullable=False)  # 'trainer' or 'trainee'
-    traveler_email = Column(String, nullable=False)
-    traveler_name = Column(String, nullable=False)
-    travel_mode = Column(String, nullable=False)  # 'mileage', 'rail', 'economy_flight'
+    destination = Column(String(255), nullable=False)
+    traveler_type = Column(String(255), nullable=False)  # 'trainer' or 'trainee'
+    traveler_email = Column(String(255), nullable=False)
+    traveler_name = Column(String(255), nullable=False)
+    travel_mode = Column(String(255), nullable=False)  # 'mileage', 'rail', 'economy_flight'
     cost = Column(Float)  # for rail/flight
     distance_km = Column(Float)  # for mileage
     created_at = Column(DateTime, default=func.now())
@@ -256,8 +256,8 @@ class MaterialExpense(Base):
         Integer, ForeignKey("training_forms.id", ondelete="CASCADE"), nullable=False
     )
     purchase_date = Column(Date, nullable=False)
-    supplier_name = Column(String, nullable=False)
-    invoice_number = Column(String, nullable=False)
+    supplier_name = Column(String(255), nullable=False)
+    invoice_number = Column(String(255), nullable=False)
     material_cost = Column(Float, nullable=False)
     created_at = Column(DateTime, default=func.now())
     training_form = relationship("TrainingForm", back_populates="material_expenses")
