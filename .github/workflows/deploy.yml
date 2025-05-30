@@ -419,10 +419,10 @@ jobs:
             $logFiles = @("staging_wrapper.log", "staging_app.log", "staging_startup.log", "staging_error.log")
             foreach ($logFile in $logFiles) {
                 if (Test-Path $logFile) {
-                    Write-Host "`n$logFile (last 50 lines):"
+                    Write-Host "`n${logFile} (last 50 lines):"
                     Get-Content $logFile | Select-Object -Last 50
                 } else {
-                    Write-Host "`n$logFile: Not found"
+                    Write-Host "`n${logFile} - Not found"
                 }
             }
             
