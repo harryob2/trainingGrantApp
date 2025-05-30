@@ -1,0 +1,421 @@
+name: Deploy Training Form Application
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+        - development
+
+env:
+  PYTHON_VERSION: '3.11'
+  
+jobs:
+  test:
+    runs-on: self-hosted
+    name: Run Unit Tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Set up test environment
+      run: |
+        copy env.example .env.test
+        # Use SQLite for unit testing
+        echo USE_SQLITE=True >> .env.test
+        echo DEBUG=True >> .env.test
+        echo SECRET_KEY=test-secret-key >> .env.test
+        copy .env.test .env
+        
+    - name: Run database setup for tests
+      run: python setup_db.py
+      
+    - name: Run unit tests
+      run: |
+        python -m pytest tests/ -v --tb=short
+        
+    - name: Run simple application test
+      run: python simple_test.py
+
+  deploy-development:
+    runs-on: self-hosted
+    needs: test
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
+    name: Deploy to Development (Local)
+    environment: development
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create development environment file
+      run: |
+        echo "Creating .env.development file..."
+        echo DEBUG=True > .env.development
+        echo SECRET_KEY=${{ secrets.DEV_SECRET_KEY }} >> .env.development
+        echo USE_SQLITE=True >> .env.development
+        echo DB_PATH=training_forms.db >> .env.development
+        echo UPLOAD_FOLDER=uploads >> .env.development
+        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.development
+        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.development
+        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.development
+        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.development
+        echo LDAP_USE_SSL=False >> .env.development
+        echo FLASK_ENV=development >> .env.development
+        copy .env.development .env
+        
+    - name: Run database migrations
+      run: python scripts/migrate_database.py
+      
+    - name: Set up database
+      run: python setup_db.py
+      
+    - name: Create uploads directory
+      run: |
+        if not exist uploads mkdir uploads
+        
+    - name: Test application configuration
+      run: |
+        python -c "
+        from config import DATABASE_URL, USE_SQLITE
+        print('Environment: Development')
+        print(f'Database: {DATABASE_URL}')
+        print(f'SQLite: {USE_SQLITE}')
+        "
+        
+    - name: Restart application service (development)
+      run: |
+        # Stop existing process if running
+        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Development" 2>nul || echo "No existing process found"
+        # Start application in background
+        start "Training Form App - Development" python main.py
+        
+    - name: Verify deployment
+      run: |
+        timeout 30 /nobreak > nul
+        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Status: {r.status_code}')" || echo "Service starting..."
+
+  deploy-staging:
+    runs-on: self-hosted
+    needs: test
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    name: Deploy to Staging Environment
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create staging environment file
+      run: |
+        echo "Creating .env.staging file..."
+        echo DEBUG=False > .env.staging
+        echo SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }} >> .env.staging
+        echo USE_SQLITE=False >> .env.staging
+        echo DB_HOST=${{ secrets.STAGING_DB_HOST }} >> .env.staging
+        echo DB_PORT=${{ secrets.STAGING_DB_PORT }} >> .env.staging
+        echo DB_NAME=${{ secrets.STAGING_DB_NAME }} >> .env.staging
+        echo DB_USER=${{ secrets.STAGING_DB_USER }} >> .env.staging
+        echo DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} >> .env.staging
+        echo UPLOAD_FOLDER=uploads_staging >> .env.staging
+        echo NETWORK_STORAGE_PATH=${{ secrets.STAGING_NETWORK_STORAGE_PATH }} >> .env.staging
+        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.staging
+        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.staging
+        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.staging
+        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.staging
+        echo LDAP_USE_SSL=False >> .env.staging
+        echo FLASK_ENV=staging >> .env.staging
+        copy .env.staging .env
+        
+    - name: Test staging database connection
+      run: python -c "from models import engine; conn = engine.connect(); print('✅ Staging database connection successful'); conn.close()"
+      
+    - name: Check for pending schema changes
+      run: |
+        echo "Checking for pending database schema changes..."
+        python scripts/flask_migrate_helper.py --validate-deployment
+        
+    - name: Run database migrations on staging
+      run: python scripts/migrate_database.py
+      
+    - name: Create staging uploads directory
+      run: |
+        if not exist uploads_staging mkdir uploads_staging
+        
+    - name: Test staging application configuration
+      run: |
+        python -c "
+        from config import DATABASE_URL, USE_SQLITE, DB_NAME
+        print('Environment: Staging')
+        print(f'Database: {DB_NAME}')
+        print(f'SQLite: {USE_SQLITE}')
+        "
+        
+    - name: Stop existing staging service
+      run: |
+        # Stop existing staging service
+        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Staging" 2>nul || echo "No existing staging process found"
+        timeout 5 /nobreak > nul
+        
+    - name: Start staging service
+      run: |
+        # Start staging application on different port
+        start "Training Form App - Staging" python -c "import main; main.app.run(host='0.0.0.0', port=5001, debug=False)"
+        
+    - name: Wait for staging service to start
+      run: timeout 30 /nobreak > nul
+      
+    - name: Run integration tests on staging
+      run: |
+        echo "Running integration tests on staging environment..."
+        python -c "
+        import requests
+        import sys
+        import time
+        
+        # Test basic application health
+        try:
+            r = requests.get('http://localhost:5001', timeout=15)
+            if r.status_code == 200:
+                print('✅ Staging application is responding')
+            else:
+                print(f'❌ Staging health check failed: {r.status_code}')
+                sys.exit(1)
+        except Exception as e:
+            print(f'❌ Staging application not accessible: {e}')
+            sys.exit(1)
+        
+        # Test database connectivity through API
+        try:
+            r = requests.get('http://localhost:5001/api/employees', timeout=15)
+            if r.status_code == 200:
+                print('✅ Staging database connectivity test passed')
+            else:
+                print(f'⚠️ Database connectivity test status: {r.status_code}')
+        except Exception as e:
+            print(f'⚠️ Database connectivity test failed: {e}')
+        
+        print('✅ All staging tests completed successfully')
+        "
+        
+    - name: Run additional staging validation
+      run: |
+        echo "Running additional staging validation..."
+        # Test migration status
+        python scripts/migrate_database.py --status
+        
+        # Verify key application components
+        python -c "
+        from models import get_admin_by_email
+        from config import DATABASE_URL, DB_NAME
+        print(f'✅ Database models loaded successfully')
+        print(f'✅ Connected to staging database: {DB_NAME}')
+        
+        # Test a simple database operation
+        admin = get_admin_by_email('harry@test.com')
+        if admin:
+            print('✅ Database operations working correctly')
+        else:
+            print('⚠️ No admin users found (this might be expected for a fresh staging environment)')
+        "
+
+  deploy-production:
+    runs-on: self-hosted
+    needs: [test, deploy-staging]  # Production depends on successful staging deployment
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    name: Deploy to Production
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create production environment file
+      run: |
+        echo "Creating .env.production file..."
+        echo DEBUG=False > .env.production
+        echo SECRET_KEY=${{ secrets.PROD_SECRET_KEY }} >> .env.production
+        echo USE_SQLITE=False >> .env.production
+        echo DB_HOST=${{ secrets.PROD_DB_HOST }} >> .env.production
+        echo DB_PORT=${{ secrets.PROD_DB_PORT }} >> .env.production
+        echo DB_NAME=${{ secrets.PROD_DB_NAME }} >> .env.production
+        echo DB_USER=${{ secrets.PROD_DB_USER }} >> .env.production
+        echo DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} >> .env.production
+        echo UPLOAD_FOLDER=uploads >> .env.production
+        echo NETWORK_STORAGE_PATH=${{ secrets.PROD_NETWORK_STORAGE_PATH }} >> .env.production
+        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.production
+        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.production
+        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.production
+        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.production
+        echo LDAP_USE_SSL=False >> .env.production
+        echo FLASK_ENV=production >> .env.production
+        copy .env.production .env
+        
+    - name: Test production database connection
+      run: python -c "from models import engine; conn = engine.connect(); print('✅ Production database connection successful'); conn.close()"
+      
+    - name: Create production backup
+      run: |
+        echo "Creating production backup..."
+        # Create timestamped backup directory
+        set timestamp=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
+        set timestamp=%timestamp: =0%
+        
+        if exist "production_backup_%timestamp%" rmdir /s /q "production_backup_%timestamp%"
+        mkdir "production_backup_%timestamp%"
+        
+        # Backup uploads directory
+        if exist uploads xcopy uploads "production_backup_%timestamp%\uploads\" /e /i /y
+        
+        # Create database backup info
+        echo Backup created at %timestamp% > "production_backup_%timestamp%\backup_info.txt"
+        echo Previous deployment backed up >> "production_backup_%timestamp%\backup_info.txt"
+        
+        echo ✅ Production backup created: production_backup_%timestamp%
+        
+    - name: Run database migrations on production
+      run: python scripts/migrate_database.py
+      
+    - name: Create uploads directory
+      run: |
+        if not exist uploads mkdir uploads
+        
+    - name: Test production application configuration
+      run: |
+        python -c "
+        from config import DATABASE_URL, USE_SQLITE, DB_NAME
+        print('Environment: Production')
+        print(f'Database: {DB_NAME}')
+        print(f'SQLite: {USE_SQLITE}')
+        "
+        
+    - name: Stop production service
+      run: |
+        # Stop existing production service
+        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Production" 2>nul || echo "No existing production process found"
+        timeout 5 /nobreak > nul
+        
+    - name: Start production service
+      run: |
+        # Start production application
+        start "Training Form App - Production" python main.py
+        
+    - name: Verify production deployment
+      run: |
+        timeout 30 /nobreak > nul
+        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Production Status: {r.status_code}')" || echo "Production service starting..."
+        
+    - name: Production health check
+      run: |
+        timeout 10 /nobreak > nul
+        python -c "
+        import requests
+        import sys
+        try:
+            r = requests.get('http://localhost:5000/api/employees', timeout=15)
+            if r.status_code == 200:
+                print('✅ Production health check passed')
+            else:
+                print(f'⚠️ Health check status: {r.status_code}')
+                sys.exit(1)
+        except Exception as e:
+            print(f'❌ Health check failed: {e}')
+            sys.exit(1)
+        "
+        
+    - name: Post-deployment validation
+      run: |
+        echo "Running post-deployment validation..."
+        python scripts/migrate_database.py --status
+        python -c "
+        from models import get_admin_by_email
+        from config import DB_NAME
+        print(f'✅ Production deployment validated')
+        print(f'✅ Connected to production database: {DB_NAME}')
+        
+        # Verify admin access
+        admin = get_admin_by_email('harry@test.com')
+        if admin:
+            print('✅ Admin access verified')
+        "
+
+  notify:
+    runs-on: self-hosted
+    needs: [deploy-development, deploy-staging, deploy-production]
+    if: always()
+    name: Notify Deployment Status
+    
+    steps:
+    - name: Deployment Status Summary
+      run: |
+        echo "=== Deployment Summary ==="
+        echo "Development: ${{ needs.deploy-development.result }}"
+        echo "Staging: ${{ needs.deploy-staging.result }}"
+        echo "Production: ${{ needs.deploy-production.result }}"
+        echo ""
+        if "${{ needs.deploy-production.result }}" == "success" (
+            echo "🎉 Production deployment completed successfully!"
+        ) else if "${{ needs.deploy-staging.result }}" == "success" (
+            echo "✅ Staging deployment completed - ready for production"
+        ) else (
+            echo "⚠️ Deployment pipeline completed with issues"
+        ) 

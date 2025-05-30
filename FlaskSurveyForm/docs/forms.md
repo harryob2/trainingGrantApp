@@ -92,14 +92,16 @@ class TrainingForm(FlaskForm):
 
 ### Progressive Disclosure Architecture
 
-The enhanced training form implements a sophisticated progressive disclosure pattern with six main sections:
+The enhanced training form implements a sophisticated progressive disclosure pattern for new form submissions with six main sections:
 
 1. **Training Catalog Search** - Quick selection from predefined courses
 2. **Training Details** - Core training information with dynamic visibility
 3. **Add Trainees** - Individual trainee management with search capabilities
-4. **Travel Expenses** - Future feature for travel cost tracking
-5. **Material Expenses** - Future feature for material cost tracking
+4. **Travel Expenses** - Travel cost tracking with comprehensive expense management
+5. **Material Expenses** - Material cost tracking with supplier and invoice details
 6. **Attachments** - File uploads with descriptions and organization
+
+**Note**: In edit mode, all sections are displayed immediately without progressive disclosure, allowing users to see and modify all existing data at once.
 
 ### Enhanced Section Details
 

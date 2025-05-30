@@ -23,8 +23,29 @@ from datetime import datetime, date
 from typing import Optional, Dict, Any, List, Tuple
 import logging
 
-DATABASE_URL = "sqlite:///training_forms.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Import database configuration from config
+try:
+    from config import DATABASE_URL, USE_SQLITE
+    print(f"Using database configuration from config.py: {DATABASE_URL}")
+except ImportError:
+    # Fallback to default SQLite configuration
+    DATABASE_URL = "sqlite:///training_forms.db"
+    USE_SQLITE = True
+    print("Warning: config.py not found, using default SQLite configuration")
+
+# Create engine with appropriate settings
+if USE_SQLITE:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # MariaDB/MySQL settings
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=10,
+        pool_recycle=3600,
+        pool_pre_ping=True,
+        echo=False  # Set to True for SQL debugging
+    )
+
 SessionLocal = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base()
 

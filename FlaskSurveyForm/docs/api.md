@@ -72,7 +72,7 @@ username=user@domain.com&password=userpassword&csrf_token=...
 
 **Features**:
 - Training catalog search and selection
-- Progressive form disclosure with multi-section layout
+- Progressive form disclosure with multi-section layout (new forms only)
 - Dynamic form validation based on training type
 - Employee lookup integration with autocomplete
 - Enhanced file upload interface with form-specific organization
@@ -80,8 +80,8 @@ username=user@domain.com&password=userpassword&csrf_token=...
   - Training Catalog Search
   - Training Details
   - Add Trainees
-  - Travel Expenses (future feature)
-  - Material Expenses (future feature)
+  - Travel Expenses
+  - Material Expenses
   - Attachments
 
 ### Form Management Routes
@@ -121,7 +121,7 @@ csrf_token=...
 **Enhanced Form Processing**:
 - File upload handling with form-specific organization (`uploads/form_ID/`)
 - Trainee data processing and validation
-- Travel and material expense handling (future features)
+- Travel and material expense handling with full CRUD operations
 - Enhanced data validation with conditional requirements
 - Database storage with relationship management
 - Email notifications
@@ -147,10 +147,13 @@ csrf_token=...
 - Admins can edit any form
 
 **Enhanced Features**:
-- Progressive disclosure maintained in edit mode
+- Full form display in edit mode (all sections visible immediately)
 - All new fields properly loaded and editable
-- Trainee management in edit mode
+- Trainee management in edit mode with pre-populated data
+- Travel expenses pre-populated and editable
+- Material expenses pre-populated and editable
 - File attachment management
+- Enhanced JSON data handling to prevent truncation issues
 
 #### POST /edit/<int:form_id>
 **Purpose**: Update existing training form with enhanced data

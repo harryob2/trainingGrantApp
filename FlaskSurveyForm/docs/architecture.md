@@ -240,9 +240,10 @@ Frontend Enhancements
 
 ### 1. Progressive Form Disclosure
 - **Multi-Section Layout**: Training Details, Trainees, Travel Expenses, Material Expenses, Attachments
-- **Dynamic Visibility**: Sections shown based on user progress and selections
+- **Dynamic Visibility**: Sections shown progressively in new form submissions based on user progress and selections
+- **Edit Mode Display**: All sections visible immediately in edit mode for comprehensive data review and modification
 - **Training Catalog Integration**: Quick form population from predefined courses
-- **Enhanced User Experience**: Reduced cognitive load and improved completion rates
+- **Enhanced User Experience**: Reduced cognitive load for new forms and complete visibility for edits
 
 ### 2. Advanced Data Management
 - **Trainee Management**: Individual trainee records with department tracking
