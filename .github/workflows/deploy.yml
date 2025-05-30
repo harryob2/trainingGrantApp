@@ -57,7 +57,7 @@ jobs:
         Add-Content -Path ".env.test" -Value "SECRET_KEY=test-secret-key" -Encoding UTF8
         Add-Content -Path ".env.test" -Value "FLASK_ENV=test" -Encoding UTF8
         Copy-Item ".env.test" ".env" -Force
-      shell: pwsh
+      shell: powershell
         
     - name: Run database setup for tests
       run: python setup_db.py
@@ -105,7 +105,7 @@ jobs:
         "LDAP_USE_SSL=False" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "FLASK_ENV=development" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         Copy-Item ".env.development" ".env" -Force
-      shell: pwsh
+      shell: powershell
         
     - name: Run database migrations
       run: python scripts/migrate_database.py
@@ -116,7 +116,7 @@ jobs:
     - name: Create uploads directory
       run: |
         if (!(Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" }
-      shell: pwsh
+      shell: powershell
         
     - name: Test application configuration
       run: |
@@ -133,13 +133,13 @@ jobs:
         Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Development" } | Stop-Process -Force
         # Start application in background
         Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
-      shell: pwsh
+      shell: powershell
         
     - name: Verify deployment
       run: |
         Start-Sleep -Seconds 30
         python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Status: {r.status_code}')" 2>$null || Write-Host "Service starting..."
-      shell: pwsh
+      shell: powershell
 
   deploy-staging:
     runs-on: self-hosted
@@ -182,7 +182,7 @@ jobs:
         "LDAP_USE_SSL=False" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "FLASK_ENV=staging" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         Copy-Item ".env.staging" ".env" -Force
-      shell: pwsh
+      shell: powershell
         
     - name: Test staging database connection
       run: python -c "from models import engine; conn = engine.connect(); print('✅ Staging database connection successful'); conn.close()"
@@ -198,7 +198,7 @@ jobs:
     - name: Create staging uploads directory
       run: |
         if (!(Test-Path "uploads_staging")) { New-Item -ItemType Directory -Path "uploads_staging" }
-      shell: pwsh
+      shell: powershell
         
     - name: Test staging application configuration
       run: |
@@ -214,17 +214,17 @@ jobs:
         # Stop existing staging service
         Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Staging" } | Stop-Process -Force
         Start-Sleep -Seconds 5
-      shell: pwsh
+      shell: powershell
         
     - name: Start staging service
       run: |
         # Start staging application on different port
         Start-Process -FilePath "python" -ArgumentList "-c", "import main; main.app.run(host='0.0.0.0', port=5001, debug=False)" -WindowStyle Hidden -WorkingDirectory (Get-Location)
-      shell: pwsh
+      shell: powershell
         
     - name: Wait for staging service to start
       run: Start-Sleep -Seconds 30
-      shell: pwsh
+      shell: powershell
       
     - name: Run integration tests on staging
       run: |
@@ -321,7 +321,7 @@ jobs:
         "LDAP_USE_SSL=False" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
         "FLASK_ENV=production" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
         Copy-Item ".env.production" ".env" -Force
-      shell: pwsh
+      shell: powershell
         
     - name: Test production database connection
       run: python -c "from models import engine; conn = engine.connect(); print('✅ Production database connection successful'); conn.close()"
@@ -351,7 +351,7 @@ jobs:
     - name: Create uploads directory
       run: |
         if (!(Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" }
-      shell: pwsh
+      shell: powershell
         
     - name: Test production application configuration
       run: |
@@ -367,19 +367,19 @@ jobs:
         # Stop existing production service
         Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Production" } | Stop-Process -Force
         Start-Sleep -Seconds 5
-      shell: pwsh
+      shell: powershell
         
     - name: Start production service
       run: |
         # Start production application
         Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
-      shell: pwsh
+      shell: powershell
         
     - name: Verify production deployment
       run: |
         Start-Sleep -Seconds 30
         python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Production Status: {r.status_code}')" 2>$null || Write-Host "Production service starting..."
-      shell: pwsh
+      shell: powershell
         
     - name: Production health check
       run: |
@@ -398,6 +398,7 @@ jobs:
             print(f'❌ Health check failed: {e}')
             sys.exit(1)
         "
+      shell: powershell
         
     - name: Post-deployment validation
       run: |
