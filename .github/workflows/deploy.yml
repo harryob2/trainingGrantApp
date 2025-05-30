@@ -218,8 +218,44 @@ jobs:
         
     - name: Stop existing staging service
       run: |
-        # Stop existing staging service
-        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "port.*5001" } | Stop-Process -Force
+        Write-Host "Stopping any existing staging services..."
+        
+        # Kill any processes using port 5001
+        try {
+            $processesOnPort = netstat -ano | findstr ":5001"
+            if ($processesOnPort) {
+                Write-Host "Processes using port 5001:"
+                Write-Host $processesOnPort
+                
+                # Extract PIDs and kill them
+                $pids = ($processesOnPort | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                foreach ($pid in $pids) {
+                    if ($pid -match '^\d+$') {
+                        Write-Host "Killing process PID: $pid"
+                        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            } else {
+                Write-Host "No processes found using port 5001"
+            }
+        } catch {
+            Write-Host "Error checking port 5001: $_"
+        }
+        
+        # Also stop Python processes that match staging pattern
+        $stagingProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { 
+            $_.CommandLine -match "start_staging" -or $_.CommandLine -match "port.*5001" 
+        }
+        
+        if ($stagingProcesses) {
+            Write-Host "Found staging Python processes:"
+            $stagingProcesses | Format-Table Id, ProcessName, @{Name="CommandLine";Expression={$_.CommandLine}} -AutoSize
+            $stagingProcesses | Stop-Process -Force
+            Write-Host "Stopped staging processes"
+        } else {
+            Write-Host "No staging Python processes found"
+        }
+        
         Start-Sleep -Seconds 5
       shell: powershell
         
@@ -228,9 +264,9 @@ jobs:
         Write-Host "Testing staging startup script..."
         try {
             python scripts/start_staging.py --test-only
-            Write-Host "✅ Staging startup script tests passed"
+            Write-Host "PASS: Staging startup script tests passed"
         } catch {
-            Write-Host "❌ Staging startup script test failed: $_"
+            Write-Host "FAIL: Staging startup script test failed: $_"
             exit 1
         }
       shell: powershell
@@ -240,19 +276,30 @@ jobs:
         # Start staging application using dedicated script with output redirection
         Write-Host "Starting staging application..."
         $logFile = "staging_startup.log"
-        Start-Process -FilePath "python" -ArgumentList "scripts/start_staging.py" -WindowStyle Hidden -WorkingDirectory (Get-Location) -RedirectStandardOutput $logFile -RedirectStandardError "staging_error.log"
+        $process = Start-Process -FilePath "python" -ArgumentList "scripts/start_staging.py" -WindowStyle Hidden -WorkingDirectory (Get-Location) -RedirectStandardOutput $logFile -RedirectStandardError "staging_error.log" -PassThru
         Start-Sleep -Seconds 5
         
-        # Check if process started
-        $process = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "start_staging" }
+        # Check if process started and is still running
         if ($process) {
-            Write-Host "✅ Staging process started (PID: $($process.Id))"
-        } else {
-            Write-Host "❌ Staging process not found"
-            if (Test-Path "staging_error.log") {
-                Write-Host "Error log contents:"
-                Get-Content "staging_error.log"
+            try {
+                $runningProcess = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+                if ($runningProcess) {
+                    Write-Host "PASS: Staging process started successfully (PID: $($process.Id))"
+                } else {
+                    Write-Host "FAIL: Staging process exited immediately"
+                    if (Test-Path "staging_error.log") {
+                        Write-Host "Error log contents:"
+                        Get-Content "staging_error.log"
+                    }
+                    exit 1
+                }
+            } catch {
+                Write-Host "FAIL: Could not verify process status: $_"
+                exit 1
             }
+        } else {
+            Write-Host "FAIL: Failed to start staging process"
+            exit 1
         }
       shell: powershell
         
@@ -267,13 +314,13 @@ jobs:
             try {
                 $response = Invoke-WebRequest -Uri "http://localhost:5001" -TimeoutSec 5 -UseBasicParsing
                 if ($response.StatusCode -eq 200) {
-                    Write-Host "✅ Staging application is responding!"
+                    Write-Host "PASS: Staging application is responding!"
                     $started = $true
                 } else {
-                    Write-Host "⏳ Application starting... (Status: $($response.StatusCode))"
+                    Write-Host "WAITING: Application starting... (Status: $($response.StatusCode))"
                 }
             } catch {
-                Write-Host "⏳ Waiting for application... ($waited/$maxWait seconds)"
+                Write-Host "WAITING: Waiting for application... ($waited/$maxWait seconds)"
             }
             
             if (-not $started) {
@@ -283,41 +330,81 @@ jobs:
         }
         
         if (-not $started) {
-            Write-Host "❌ Application failed to start within $maxWait seconds"
+            Write-Host "FAIL: Application failed to start within $maxWait seconds"
             
             # Diagnostic information
-            Write-Host "`n🔍 Diagnostic Information:"
+            Write-Host "`nDiagnostic Information:"
             
             # Check for running Python processes
-            Write-Host "Python processes:"
-            Get-Process -Name "python" -ErrorAction SilentlyContinue | Format-Table Id, ProcessName, @{Name="CommandLine";Expression={$_.CommandLine}; Width=50} -AutoSize
+            Write-Host "`nPython processes:"
+            $pythonProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue
+            if ($pythonProcesses) {
+                $pythonProcesses | Format-Table Id, ProcessName, StartTime, @{Name="CPU(s)";Expression={$_.CPU}}, @{Name="Memory(MB)";Expression={[math]::Round($_.WorkingSet/1MB,2)}} -AutoSize
+                Write-Host "`nPython process command lines:"
+                foreach ($proc in $pythonProcesses) {
+                    try {
+                        $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId = $($proc.Id)").CommandLine
+                        Write-Host "PID $($proc.Id): $cmdLine"
+                    } catch {
+                        Write-Host "PID $($proc.Id): <command line not available>"
+                    }
+                }
+            } else {
+                Write-Host "No Python processes found"
+            }
+            
+            # Check port 5001 usage
+            Write-Host "`nPort 5001 status:"
+            try {
+                $portInfo = netstat -ano | findstr ":5001"
+                if ($portInfo) {
+                    Write-Host "Processes on port 5001:"
+                    Write-Host $portInfo
+                } else {
+                    Write-Host "Port 5001 appears to be free"
+                }
+            } catch {
+                Write-Host "Could not check port usage: $_"
+            }
             
             # Check if log files exist and show contents
             if (Test-Path "staging_startup.log") {
-                Write-Host "`nStartup log contents:"
-                Get-Content "staging_startup.log" | Select-Object -Last 20
+                Write-Host "`nStartup log contents (last 30 lines):"
+                Get-Content "staging_startup.log" | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
+            } else {
+                Write-Host "`nNo staging_startup.log found"
             }
             
             if (Test-Path "staging_error.log") {
                 Write-Host "`nError log contents:"
-                Get-Content "staging_error.log"
+                Get-Content "staging_error.log" | ForEach-Object { Write-Host $_ }
+            } else {
+                Write-Host "`nNo staging_error.log found"
+            }
+            
+            if (Test-Path "staging_app.log") {
+                Write-Host "`nApplication log contents (last 30 lines):"
+                Get-Content "staging_app.log" | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
+            } else {
+                Write-Host "`nNo staging_app.log found"
             }
             
             # Try to test the startup script manually for more info
-            Write-Host "`n🧪 Testing startup script manually:"
+            Write-Host "`nTesting startup script manually:"
             try {
-                python scripts/start_staging.py --help 2>&1 | Write-Host
+                $testOutput = python scripts/start_staging.py --test-only 2>&1
+                Write-Host $testOutput
             } catch {
-                Write-Host "Failed to run startup script: $_"
+                Write-Host "FAIL: Failed to run startup script test: $_"
             }
             
-            # Check port availability
-            Write-Host "`n🔌 Checking port 5001:"
-            try {
-                $portTest = Test-NetConnection -ComputerName localhost -Port 5001 -WarningAction SilentlyContinue
-                Write-Host "Port 5001 available: $($portTest.TcpTestSucceeded)"
-            } catch {
-                Write-Host "Could not test port: $_"
+            # Check if there are any Flask/Werkzeug processes
+            Write-Host "`nChecking for Flask/web server processes:"
+            $allProcesses = Get-Process | Where-Object { $_.ProcessName -match "python|flask|werkzeug" -or $_.MainWindowTitle -match "flask|training" }
+            if ($allProcesses) {
+                $allProcesses | Format-Table Id, ProcessName, MainWindowTitle -AutoSize
+            } else {
+                Write-Host "No Flask/web server processes found"
             }
             
             exit 1
