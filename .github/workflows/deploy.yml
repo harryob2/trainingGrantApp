@@ -222,10 +222,11 @@ jobs:
         
         # Kill any processes using port 5001
         try {
-            $processesOnPort = netstat -ano | findstr ":5001"
+            $netstatOutput = netstat -ano 2>$null
+            $processesOnPort = $netstatOutput | Where-Object { $_ -match ":5001" }
             if ($processesOnPort) {
                 Write-Host "Processes using port 5001:"
-                Write-Host $processesOnPort
+                $processesOnPort | ForEach-Object { Write-Host $_ }
                 
                 # Extract PIDs and kill them
                 $pids = ($processesOnPort | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
@@ -272,6 +273,7 @@ jobs:
         
         Start-Sleep -Seconds 5
         Write-Host "Process cleanup completed successfully"
+        exit 0
       shell: powershell
         
     - name: Test staging startup script
