@@ -49,12 +49,15 @@ jobs:
         
     - name: Set up test environment
       run: |
-        copy env.example .env.test
-        # Use SQLite for unit testing
-        echo USE_SQLITE=True >> .env.test
-        echo DEBUG=True >> .env.test
-        echo SECRET_KEY=test-secret-key >> .env.test
-        copy .env.test .env
+        # Copy template and create test environment file using PowerShell to avoid encoding issues
+        Copy-Item "env.example" ".env.test" -Force
+        # Add test-specific configuration
+        Add-Content -Path ".env.test" -Value "USE_SQLITE=True" -Encoding UTF8
+        Add-Content -Path ".env.test" -Value "DEBUG=True" -Encoding UTF8  
+        Add-Content -Path ".env.test" -Value "SECRET_KEY=test-secret-key" -Encoding UTF8
+        Add-Content -Path ".env.test" -Value "FLASK_ENV=test" -Encoding UTF8
+        Copy-Item ".env.test" ".env" -Force
+      shell: pwsh
         
     - name: Run database setup for tests
       run: python setup_db.py
@@ -89,19 +92,20 @@ jobs:
         
     - name: Create development environment file
       run: |
-        echo "Creating .env.development file..."
-        echo DEBUG=True > .env.development
-        echo SECRET_KEY=${{ secrets.DEV_SECRET_KEY }} >> .env.development
-        echo USE_SQLITE=True >> .env.development
-        echo DB_PATH=training_forms.db >> .env.development
-        echo UPLOAD_FOLDER=uploads >> .env.development
-        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.development
-        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.development
-        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.development
-        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.development
-        echo LDAP_USE_SSL=False >> .env.development
-        echo FLASK_ENV=development >> .env.development
-        copy .env.development .env
+        Write-Host "Creating .env.development file..."
+        "DEBUG=True" | Out-File -FilePath ".env.development" -Encoding UTF8
+        "SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "USE_SQLITE=True" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "DB_PATH=training_forms.db" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "LDAP_USE_SSL=False" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "FLASK_ENV=development" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        Copy-Item ".env.development" ".env" -Force
+      shell: pwsh
         
     - name: Run database migrations
       run: python scripts/migrate_database.py
@@ -111,7 +115,8 @@ jobs:
       
     - name: Create uploads directory
       run: |
-        if not exist uploads mkdir uploads
+        if (!(Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" }
+      shell: pwsh
         
     - name: Test application configuration
       run: |
@@ -125,14 +130,16 @@ jobs:
     - name: Restart application service (development)
       run: |
         # Stop existing process if running
-        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Development" 2>nul || echo "No existing process found"
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Development" } | Stop-Process -Force
         # Start application in background
-        start "Training Form App - Development" python main.py
+        Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+      shell: pwsh
         
     - name: Verify deployment
       run: |
-        timeout 30 /nobreak > nul
-        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Status: {r.status_code}')" || echo "Service starting..."
+        Start-Sleep -Seconds 30
+        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Status: {r.status_code}')" 2>$null || Write-Host "Service starting..."
+      shell: pwsh
 
   deploy-staging:
     runs-on: self-hosted
@@ -157,24 +164,25 @@ jobs:
         
     - name: Create staging environment file
       run: |
-        echo "Creating .env.staging file..."
-        echo DEBUG=False > .env.staging
-        echo SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }} >> .env.staging
-        echo USE_SQLITE=False >> .env.staging
-        echo DB_HOST=${{ secrets.STAGING_DB_HOST }} >> .env.staging
-        echo DB_PORT=${{ secrets.STAGING_DB_PORT }} >> .env.staging
-        echo DB_NAME=${{ secrets.STAGING_DB_NAME }} >> .env.staging
-        echo DB_USER=${{ secrets.STAGING_DB_USER }} >> .env.staging
-        echo DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} >> .env.staging
-        echo UPLOAD_FOLDER=uploads_staging >> .env.staging
-        echo NETWORK_STORAGE_PATH=${{ secrets.STAGING_NETWORK_STORAGE_PATH }} >> .env.staging
-        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.staging
-        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.staging
-        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.staging
-        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.staging
-        echo LDAP_USE_SSL=False >> .env.staging
-        echo FLASK_ENV=staging >> .env.staging
-        copy .env.staging .env
+        Write-Host "Creating .env.staging file..."
+        "DEBUG=False" | Out-File -FilePath ".env.staging" -Encoding UTF8
+        "SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "USE_SQLITE=False" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "DB_HOST=${{ secrets.STAGING_DB_HOST }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "DB_PORT=${{ secrets.STAGING_DB_PORT }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "DB_NAME=${{ secrets.STAGING_DB_NAME }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "DB_USER=${{ secrets.STAGING_DB_USER }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=uploads_staging" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "NETWORK_STORAGE_PATH=${{ secrets.STAGING_NETWORK_STORAGE_PATH }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "LDAP_USE_SSL=False" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "FLASK_ENV=staging" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        Copy-Item ".env.staging" ".env" -Force
+      shell: pwsh
         
     - name: Test staging database connection
       run: python -c "from models import engine; conn = engine.connect(); print('✅ Staging database connection successful'); conn.close()"
@@ -189,7 +197,8 @@ jobs:
       
     - name: Create staging uploads directory
       run: |
-        if not exist uploads_staging mkdir uploads_staging
+        if (!(Test-Path "uploads_staging")) { New-Item -ItemType Directory -Path "uploads_staging" }
+      shell: pwsh
         
     - name: Test staging application configuration
       run: |
@@ -203,16 +212,19 @@ jobs:
     - name: Stop existing staging service
       run: |
         # Stop existing staging service
-        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Staging" 2>nul || echo "No existing staging process found"
-        timeout 5 /nobreak > nul
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Staging" } | Stop-Process -Force
+        Start-Sleep -Seconds 5
+      shell: pwsh
         
     - name: Start staging service
       run: |
         # Start staging application on different port
-        start "Training Form App - Staging" python -c "import main; main.app.run(host='0.0.0.0', port=5001, debug=False)"
+        Start-Process -FilePath "python" -ArgumentList "-c", "import main; main.app.run(host='0.0.0.0', port=5001, debug=False)" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+      shell: pwsh
         
     - name: Wait for staging service to start
-      run: timeout 30 /nobreak > nul
+      run: Start-Sleep -Seconds 30
+      shell: pwsh
       
     - name: Run integration tests on staging
       run: |
@@ -291,24 +303,25 @@ jobs:
         
     - name: Create production environment file
       run: |
-        echo "Creating .env.production file..."
-        echo DEBUG=False > .env.production
-        echo SECRET_KEY=${{ secrets.PROD_SECRET_KEY }} >> .env.production
-        echo USE_SQLITE=False >> .env.production
-        echo DB_HOST=${{ secrets.PROD_DB_HOST }} >> .env.production
-        echo DB_PORT=${{ secrets.PROD_DB_PORT }} >> .env.production
-        echo DB_NAME=${{ secrets.PROD_DB_NAME }} >> .env.production
-        echo DB_USER=${{ secrets.PROD_DB_USER }} >> .env.production
-        echo DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} >> .env.production
-        echo UPLOAD_FOLDER=uploads >> .env.production
-        echo NETWORK_STORAGE_PATH=${{ secrets.PROD_NETWORK_STORAGE_PATH }} >> .env.production
-        echo LDAP_HOST=${{ secrets.LDAP_HOST }} >> .env.production
-        echo LDAP_PORT=${{ secrets.LDAP_PORT }} >> .env.production
-        echo LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }} >> .env.production
-        echo LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }} >> .env.production
-        echo LDAP_USE_SSL=False >> .env.production
-        echo FLASK_ENV=production >> .env.production
-        copy .env.production .env
+        Write-Host "Creating .env.production file..."
+        "DEBUG=False" | Out-File -FilePath ".env.production" -Encoding UTF8
+        "SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "USE_SQLITE=False" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "DB_HOST=${{ secrets.PROD_DB_HOST }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "DB_PORT=${{ secrets.PROD_DB_PORT }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "DB_NAME=${{ secrets.PROD_DB_NAME }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "DB_USER=${{ secrets.PROD_DB_USER }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "NETWORK_STORAGE_PATH=${{ secrets.PROD_NETWORK_STORAGE_PATH }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "LDAP_DOMAIN=${{ secrets.LDAP_DOMAIN }}" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "LDAP_USE_SSL=False" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        "FLASK_ENV=production" | Out-File -FilePath ".env.production" -Append -Encoding UTF8
+        Copy-Item ".env.production" ".env" -Force
+      shell: pwsh
         
     - name: Test production database connection
       run: python -c "from models import engine; conn = engine.connect(); print('✅ Production database connection successful'); conn.close()"
@@ -337,7 +350,8 @@ jobs:
       
     - name: Create uploads directory
       run: |
-        if not exist uploads mkdir uploads
+        if (!(Test-Path "uploads")) { New-Item -ItemType Directory -Path "uploads" }
+      shell: pwsh
         
     - name: Test production application configuration
       run: |
@@ -351,22 +365,25 @@ jobs:
     - name: Stop production service
       run: |
         # Stop existing production service
-        taskkill /F /IM python.exe /FI "WINDOWTITLE eq Training Form App - Production" 2>nul || echo "No existing production process found"
-        timeout 5 /nobreak > nul
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Production" } | Stop-Process -Force
+        Start-Sleep -Seconds 5
+      shell: pwsh
         
     - name: Start production service
       run: |
         # Start production application
-        start "Training Form App - Production" python main.py
+        Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+      shell: pwsh
         
     - name: Verify production deployment
       run: |
-        timeout 30 /nobreak > nul
-        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Production Status: {r.status_code}')" || echo "Production service starting..."
+        Start-Sleep -Seconds 30
+        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Production Status: {r.status_code}')" 2>$null || Write-Host "Production service starting..."
+      shell: pwsh
         
     - name: Production health check
       run: |
-        timeout 10 /nobreak > nul
+        Start-Sleep -Seconds 10
         python -c "
         import requests
         import sys
