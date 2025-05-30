@@ -130,15 +130,21 @@ jobs:
     - name: Restart application service (development)
       run: |
         # Stop existing process if running
-        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Development" } | Stop-Process -Force
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "port.*5000" } | Stop-Process -Force
         # Start application in background
-        Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+        Start-Process -FilePath "python" -ArgumentList "main.py", "--port", "5000", "--no-debug" -WindowStyle Hidden -WorkingDirectory (Get-Location)
       shell: powershell
         
     - name: Verify deployment
       run: |
+        Write-Host "Waiting for development application to start..."
         Start-Sleep -Seconds 30
-        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Status: {r.status_code}')" 2>$null || Write-Host "Service starting..."
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:5000" -TimeoutSec 10 -UseBasicParsing
+            Write-Host "Development Status: $($response.StatusCode)"
+        } catch {
+            Write-Host "Development service starting... $($_.Exception.Message)"
+        }
       shell: powershell
 
   deploy-staging:
@@ -213,18 +219,48 @@ jobs:
     - name: Stop existing staging service
       run: |
         # Stop existing staging service
-        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Staging" } | Stop-Process -Force
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "port.*5001" } | Stop-Process -Force
         Start-Sleep -Seconds 5
       shell: powershell
         
     - name: Start staging service
       run: |
-        # Start staging application on different port
-        Start-Process -FilePath "python" -ArgumentList "-c", "import main; main.app.run(host='0.0.0.0', port=5001, debug=False)" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+        # Start staging application using dedicated script
+        Start-Process -FilePath "python" -ArgumentList "scripts/start_staging.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
       shell: powershell
         
     - name: Wait for staging service to start
-      run: Start-Sleep -Seconds 30
+      run: |
+        Write-Host "Waiting for staging application to start..."
+        $maxWait = 60
+        $waited = 0
+        $started = $false
+        
+        while ($waited -lt $maxWait -and -not $started) {
+            try {
+                $response = Invoke-WebRequest -Uri "http://localhost:5001" -TimeoutSec 5 -UseBasicParsing
+                if ($response.StatusCode -eq 200) {
+                    Write-Host "✅ Staging application is responding!"
+                    $started = $true
+                } else {
+                    Write-Host "⏳ Application starting... (Status: $($response.StatusCode))"
+                }
+            } catch {
+                Write-Host "⏳ Waiting for application... ($waited/$maxWait seconds)"
+            }
+            
+            if (-not $started) {
+                Start-Sleep -Seconds 5
+                $waited += 5
+            }
+        }
+        
+        if (-not $started) {
+            Write-Host "❌ Application failed to start within $maxWait seconds"
+            # Try to get some debug information
+            Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "staging" }
+            exit 1
+        }
       shell: powershell
       
     - name: Run integration tests on staging
@@ -367,20 +403,26 @@ jobs:
     - name: Stop production service
       run: |
         # Stop existing production service
-        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Training Form App - Production" } | Stop-Process -Force
+        Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "port.*5000" } | Stop-Process -Force
         Start-Sleep -Seconds 5
       shell: powershell
         
     - name: Start production service
       run: |
         # Start production application
-        Start-Process -FilePath "python" -ArgumentList "main.py" -WindowStyle Hidden -WorkingDirectory (Get-Location)
+        Start-Process -FilePath "python" -ArgumentList "main.py", "--port", "5000", "--no-debug" -WindowStyle Hidden -WorkingDirectory (Get-Location)
       shell: powershell
         
     - name: Verify production deployment
       run: |
+        Write-Host "Waiting for production application to start..."
         Start-Sleep -Seconds 30
-        python -c "import requests; r = requests.get('http://localhost:5000', timeout=10); print(f'Production Status: {r.status_code}')" 2>$null || Write-Host "Production service starting..."
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:5000" -TimeoutSec 10 -UseBasicParsing
+            Write-Host "Production Status: $($response.StatusCode)"
+        } catch {
+            Write-Host "Production service starting... $($_.Exception.Message)"
+        }
       shell: powershell
         
     - name: Production health check
