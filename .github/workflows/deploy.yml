@@ -243,20 +243,35 @@ jobs:
         }
         
         # Also stop Python processes that match staging pattern
-        $stagingProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { 
-            $_.CommandLine -match "start_staging" -or $_.CommandLine -match "port.*5001" 
-        }
-        
-        if ($stagingProcesses) {
-            Write-Host "Found staging Python processes:"
-            $stagingProcesses | Format-Table Id, ProcessName, @{Name="CommandLine";Expression={$_.CommandLine}} -AutoSize
-            $stagingProcesses | Stop-Process -Force
-            Write-Host "Stopped staging processes"
-        } else {
-            Write-Host "No staging Python processes found"
+        try {
+            $allPythonProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue
+            $stagingProcesses = @()
+            
+            foreach ($proc in $allPythonProcesses) {
+                try {
+                    $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue).CommandLine
+                    if ($cmdLine -and ($cmdLine -match "start_staging" -or $cmdLine -match "port.*5001")) {
+                        $stagingProcesses += $proc
+                    }
+                } catch {
+                    # Ignore errors accessing command line
+                }
+            }
+            
+            if ($stagingProcesses.Count -gt 0) {
+                Write-Host "Found staging Python processes:"
+                $stagingProcesses | Format-Table Id, ProcessName, StartTime -AutoSize
+                $stagingProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+                Write-Host "Stopped staging processes"
+            } else {
+                Write-Host "No staging Python processes found"
+            }
+        } catch {
+            Write-Host "Error checking Python processes: $_"
         }
         
         Start-Sleep -Seconds 5
+        Write-Host "Process cleanup completed successfully"
       shell: powershell
         
     - name: Test staging startup script
