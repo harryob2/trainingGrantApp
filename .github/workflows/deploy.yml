@@ -286,118 +286,189 @@ jobs:
       run: |
         Write-Host "Starting staging application..."
         
-        # Clean up any old log files
-        Remove-Item -Path "staging_*.log" -Force -ErrorAction SilentlyContinue
+        # Clean up any old processes on port 5001
+        $existingProcesses = netstat -ano | Where-Object { $_ -match ":5001" }
+        if ($existingProcesses) {
+            Write-Host "Found existing processes on port 5001, cleaning up..."
+            $pids = ($existingProcesses | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+            foreach ($pid in $pids) {
+                if ($pid -match '^\d+$') {
+                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Start-Sleep -Seconds 2
+        }
         
-        # Set environment variables
+        # Start the Flask application directly
         $env:FLASK_ENV = "staging"
         $env:PYTHONUNBUFFERED = "1"
         
-        # Start the application using nohup equivalent for Windows
+        $pythonExe = (Get-Command python).Path
         $scriptPath = "scripts\start_staging_simple.py"
+        $logFile = "staging_direct.log"
         
-        # Create a PowerShell job that runs the Python script
-        $job = Start-Job -ScriptBlock {
-            param($workDir)
-            Set-Location $workDir
+        Write-Host "Starting Flask app with Python: $pythonExe"
+        Write-Host "Script: $scriptPath"
+        
+        # Use Start-Process to launch Python in background
+        $processArgs = @{
+            FilePath = $pythonExe
+            ArgumentList = $scriptPath
+            WorkingDirectory = Get-Location
+            RedirectStandardOutput = $logFile
+            RedirectStandardError = "staging_error.log"
+            WindowStyle = "Hidden"
+            PassThru = $true
+        }
+        
+        $proc = Start-Process @processArgs
+        
+        if ($proc) {
+            Write-Host "Started Flask process with PID: $($proc.Id)"
+            
+            # Save PID for reference
+            $proc.Id | Out-File -FilePath "staging_flask_pid.txt"
+            
+            # Wait for app to start
+            $attempts = 0
+            $maxAttempts = 12
+            $started = $false
+            
+            while ($attempts -lt $maxAttempts -and -not $started) {
+                Start-Sleep -Seconds 5
+                $attempts++
+                
+                Write-Host "Checking Flask status (attempt $attempts/$maxAttempts)..."
+                
+                # Check if process is still running
+                $stillRunning = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+                if (-not $stillRunning) {
+                    Write-Host "ERROR: Flask process has exited!"
+                    if (Test-Path $logFile) {
+                        Write-Host "Output log:"
+                        Get-Content $logFile
+                    }
+                    if (Test-Path "staging_error.log") {
+                        Write-Host "Error log:"
+                        Get-Content "staging_error.log"
+                    }
+                    exit 1
+                }
+                
+                # Try to connect
+                try {
+                    $response = Invoke-WebRequest -Uri "http://localhost:5001" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+                    Write-Host "SUCCESS: Flask is responding!"
+                    $started = $true
+                } catch {
+                    Write-Host "Not ready yet..."
+                    
+                    # Show recent log entries
+                    if (Test-Path $logFile) {
+                        $recentLog = Get-Content $logFile -Tail 5
+                        if ($recentLog) {
+                            Write-Host "Recent log:"
+                            $recentLog | ForEach-Object { Write-Host "  $_" }
+                        }
+                    }
+                }
+            }
+            
+            if ($started) {
+                Write-Host "PASS: Staging Flask application is running on port 5001"
+                
+                # Double-check port is listening
+                $listening = netstat -ano | Where-Object { $_ -match ":5001.*LISTENING" }
+                if ($listening) {
+                    Write-Host "Confirmed port 5001 is listening"
+                }
+            } else {
+                Write-Host "FAIL: Flask did not start in time"
+                exit 1
+            }
+            
+        } else {
+            Write-Host "FAIL: Could not start Flask process"
+            exit 1
+        }
+      shell: powershell
+        
+    - name: Run integration tests on staging
+      run: |
+        Write-Host "Checking if staging Flask is still running..."
+        
+        # Check if we have a saved PID
+        $pidFile = "staging_flask_pid.txt"
+        if (Test-Path $pidFile) {
+            $savedPid = Get-Content $pidFile
+            Write-Host "Checking for Flask process with PID: $savedPid"
+            
+            $flaskProcess = Get-Process -Id $savedPid -ErrorAction SilentlyContinue
+            if ($flaskProcess) {
+                Write-Host "Flask process is still running"
+            } else {
+                Write-Host "Flask process has stopped, need to restart it"
+                
+                # Restart Flask
+                $env:FLASK_ENV = "staging"
+                $env:PYTHONUNBUFFERED = "1"
+                
+                $pythonExe = (Get-Command python).Path
+                $scriptPath = "scripts\start_staging_simple.py"
+                
+                Write-Host "Restarting Flask..."
+                $proc = Start-Process -FilePath $pythonExe -ArgumentList $scriptPath -WorkingDirectory (Get-Location) -WindowStyle Hidden -PassThru
+                
+                if ($proc) {
+                    $proc.Id | Out-File -FilePath $pidFile -Force
+                    Write-Host "Flask restarted with PID: $($proc.Id)"
+                    
+                    # Wait for it to start
+                    Start-Sleep -Seconds 10
+                    
+                    # Verify it's responding
+                    try {
+                        $response = Invoke-WebRequest -Uri "http://localhost:5001" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+                        Write-Host "Flask is responding after restart"
+                    } catch {
+                        Write-Host "ERROR: Flask not responding after restart: $_"
+                        exit 1
+                    }
+                } else {
+                    Write-Host "ERROR: Failed to restart Flask"
+                    exit 1
+                }
+            }
+        } else {
+            Write-Host "No PID file found, starting Flask fresh..."
+            
+            # Start Flask
             $env:FLASK_ENV = "staging"
             $env:PYTHONUNBUFFERED = "1"
-            python scripts\start_staging_simple.py
-        } -ArgumentList (Get-Location)
-        
-        Write-Host "Started job ID: $($job.Id)"
-        
-        # Wait for the application to start
-        $maxWait = 60
-        $waited = 0
-        $started = $false
-        
-        while ($waited -lt $maxWait -and -not $started) {
-            Start-Sleep -Seconds 5
-            $waited += 5
             
-            # Check job status
-            $jobState = Get-Job -Id $job.Id
-            Write-Host "Job state: $($jobState.State)"
+            $pythonExe = (Get-Command python).Path
+            $scriptPath = "scripts\start_staging_simple.py"
             
-            # Get any output
-            $output = Receive-Job -Job $job -Keep
-            if ($output) {
-                Write-Host "Job output:"
-                $output | ForEach-Object { Write-Host $_ }
-            }
+            $proc = Start-Process -FilePath $pythonExe -ArgumentList $scriptPath -WorkingDirectory (Get-Location) -WindowStyle Hidden -PassThru
             
-            # Try to connect - use simpler approach
-            try {
-                $uri = "http://localhost:5001"
-                Write-Host "Attempting to connect to $uri..."
-                $response = Invoke-WebRequest -Uri $uri -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
-                if ($response.StatusCode -eq 200) {
-                    Write-Host "PASS: Application is responding!"
-                    $started = $true
-                }
-            } catch {
-                $errorMsg = $_.Exception.Message
-                Write-Host "Still waiting... ($waited/$maxWait seconds) - $errorMsg"
-                
-                # Try alternate connection method
-                try {
-                    $tcpClient = New-Object System.Net.Sockets.TcpClient
-                    $tcpClient.Connect("localhost", 5001)
-                    Write-Host "TCP connection successful to port 5001"
-                    $tcpClient.Close()
-                } catch {
-                    Write-Host "TCP connection failed: $_"
-                }
-            }
-            
-            # Check if job failed
-            if ($jobState.State -eq "Failed" -or $jobState.State -eq "Completed") {
-                Write-Host "FAIL: Job terminated unexpectedly"
-                $allOutput = Receive-Job -Job $job
-                if ($allOutput) {
-                    Write-Host "Final output:"
-                    $allOutput | ForEach-Object { Write-Host $_ }
-                }
-                Remove-Job -Job $job -Force
+            if ($proc) {
+                $proc.Id | Out-File -FilePath $pidFile -Force
+                Write-Host "Flask started with PID: $($proc.Id)"
+                Start-Sleep -Seconds 10
+            } else {
+                Write-Host "ERROR: Failed to start Flask"
                 exit 1
             }
         }
         
-        if (-not $started) {
-            Write-Host "FAIL: Application did not start within $maxWait seconds"
-            
-            # Get final job output
-            $finalOutput = Receive-Job -Job $job
-            if ($finalOutput) {
-                Write-Host "Final job output:"
-                $finalOutput | ForEach-Object { Write-Host $_ }
-            }
-            
-            # Check job state one more time
-            $finalJobState = Get-Job -Id $job.Id
-            Write-Host "Final job state: $($finalJobState.State)"
-            
-            # Show running processes
-            Write-Host "`nPython processes:"
-            Get-Process -Name "python" -ErrorAction SilentlyContinue | Format-Table Id, ProcessName, StartTime -AutoSize
-            
-            # Check what's listening on port 5001
-            Write-Host "`nPort 5001 status:"
-            netstat -ano | Where-Object { $_ -match ":5001" } | ForEach-Object { Write-Host $_ }
-            
-            Remove-Job -Job $job -Force
-            exit 1
-        }
+        # Check port status
+        Write-Host "`nPort 5001 status:"
+        netstat -ano | Where-Object { $_ -match ":5001.*LISTENING" } | ForEach-Object { Write-Host "  $_" }
         
-        Write-Host "PASS: Staging service started and verified successfully"
-        
-        # IMPORTANT: Keep the job alive by NOT removing it
-        # The job will continue running in the background for subsequent steps
-        Write-Host "Staging application is running in background job $($job.Id)"
+        Write-Host "`nRunning integration tests..."
       shell: powershell
-        
-    - name: Run integration tests on staging
+      
+    - name: Execute staging integration tests
       run: |
         echo "Running integration tests on staging environment..."
         python -c "
