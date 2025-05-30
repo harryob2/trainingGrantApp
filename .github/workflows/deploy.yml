@@ -108,7 +108,7 @@ jobs:
       shell: powershell
         
     - name: Run database migrations
-      run: python scripts/migrate_database.py
+      run: python -m alembic upgrade head
       
     - name: Set up database
       run: python setup_db.py
@@ -185,15 +185,16 @@ jobs:
       shell: powershell
         
     - name: Test staging database connection
-      run: python -c "from models import engine; conn = engine.connect(); print('✅ Staging database connection successful'); conn.close()"
+      run: |
+        python -c "from models import engine; conn = engine.connect(); print('PASS: Staging database connection successful'); conn.close()"
       
     - name: Check for pending schema changes
       run: |
-        echo "Checking for pending database schema changes..."
-        python scripts/flask_migrate_helper.py --validate-deployment
+        echo "Checking database migration status..."
+        python -m alembic current -v
         
     - name: Run database migrations on staging
-      run: python scripts/migrate_database.py
+      run: python -m alembic upgrade head
       
     - name: Create staging uploads directory
       run: |
@@ -238,46 +239,46 @@ jobs:
         try:
             r = requests.get('http://localhost:5001', timeout=15)
             if r.status_code == 200:
-                print('✅ Staging application is responding')
+                print('PASS: Staging application is responding')
             else:
-                print(f'❌ Staging health check failed: {r.status_code}')
+                print(f'FAIL: Staging health check failed: {r.status_code}')
                 sys.exit(1)
         except Exception as e:
-            print(f'❌ Staging application not accessible: {e}')
+            print(f'FAIL: Staging application not accessible: {e}')
             sys.exit(1)
         
         # Test database connectivity through API
         try:
             r = requests.get('http://localhost:5001/api/employees', timeout=15)
             if r.status_code == 200:
-                print('✅ Staging database connectivity test passed')
+                print('PASS: Staging database connectivity test passed')
             else:
-                print(f'⚠️ Database connectivity test status: {r.status_code}')
+                print(f'WARNING: Database connectivity test status: {r.status_code}')
         except Exception as e:
-            print(f'⚠️ Database connectivity test failed: {e}')
+            print(f'WARNING: Database connectivity test failed: {e}')
         
-        print('✅ All staging tests completed successfully')
+        print('PASS: All staging tests completed successfully')
         "
         
     - name: Run additional staging validation
       run: |
         echo "Running additional staging validation..."
         # Test migration status
-        python scripts/migrate_database.py --status
+        python -m alembic current -v
         
         # Verify key application components
         python -c "
         from models import get_admin_by_email
         from config import DATABASE_URL, DB_NAME
-        print(f'✅ Database models loaded successfully')
-        print(f'✅ Connected to staging database: {DB_NAME}')
+        print(f'PASS: Database models loaded successfully')
+        print(f'PASS: Connected to staging database: {DB_NAME}')
         
         # Test a simple database operation
         admin = get_admin_by_email('harry@test.com')
         if admin:
-            print('✅ Database operations working correctly')
+            print('PASS: Database operations working correctly')
         else:
-            print('⚠️ No admin users found (this might be expected for a fresh staging environment)')
+            print('WARNING: No admin users found (this might be expected for a fresh staging environment)')
         "
 
   deploy-production:
@@ -324,7 +325,8 @@ jobs:
       shell: powershell
         
     - name: Test production database connection
-      run: python -c "from models import engine; conn = engine.connect(); print('✅ Production database connection successful'); conn.close()"
+      run: |
+        python -c "from models import engine; conn = engine.connect(); print('PASS: Production database connection successful'); conn.close()"
       
     - name: Create production backup
       run: |
@@ -343,10 +345,10 @@ jobs:
         echo Backup created at %timestamp% > "production_backup_%timestamp%\backup_info.txt"
         echo Previous deployment backed up >> "production_backup_%timestamp%\backup_info.txt"
         
-        echo ✅ Production backup created: production_backup_%timestamp%
+        echo PASS: Production backup created: production_backup_%timestamp%
         
     - name: Run database migrations on production
-      run: python scripts/migrate_database.py
+      run: python -m alembic upgrade head
       
     - name: Create uploads directory
       run: |
@@ -390,12 +392,12 @@ jobs:
         try:
             r = requests.get('http://localhost:5000/api/employees', timeout=15)
             if r.status_code == 200:
-                print('✅ Production health check passed')
+                print('PASS: Production health check passed')
             else:
-                print(f'⚠️ Health check status: {r.status_code}')
+                print(f'WARNING: Health check status: {r.status_code}')
                 sys.exit(1)
         except Exception as e:
-            print(f'❌ Health check failed: {e}')
+            print(f'FAIL: Health check failed: {e}')
             sys.exit(1)
         "
       shell: powershell
@@ -403,18 +405,7 @@ jobs:
     - name: Post-deployment validation
       run: |
         echo "Running post-deployment validation..."
-        python scripts/migrate_database.py --status
-        python -c "
-        from models import get_admin_by_email
-        from config import DB_NAME
-        print(f'✅ Production deployment validated')
-        print(f'✅ Connected to production database: {DB_NAME}')
-        
-        # Verify admin access
-        admin = get_admin_by_email('harry@test.com')
-        if admin:
-            print('✅ Admin access verified')
-        "
+        python -m alembic current -v
 
   notify:
     runs-on: self-hosted
@@ -431,9 +422,9 @@ jobs:
         echo "Production: ${{ needs.deploy-production.result }}"
         echo ""
         if "${{ needs.deploy-production.result }}" == "success" (
-            echo "🎉 Production deployment completed successfully!"
+            echo "SUCCESS: Production deployment completed successfully!"
         ) else if "${{ needs.deploy-staging.result }}" == "success" (
-            echo "✅ Staging deployment completed - ready for production"
+            echo "PASS: Staging deployment completed - ready for production"
         ) else (
-            echo "⚠️ Deployment pipeline completed with issues"
+            echo "WARNING: Deployment pipeline completed with issues"
         ) 

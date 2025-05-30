@@ -30,6 +30,11 @@ env/
 # Logs
 *.log
 
+# Alembic migration system
+# Keep migration files but ignore caches
+alembic/__pycache__/
+alembic/versions/__pycache__/
+
 # Uploaded files
 uploads/*
 !uploads/.gitkeep
