@@ -138,19 +138,9 @@ ON DUPLICATE KEY UPDATE
     first_name = VALUES(first_name),
     last_name = VALUES(last_name);
 
--- Insert sample training catalog data for staging testing
-INSERT INTO training_catalog (area, training_name, training_desc, challenge_lvl, skill_impact, ida_class, training_type, training_hours, supplier_name, course_cost) VALUES
-('Software Development', 'Python Programming Fundamentals', 'Comprehensive Python programming course covering basics to advanced topics', 'Intermediate', 'High', 'Class B - Nat/International Industry Cert', 'External Training', 16.0, 'Tech Training Corp', 1500.00),
-('Quality Management', 'ISO 9001:2015 Implementation', 'Quality management system implementation and maintenance training', 'Advanced', 'High', 'Class A - Legally Required', 'External Training', 24.0, 'Quality Systems Inc', 2000.00),
-('Safety Training', 'Workplace Safety Fundamentals', 'Basic workplace safety training and hazard identification', 'Beginner', 'Medium', 'Class A - Legally Required', 'Internal Training', 8.0, 'Internal Safety Team', 0.00),
-('Technical Skills', 'CAD Software Training', 'Computer-aided design software training for engineering teams', 'Intermediate', 'High', 'Class C - Industry Best Practice', 'External Training', 40.0, 'Design Software Academy', 2500.00),
-('Leadership Development', 'Management Skills Workshop', 'Leadership and management skills development for team leaders', 'Intermediate', 'Medium', 'Class D - Personal Development', 'Internal Training', 12.0, 'HR Development Team', 0.00)
-ON DUPLICATE KEY UPDATE 
-    training_desc = VALUES(training_desc),
-    challenge_lvl = VALUES(challenge_lvl),
-    skill_impact = VALUES(skill_impact),
-    training_hours = VALUES(training_hours),
-    course_cost = VALUES(course_cost);
+-- Training catalog data will be inserted here
+-- Run the training_catalog_data.sql script after this setup to populate with real data
+-- SOURCE scripts/training_catalog_data.sql;
 
 -- Create staging-specific database user (optional but recommended)
 -- Uncomment the following lines if you want a dedicated staging user
@@ -164,5 +154,4 @@ SELECT 'Staging database setup completed successfully!' as Status,
        COUNT(*) as AdminUsers
 FROM admins;
 
-SELECT 'Training catalog entries created:' as Info, COUNT(*) as CatalogEntries
-FROM training_catalog; 
+SELECT 'Ready for training catalog data import' as Info; 

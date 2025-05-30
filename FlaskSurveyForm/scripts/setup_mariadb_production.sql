@@ -1,11 +1,11 @@
 -- MariaDB Production Database Setup Script
--- Run this script on your MariaDB server to create the training_tool database and all required tables
+-- Run this script on your MariaDB server to create the training_tool_production database and all required tables
 
 -- Create the database
-CREATE DATABASE IF NOT EXISTS training_tool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS training_tool_production CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Use the new database
-USE training_tool;
+USE training_tool_production;
 
 -- Create training_forms table
 CREATE TABLE training_forms (
@@ -130,12 +130,16 @@ ON DUPLICATE KEY UPDATE
     first_name = VALUES(first_name),
     last_name = VALUES(last_name);
 
+-- Training catalog data will be inserted here
+-- Run the training_catalog_data.sql script after this setup to populate with real data
+-- SOURCE scripts/training_catalog_data.sql;
+
 -- Create a user for the application (adjust credentials as needed)
 -- Note: You'll need to run these commands as a MySQL admin user
 -- CREATE USER IF NOT EXISTS 'training_app'@'%' IDENTIFIED BY 'SecurePassword123!';
--- GRANT ALL PRIVILEGES ON training_tool.* TO 'training_app'@'%';
+-- GRANT ALL PRIVILEGES ON training_tool_production.* TO 'training_app'@'%';
 -- FLUSH PRIVILEGES;
 
 -- Display completion message
-SELECT 'Database setup completed successfully!' AS status;
+SELECT 'Production database setup completed successfully!' AS status;
 SELECT COUNT(*) AS admin_count FROM admins; 
