@@ -60,16 +60,16 @@ def check_dependencies():
     for dep in dependencies:
         try:
             __import__(dep)
-            logger.info(f"✅ {dep} found")
+            logger.info(f"PASS: {dep} found")
         except ImportError as e:
-            logger.error(f"❌ {dep} missing: {e}")
+            logger.error(f"FAIL: {dep} missing: {e}")
             missing.append(dep)
     
     if missing:
         logger.error(f"Missing dependencies: {missing}")
         return False
     
-    logger.info("✅ All required dependencies found")
+    logger.info("PASS: All required dependencies found")
     return True
 
 def test_database_connection():
@@ -89,13 +89,13 @@ def test_database_connection():
         from models import engine
         
         conn = engine.connect()
-        logger.info("✅ Database connection established")
+        logger.info("PASS: Database connection established")
         conn.close()
-        logger.info("✅ Database connection closed cleanly")
+        logger.info("PASS: Database connection closed cleanly")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Database connection failed: {e}")
+        logger.error(f"FAIL: Database connection failed: {e}")
         logger.error(f"Error type: {type(e).__name__}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -121,7 +121,7 @@ def start_application(port=5001):
         logger.info(f"  - SECRET_KEY set: {'SECRET_KEY' in app.config}")
         
         # Start the application
-        logger.info(f"🚀 Starting application on 0.0.0.0:{port}...")
+        logger.info(f"Starting application on 0.0.0.0:{port}...")
         app.run(
             host='0.0.0.0', 
             port=port, 
@@ -131,7 +131,7 @@ def start_application(port=5001):
         )
         
     except Exception as e:
-        logger.error(f"❌ Failed to start application: {e}")
+        logger.error(f"FAIL: Failed to start application: {e}")
         logger.error(f"Error type: {type(e).__name__}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -140,7 +140,7 @@ def start_application(port=5001):
 def handle_shutdown(signum, frame):
     """Handle graceful shutdown."""
     logger = logging.getLogger(__name__)
-    logger.info("\n🛑 Shutting down staging application...")
+    logger.info("\nShutting down staging application...")
     sys.exit(0)
 
 def main():
@@ -155,7 +155,7 @@ def main():
     logger = setup_logging()
     
     logger.info("=" * 60)
-    logger.info("🎯 Training Form Application - Staging Startup")
+    logger.info("Training Form Application - Staging Startup")
     logger.info("=" * 60)
     
     # Set up signal handlers
@@ -179,7 +179,7 @@ def main():
         sys.exit(1)
     
     if args.test_only:
-        logger.info("✅ All tests passed! (test-only mode)")
+        logger.info("PASS: All tests passed! (test-only mode)")
         return
     
     # Step 4: Start application
