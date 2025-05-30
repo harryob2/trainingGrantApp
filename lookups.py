@@ -79,9 +79,10 @@ def get_lookup_data(entity_type: str):
             with Session(engine) as session:
                 catalog_items = session.query(TrainingCatalog).all()
                 for item in catalog_items:
-                    trainings.append({
+                    training_data = {
                         "id": item.id,
-                        "name": item.training_name, # Key for primary display in autocomplete
+                        "training_name": item.training_name, # Frontend expects 'training_name'
+                        "name": item.training_name, # Keep 'name' for backwards compatibility
                         "area": item.area,         # Key for subtitle/secondary info
                         "training_desc": item.training_desc,  # Add training description for form population
                         # Add other fields if needed by frontend, but keep it minimal for lookup
@@ -90,7 +91,13 @@ def get_lookup_data(entity_type: str):
                         "supplier_name": item.supplier_name,  # Add supplier name for External Training
                         "training_hours": item.training_hours,  # Add training hours
                         "course_cost": item.course_cost
-                    })
+                    }
+                    trainings.append(training_data)
+                    
+                # Debug: Log the first few training items to check data structure
+                if trainings:
+                    logger.info(f"Sample training data (first item): {trainings[0]}")
+                    
             _training_catalog_cache = trainings
             logger.info(f"Loaded and cached {len(trainings)} training catalog items.")
             return trainings
