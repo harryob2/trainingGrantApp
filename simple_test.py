@@ -14,12 +14,12 @@ def test_imports():
     try:
         import flask
         import sqlalchemy
-        from models import create_tables, get_all_employees
+        from models import create_tables, get_all_training_forms
         from config import DATABASE_URL, USE_SQLITE
-        print("✅ All imports successful")
+        print("[PASS] All imports successful")
         return True
     except ImportError as e:
-        print(f"❌ Import error: {e}")
+        print(f"[FAIL] Import error: {e}")
         return False
 
 def test_database_connection():
@@ -27,10 +27,10 @@ def test_database_connection():
     try:
         from models import engine
         with engine.connect() as conn:
-            print("✅ Database connection successful")
+            print("[PASS] Database connection successful")
             return True
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"[FAIL] Database connection failed: {e}")
         return False
 
 def test_config():
@@ -38,12 +38,12 @@ def test_config():
     try:
         from config import DATABASE_URL, USE_SQLITE, SECRET_KEY
         if not SECRET_KEY or SECRET_KEY == "dev-secret-key":
-            print("⚠️ Using default secret key (acceptable for testing)")
+            print("[WARN] Using default secret key (acceptable for testing)")
         
-        print(f"✅ Configuration loaded - SQLite: {USE_SQLITE}")
+        print(f"[PASS] Configuration loaded - SQLite: {USE_SQLITE}")
         return True
     except Exception as e:
-        print(f"❌ Configuration error: {e}")
+        print(f"[FAIL] Configuration error: {e}")
         return False
 
 def test_app_creation():
@@ -51,13 +51,13 @@ def test_app_creation():
     try:
         from main import app
         if app:
-            print("✅ Flask application created successfully")
+            print("[PASS] Flask application created successfully")
             return True
         else:
-            print("❌ Failed to create Flask application")
+            print("[FAIL] Failed to create Flask application")
             return False
     except Exception as e:
-        print(f"❌ Application creation failed: {e}")
+        print(f"[FAIL] Application creation failed: {e}")
         return False
 
 def main():
@@ -79,16 +79,16 @@ def main():
         if test_func():
             passed += 1
         else:
-            print(f"❌ {test_name} failed")
+            print(f"[FAIL] {test_name} failed")
     
     print(f"\n=== Test Results ===")
     print(f"Passed: {passed}/{total}")
     
     if passed == total:
-        print("🎉 All tests passed!")
+        print("[SUCCESS] All tests passed!")
         sys.exit(0)
     else:
-        print("⚠️ Some tests failed")
+        print("[WARNING] Some tests failed")
         sys.exit(1)
 
 if __name__ == "__main__":
