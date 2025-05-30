@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Flask Survey Form System is a comprehensive web application designed for managing training form submissions within an organization. Built with Flask (Python) and modern frontend technologies, it provides a complete workflow for training management from submission to approval and export. test
+The Flask Survey Form System is a comprehensive web application designed for managing training form submissions within an organization. Built with Flask (Python) and modern frontend technologies, it provides a complete workflow for training management from submission to approval and export.
 
 ## System Architecture
 
