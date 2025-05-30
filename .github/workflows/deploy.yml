@@ -530,6 +530,36 @@ jobs:
     environment: production
     
     steps:
+    - name: Debug - Show runner environment
+      run: |
+        Write-Host "=== RUNNER ENVIRONMENT DEBUG ==="
+        Write-Host "Computer Name: $env:COMPUTERNAME"
+        Write-Host "User: $env:USERNAME"
+        Write-Host "Working Directory: $(Get-Location)"
+        Write-Host "IP Address: $(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Ethernet*' | Select-Object -First 1 | Select-Object -ExpandProperty IPAddress)"
+        Write-Host "================================"
+      shell: powershell
+      
+    - name: Verify target server
+      run: |
+        Write-Host "Checking if we're on the target production server..."
+        $currentComputer = $env:COMPUTERNAME
+        $targetServer = "azulimpbi01"
+        
+        Write-Host "Current computer: $currentComputer"
+        Write-Host "Target server: $targetServer"
+        
+        if ($currentComputer.ToLower() -eq $targetServer.ToLower()) {
+            Write-Host "PASS: Running on target production server"
+        } else {
+            Write-Host "WARNING: Not running on target server $targetServer"
+            Write-Host "This deployment will run locally instead of on the production server"
+            Write-Host "To deploy to $targetServer, you need either:"
+            Write-Host "1. A GitHub Actions runner installed on $targetServer, OR"
+            Write-Host "2. Remote deployment configuration to connect to $targetServer"
+        }
+      shell: powershell
+      
     - name: Checkout code
       uses: actions/checkout@v4
       
