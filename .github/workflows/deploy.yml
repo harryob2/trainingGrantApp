@@ -651,6 +651,94 @@ jobs:
         }
       shell: powershell
         
+    - name: Configure Windows Firewall for port 5000
+      run: |
+        Write-Host "Configuring Windows Firewall for port 5000..."
+        
+        # Remove any existing rules for port 5000
+        Remove-NetFirewallRule -DisplayName "Flask Training App Port 5000" -ErrorAction SilentlyContinue
+        
+        # Add inbound rule for port 5000
+        New-NetFirewallRule -DisplayName "Flask Training App Port 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Any
+        
+        Write-Host "PASS: Firewall configured for port 5000"
+      shell: powershell
+      
+    - name: Verify production deployment
+      run: |
+        Write-Host "=== POST-DEPLOYMENT VERIFICATION ==="
+        
+        # Check if Flask process is running
+        Write-Host "Checking Flask processes..."
+        $flaskProcesses = Get-Process -Name "python" -ErrorAction SilentlyContinue | Where-Object { 
+            try {
+                $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId = $($_.Id)" -ErrorAction SilentlyContinue).CommandLine
+                return $cmdLine -and $cmdLine -match "main.py.*5000"
+            } catch {
+                return $false
+            }
+        }
+        
+        if ($flaskProcesses) {
+            Write-Host "PASS: Flask process found (PID: $($flaskProcesses[0].Id))"
+        } else {
+            Write-Host "WARNING: No Flask process found on port 5000"
+        }
+        
+        # Check if port 5000 is listening
+        Write-Host "Checking port 5000 status..."
+        $listeningPorts = Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue
+        if ($listeningPorts) {
+            Write-Host "PASS: Port 5000 is listening"
+            $listeningPorts | ForEach-Object { 
+                Write-Host "  Local Address: $($_.LocalAddress):$($_.LocalPort)"
+            }
+        } else {
+            Write-Host "FAIL: Port 5000 is not listening"
+        }
+        
+        # Check firewall rules
+        Write-Host "Checking firewall rules..."
+        $firewallRule = Get-NetFirewallRule -DisplayName "Flask Training App Port 5000" -ErrorAction SilentlyContinue
+        if ($firewallRule) {
+            Write-Host "PASS: Firewall rule exists and is $($firewallRule.Enabled)"
+        } else {
+            Write-Host "WARNING: No firewall rule found for port 5000"
+        }
+        
+        # Test local connectivity
+        Write-Host "Testing local connectivity..."
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:5000" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+            Write-Host "PASS: Local connectivity works (Status: $($response.StatusCode))"
+        } catch {
+            Write-Host "FAIL: Local connectivity failed: $($_.Exception.Message)"
+        }
+        
+        # Test network connectivity from localhost
+        Write-Host "Testing network connectivity..."
+        $computerName = $env:COMPUTERNAME
+        try {
+            $response = Invoke-WebRequest -Uri "http://${computerName}:5000" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+            Write-Host "PASS: Network connectivity works (Status: $($response.StatusCode))"
+        } catch {
+            Write-Host "FAIL: Network connectivity failed: $($_.Exception.Message)"
+        }
+        
+        Write-Host "=== ACCESS INFORMATION ==="
+        Write-Host "Application should be accessible at:"
+        Write-Host "  http://${computerName}:5000"
+        Write-Host "  http://azulimpbi01:5000"
+        
+        # Get IP addresses
+        $ipAddresses = Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Ethernet*" | Where-Object { $_.IPAddress -ne "127.0.0.1" }
+        foreach ($ip in $ipAddresses) {
+            Write-Host "  http://$($ip.IPAddress):5000"
+        }
+        
+        Write-Host "================================"
+      shell: powershell
+        
     - name: Health check
       run: |
         Write-Host "Running health check..."

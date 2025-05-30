@@ -38,7 +38,6 @@ alembic/versions/__pycache__/
 # Uploaded files
 uploads/*
 !uploads/.gitkeep
-attached_assets/
 
 # OS specific files
 .DS_Store
