@@ -4,6 +4,11 @@ import os
 import sys
 import logging
 
+# Add the parent directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -25,6 +30,11 @@ def main():
         logger.info("Starting staging application (simple mode)...")
         logger.info(f"Working directory: {os.getcwd()}")
         logger.info(f"Python executable: {sys.executable}")
+        logger.info(f"Python path: {sys.path[:3]}")  # Show first 3 entries
+        
+        # Change to parent directory to ensure proper imports
+        os.chdir(parent_dir)
+        logger.info(f"Changed to directory: {os.getcwd()}")
         
         # Import Flask app
         from app import app
