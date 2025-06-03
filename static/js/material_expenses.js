@@ -289,7 +289,7 @@ class MaterialExpensesManager {
             purchase_date: document.getElementById('material_purchase_date').value,
             supplier_name: document.getElementById('material_supplier_name').value.trim(),
             invoice_number: document.getElementById('material_invoice_number').value.trim(),
-            material_cost: parseFloat(document.getElementById('material_cost').value)
+            material_cost: this.getCostValue()
         };
 
         // Add or update expense
@@ -303,6 +303,16 @@ class MaterialExpensesManager {
         this.updateDisplay();
         const modalInstance = bootstrap.Modal.getInstance(this.modal);
         modalInstance.hide();
+    }
+
+    getCostValue() {
+        const costField = document.getElementById('material_cost');
+        // Try AutoNumeric first, fallback to parseFloat
+        if (typeof AutoNumeric !== 'undefined') {
+            const instance = AutoNumeric.getAutoNumericElement(costField);
+            if (instance) return instance.getNumber();
+        }
+        return parseFloat(costField.value) || 0;
     }
 
     showValidationErrors(errors) {

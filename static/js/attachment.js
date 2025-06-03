@@ -1,5 +1,3 @@
-console.log("Attachments script loaded");
-
 document.addEventListener("DOMContentLoaded", function () {
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("file-input");
@@ -12,23 +10,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("training-form");
 
   let attachments = [];
+  window.attachments = attachments;
 
   // Initialize existing attachments if any
   const existingAttachments = document.querySelectorAll(".existing-attachment");
-  console.log(
-    "Found existing attachments elements:",
-    existingAttachments.length,
-  );
 
   if (existingAttachments.length > 0) {
-    console.log("Processing existing attachments");
     existingAttachments.forEach((att) => {
-      console.log("Attachment data:", {
-        id: att.dataset.id,
-        filename: att.dataset.filename,
-        description: att.dataset.description,
-      });
-
       const attachment = {
         id: att.dataset.id,
         filename: att.dataset.filename,
@@ -38,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
       attachments.push(attachment);
       addAttachmentPreview(attachment);
     });
+    window.attachments = attachments;
   }
 
   // Improved drag and drop event handling
@@ -85,11 +74,10 @@ document.addEventListener("DOMContentLoaded", function () {
       addAttachmentPreview(attachment);
     });
     fileInput.value = ""; // Reset file input
+    window.attachments = attachments;
   }
 
   function addAttachmentPreview(attachment) {
-    console.log("Adding attachment preview:", attachment);
-
     // Create preview container
     const previewContainer = document.createElement("div");
     previewContainer.className =
@@ -174,6 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
         form.appendChild(deleteInput);
       }
       attachments = attachments.filter((att) => att !== attachment);
+      window.attachments = attachments;
       previewContainer.remove();
     });
 
@@ -192,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 50);
   }
 
-  // Prepare attachments for form submission (to be called manually)
+  // Prepare attachments for form submission
   window.prepareAttachmentsForSubmit = function () {
     // Clear any previously added temp inputs to avoid duplicates
     form
@@ -204,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
     // Create hidden fields for each attachment
-    attachments.forEach((attachment, index) => {
+    attachments.forEach((attachment) => {
       if (!attachment.isExisting) {
         // Create a hidden input for the file
         const fileInput = document.createElement("input");
@@ -241,11 +230,5 @@ document.addEventListener("DOMContentLoaded", function () {
         form.appendChild(descInput);
       }
     });
-
-    console.log(
-      "Prepared form for submission with",
-      attachments.length,
-      "attachments logic.",
-    );
   };
 });

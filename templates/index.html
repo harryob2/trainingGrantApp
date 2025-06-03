@@ -688,8 +688,8 @@
 
                         <!-- Cost (for rail/bus/flight) -->
                         <div class="col-md-6" id="cost-group" style="display: none;">
-                            <label for="cost" class="form-label">Cost (€) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="cost" step="0.01" min="0" placeholder="e.g., 125.50">
+                            <label for="cost" class="form-label">Cost<span class="text-danger">*</span></label>
+                            <input type="text" class="form-control money" id="cost" placeholder="e.g., 125.50">
                             <div class="form-text">Total cost of travel expense</div>
                         </div>
                     </div>
@@ -740,8 +740,8 @@
 
                         <!-- Material Cost -->
                         <div class="col-md-6">
-                            <label for="material_cost" class="form-label">Cost (€, excl. VAT) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="material_cost" step="0.01" min="0" placeholder="e.g., 125.50" required>
+                            <label for="material_cost" class="form-label">Cost (excl. VAT) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control money" id="material_cost" placeholder="e.g., 125.50" required>
                             <div class="form-text">Cost excluding VAT</div>
                         </div>
                     </div>

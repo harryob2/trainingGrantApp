@@ -68,6 +68,8 @@ app.jinja_env.globals["json"] = json
 # Set up the database (create tables only if they do not exist)
 setup_database(force_recreate=False)
 
+# Ensure upload folder exists
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Function to get a training form by ID - make available to templates
 def get_form_by_id(form_id):
@@ -212,13 +214,7 @@ def submit_form():
     """Process the form submission"""
     form = TrainingForm()
 
-    logging.debug("=== SUBMIT FORM ROUTE ===")
-    logging.debug(f"Request method: {request.method}")
-    logging.debug(f"Form data submitted: {request.form}")
-    
-    # Validate the form data
     if form.validate_on_submit():
-        logging.debug("Form validation PASSED")
         try:
             # Get trainees data from form
             trainees_data = request.form.get("trainees_data")
@@ -320,33 +316,13 @@ def submit_form():
             )
             return render_template("index.html", form=form, now=datetime.now())
     else:
-        logging.debug("Form validation FAILED")
-        logging.debug(f"Form validation errors: {form.errors}")
-        logging.debug(f"Form data received: {form.data}")
-        
-        # Special focus on location_type field
-        logging.debug(f"Location type field value: {form.location_type.data}")
-        logging.debug(f"Location type field errors: {form.location_type.errors}")
-        logging.debug(f"Location type field raw_data: {form.location_type.raw_data}")
-        
-        # Log each field's error individually
-        for field_name, field_errors in form.errors.items():
-            logging.debug(f"Field '{field_name}' has {len(field_errors)} errors: {field_errors}")
-            field_obj = getattr(form, field_name, None)
-            if field_obj:
-                logging.debug(f"Field '{field_name}' data: {field_obj.data}")
-                logging.debug(f"Field '{field_name}' raw_data: {field_obj.raw_data}")
-        
-        # Flash each error individually with more detailed info
+        # Flash form validation errors
         for field, errors in form.errors.items():
             field_obj = getattr(form, field, None)
             field_label = field_obj.label.text if field_obj and hasattr(field_obj, 'label') else field
             for error in errors:
-                error_msg = f"Error in {field_label}: {error}"
-                logging.debug(f"Flashing error: {error_msg}")
-                flash(error_msg, "danger")
+                flash(f"Error in {field_label}: {error}", "danger")
         
-        logging.debug("Returning to index.html with form errors")
         return render_template("index.html", form=form, now=datetime.now())
 
 

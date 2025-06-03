@@ -98,6 +98,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const trainingClassContainer = document.getElementById("training-class-container");
         const courseCostContainer = document.getElementById("course-cost-container");
         const invoiceNumberContainer = document.getElementById("invoice-number-container");
+        const concurClaimContainer = document.getElementById("concur-claim-container");
         const locationDetailsContainer = document.getElementById("location-details-container");
         const virtualTrainingNote = document.getElementById("virtual-training-attachment-note");
 
@@ -126,6 +127,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Show course cost and invoice number only for External Training
                 courseCostContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
                 invoiceNumberContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
+                concurClaimContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
                 
                 // Set course cost to 0 for Internal Training to prevent validation errors
                 if (selectedTrainingType === "Internal Training" && courseCostField) {

@@ -406,7 +406,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const trainingHours = document.getElementById("training_hours");
         const courseCost = document.getElementById("course_cost");
         const concurClaim = document.getElementById("concur_claim");
-        const attachments = document.getElementById("attachments");
 
         // Validate training type selection
         if (!trainingType) {
@@ -499,10 +498,11 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Validate attachments for Virtual training
             if (locationType.value === "Virtual") {
-                if (!attachments || attachments.files.length === 0) {
-                    if (attachments) {
-                        showValidationMessage(attachments, "At least one attachment is required for virtual training.");
-                        if (!firstInvalidElement) firstInvalidElement = attachments;
+                if (!hasAttachments()) {
+                    const dropzone = document.getElementById("dropzone");
+                    if (dropzone) {
+                        showValidationMessage(dropzone, "At least one attachment is required for virtual training.");
+                        if (!firstInvalidElement) firstInvalidElement = dropzone;
                     }
                     isValid = false;
                 }
@@ -594,8 +594,16 @@ document.addEventListener("DOMContentLoaded", function () {
             return false;
         }
 
+        // Prepare attachments for submission
+        if (typeof window.prepareAttachmentsForSubmit === 'function') {
+            window.prepareAttachmentsForSubmit();
+        }
+
         return true;
     });
 
-    console.log("Form validation initialized.");
+    // Function to check if attachments have been added via dropzone
+    function hasAttachments() {
+        return window.attachments && window.attachments.length > 0;
+    }
 });

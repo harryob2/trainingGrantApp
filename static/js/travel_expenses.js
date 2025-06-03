@@ -257,8 +257,8 @@ class TravelExpensesManager {
                     errors.push({ field: 'distance', message: 'Distance in km is required for mileage expenses' });
                 }
             } else {
-                const cost = document.getElementById('cost').value;
-                if (!cost || parseFloat(cost) <= 0) {
+                const cost = this.getCostValue();
+                if (!cost || cost <= 0) {
                     errors.push({ field: 'cost', message: 'Cost is required for rail, bus, and flight expenses' });
                 }
             }
@@ -542,7 +542,15 @@ class TravelExpensesManager {
         if (expense.travel_mode === 'mileage') {
             document.getElementById('distance_km').value = expense.distance_km || '';
         } else {
-            document.getElementById('cost').value = expense.cost || '';
+            const costField = document.getElementById('cost');
+            if (costField && expense.cost) {
+                // Use the global currency function if available
+                if (window.setCurrencyValue) {
+                    window.setCurrencyValue(costField, expense.cost);
+                } else {
+                    costField.value = expense.cost || '';
+                }
+            }
         }
 
         this.handleTravelModeChange();
@@ -636,7 +644,7 @@ class TravelExpensesManager {
             destination: document.getElementById('destination').value.trim(),
             travelers: selectedTravelers,
             travel_mode: travelMode,
-            cost: travelMode === 'mileage' ? null : parseFloat(document.getElementById('cost').value),
+            cost: travelMode === 'mileage' ? null : this.getCostValue(),
             distance_km: travelMode === 'mileage' ? parseFloat(document.getElementById('distance_km').value) : null
         };
 
@@ -852,6 +860,26 @@ class TravelExpensesManager {
             const label = radio.closest('.form-check');
             if (label) label.classList.remove('is-invalid');
         });
+    }
+
+    getCostValue() {
+        const costField = document.getElementById('cost');
+        if (!costField) return 0;
+        
+        // Try to get AutoNumeric value first
+        if (typeof AutoNumeric !== 'undefined') {
+            try {
+                const autoNumericInstance = AutoNumeric.getAutoNumericElement(costField);
+                if (autoNumericInstance) {
+                    return parseFloat(autoNumericInstance.getNumber()) || 0;
+                }
+            } catch (e) {
+                console.log('[TravelExpenses] AutoNumeric not available on cost field, using raw value');
+            }
+        }
+        
+        // Fallback to raw value
+        return parseFloat(costField.value) || 0;
     }
 }
 

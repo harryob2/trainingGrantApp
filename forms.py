@@ -231,7 +231,7 @@ class TrainingForm(FlaskForm):
         validators=[RequiredIfExternal("Invoice Number is required for external training.")],
         description="Invoice number for external training course",
     )
-    concur_claim = StringField("Concur Claim Number", validators=[Optional()])
+    concur_claim = StringField("Concur Claim Number", validators=[RequiredIfExternal("Concur Claim Number is required for external training.")])
 
     # Hidden fields
     department = HiddenField("Department", default="Engineering")
