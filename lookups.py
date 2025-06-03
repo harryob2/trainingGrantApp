@@ -3,6 +3,7 @@ import os
 import logging
 from models import TrainingCatalog, engine # Import the engine from models instead of creating our own
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 # Configure logging if not already configured by the main app
 logger = logging.getLogger(__name__)
@@ -12,6 +13,13 @@ if not logger.hasHandlers():
 # Cache for employee data to avoid reading CSV on every call
 _employee_cache = None
 _training_catalog_cache = None # Cache for training catalog data
+_cache_timestamp = None
+CACHE_EXPIRE_HOURS = 24
+
+def is_cache_expired():
+    if not _cache_timestamp:
+        return True
+    return (datetime.now() - _cache_timestamp).hours > CACHE_EXPIRE_HOURS
 
 def get_lookup_data(entity_type: str):
     """
