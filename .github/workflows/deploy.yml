@@ -655,13 +655,28 @@ jobs:
       run: |
         Write-Host "Configuring Windows Firewall for port 5000..."
         
-        # Remove any existing rules for port 5000
-        Remove-NetFirewallRule -DisplayName "Flask Training App Port 5000" -ErrorAction SilentlyContinue
-        
-        # Add inbound rule for port 5000
-        New-NetFirewallRule -DisplayName "Flask Training App Port 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Any
-        
-        Write-Host "PASS: Firewall configured for port 5000"
+        try {
+            # Remove any existing rules for port 5000
+            Remove-NetFirewallRule -DisplayName "Flask Training App Port 5000" -ErrorAction SilentlyContinue
+            
+            # Add inbound rule for port 5000
+            New-NetFirewallRule -DisplayName "Flask Training App Port 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Any
+            
+            Write-Host "PASS: Firewall configured for port 5000"
+        } catch {
+            Write-Host "WARNING: Could not configure firewall (requires admin privileges)"
+            Write-Host "   Error: $($_.Exception.Message)"
+            Write-Host "   This is OK if the firewall rule already exists or firewall is disabled"
+            
+            # Check if the port is already accessible
+            try {
+                $response = Invoke-WebRequest -Uri "http://localhost:5000" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+                Write-Host "PASS: Application is accessible on port 5000 despite firewall warning"
+            } catch {
+                Write-Host "WARNING: Application may not be accessible externally without firewall rule"
+                Write-Host "   You may need to manually configure firewall or run deployment as administrator"
+            }
+        }
       shell: powershell
       
     - name: Verify production deployment
