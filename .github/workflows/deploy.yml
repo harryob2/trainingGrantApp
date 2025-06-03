@@ -229,11 +229,11 @@ jobs:
                 $processesOnPort | ForEach-Object { Write-Host $_ }
                 
                 # Extract PIDs and kill them
-                $pids = ($processesOnPort | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
-                foreach ($pid in $pids) {
-                    if ($pid -match '^\d+$') {
-                        Write-Host "Killing process PID: $pid"
-                        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                $processIds = ($processesOnPort | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                foreach ($processId in $processIds) {
+                    if ($processId -match '^\d+$') {
+                        Write-Host "Killing process PID: $processId"
+                        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
                     }
                 }
             } else {
@@ -290,10 +290,10 @@ jobs:
         $existingProcesses = netstat -ano | Where-Object { $_ -match ":5001" }
         if ($existingProcesses) {
             Write-Host "Found existing processes on port 5001, cleaning up..."
-            $pids = ($existingProcesses | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
-            foreach ($pid in $pids) {
-                if ($pid -match '^\d+$') {
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            $processIds = ($existingProcesses | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+            foreach ($processId in $processIds) {
+                if ($processId -match '^\d+$') {
+                    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
                 }
             }
             Start-Sleep -Seconds 2
@@ -613,11 +613,11 @@ jobs:
         Write-Host "Stopping existing services on port 5000..."
         $procs = netstat -ano | Where-Object { $_ -match ":5000.*LISTENING" }
         if ($procs) {
-            $pids = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
-            foreach ($pid in $pids) {
-                if ($pid -match '^\d+$') {
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-                    Write-Host "Stopped process $pid"
+            $processIds = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+            foreach ($processId in $processIds) {
+                if ($processId -match '^\d+$') {
+                    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                    Write-Host "Stopped process $processId"
                 }
             }
         }
