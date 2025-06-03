@@ -445,13 +445,15 @@ class TravelExpensesManager {
             hasTravalers = true;
             const checkboxDiv = document.createElement('div');
             checkboxDiv.className = 'form-check mb-2';
+            // Use btoa encoding to handle special characters in names/emails
+            const trainerDataJson = JSON.stringify({
+                type: 'trainer',
+                email: this.trainerData.email,
+                name: this.trainerData.name
+            });
             checkboxDiv.innerHTML = `
                 <input class="form-check-input" type="checkbox" id="traveler_trainer" 
-                       value='${JSON.stringify({
-                           type: 'trainer',
-                           email: this.trainerData.email,
-                           name: this.trainerData.name
-                       })}'>
+                       value="${btoa(trainerDataJson)}">
                 <label class="form-check-label" for="traveler_trainer">
                     <strong>${this.trainerData.name}</strong> <span class="badge bg-primary">Trainer</span>
                 </label>
@@ -465,13 +467,15 @@ class TravelExpensesManager {
                 hasTravalers = true;
                 const checkboxDiv = document.createElement('div');
                 checkboxDiv.className = 'form-check mb-2';
+                // Use btoa encoding to handle special characters in names/emails
+                const traineeDataJson = JSON.stringify({
+                    type: 'trainee',
+                    email: trainee.email,
+                    name: trainee.name
+                });
                 checkboxDiv.innerHTML = `
                     <input class="form-check-input" type="checkbox" id="traveler_trainee_${index}" 
-                           value='${JSON.stringify({
-                               type: 'trainee',
-                               email: trainee.email,
-                               name: trainee.name
-                           })}'>
+                           value="${btoa(traineeDataJson)}">
                     <label class="form-check-label" for="traveler_trainee_${index}">
                         <strong>${trainee.name}</strong> <span class="badge bg-secondary">Trainee</span>
                     </label>
@@ -514,13 +518,15 @@ class TravelExpensesManager {
         // Set traveler selections (multiple travelers)
         const travelers = expense.travelers || [];
         travelers.forEach(traveler => {
-            const travelerValue = JSON.stringify({
+            const travelerDataJson = JSON.stringify({
                 type: traveler.traveler_type,
                 email: traveler.traveler_email,
                 name: traveler.traveler_name
             });
+            // Use btoa encoding for comparison
+            const travelerValue = btoa(travelerDataJson);
             
-            const checkbox = document.querySelector(`input[type="checkbox"][value='${travelerValue}']`);
+            const checkbox = document.querySelector(`input[type="checkbox"][value="${travelerValue}"]`);
             if (checkbox) {
                 checkbox.checked = true;
             }
@@ -614,7 +620,8 @@ class TravelExpensesManager {
         const selectedTravelers = [];
         const travelerCheckboxes = document.querySelectorAll('#traveler-checkboxes input[type="checkbox"]:checked');
         travelerCheckboxes.forEach(checkbox => {
-            const travelerData = JSON.parse(checkbox.value);
+            // Use atob to decode the base64 encoded value
+            const travelerData = JSON.parse(atob(checkbox.value));
             selectedTravelers.push({
                 traveler_type: travelerData.type,
                 traveler_email: travelerData.email,
