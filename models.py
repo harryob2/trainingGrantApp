@@ -97,6 +97,7 @@ class TrainingForm(Base):
     course_cost = Column(Float, default=0)
     invoice_number = Column(String(255))
     training_description = Column(Text, nullable=False)
+    notes = Column(Text)
     submitter = Column(String(255))
     created_at = Column(DateTime, default=func.now())
     ida_class = Column(String(255))
@@ -135,6 +136,7 @@ class TrainingForm(Base):
             "submitter": self.submitter,
             "ida_class": self.ida_class,
             "training_description": self.training_description,
+            "notes": self.notes,
             "trainees": [trainee.to_dict() for trainee in self.trainees],
         }
         
@@ -381,6 +383,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             course_cost=form_data.get("course_cost", 0),
             invoice_number=form_data.get("invoice_number"),
             training_description=form_data["training_description"],
+            notes=form_data.get("notes"),
             submitter=form_data.get("submitter"),
             ida_class=form_data.get("ida_class"),
         )

@@ -511,6 +511,29 @@
                             </div>
                         </div>
 
+                        <!-- Notes for Reviewer Section -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h3 class="fs-5 form-section-title">Notes for Reviewer</h3>
+                                <div class="form-floating">
+                                    {{ form.notes(class="form-control",
+                                    style="height: 100px", placeholder=" ") }} {{
+                                    form.notes.label (style="position: absolute; top: -7px; width: 115%;")}}
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Optional notes for the person reviewing this form submission. Use this space to ask questions or provide additional context.
+                                </div>
+                                {% if form.notes.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.notes.errors %}
+                                    <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
                         <!-- Submit Buttons -->
                         <div class="col-md-12 mt-4">
                             <div class="d-flex justify-content-between">

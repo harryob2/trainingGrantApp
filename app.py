@@ -577,6 +577,7 @@ def edit_form(form_id):
             form.course_cost.data = form_data.get("course_cost", 0)
             form.invoice_number.data = form_data.get("invoice_number", "")
             form.training_description.data = form_data.get("training_description", "")
+            form.notes.data = form_data.get("notes", "")
             form.ida_class.data = form_data.get("ida_class", "")
 
             # Expense fields

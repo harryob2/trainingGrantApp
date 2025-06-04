@@ -187,6 +187,11 @@ class TrainingForm(FlaskForm):
     training_description = TextAreaField(
         "Training Description", validators=[DataRequired()]
     )
+    notes = TextAreaField(
+        "Notes for Reviewer", 
+        validators=[Optional()],
+        description="Optional notes for the person reviewing this form submission"
+    )
     ida_class = SelectField(
         "Training Class",
         choices=IDA_CLASS_CHOICES,
@@ -359,6 +364,7 @@ class TrainingForm(FlaskForm):
             ),
             "concur_claim": self.concur_claim.data,
             "training_description": self.training_description.data or "",
+            "notes": self.notes.data or "",
             "ida_class": self.ida_class.data,
         }
 
