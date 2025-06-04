@@ -64,16 +64,16 @@ The system now includes Flask-Migrate for automatic migration generation:
 
 ```powershell
 # Initialize migrations (one-time setup)
-python scripts/flask_migrate_helper.py --init
+python -m alembic init alembic
 
 # Detect if you have pending schema changes
-python scripts/flask_migrate_helper.py --detect-changes
+python -m alembic check
 
 # Create a migration for your model changes
-python scripts/flask_migrate_helper.py --create-migration "Add new field to training form"
+python -m alembic revision --autogenerate -m "Add new field to training form"
 
 # Check migration status
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 ```
 
 #### 3. What Happens When You Forget a Migration
@@ -93,7 +93,7 @@ This usually means:
   3. There are pending migrations that haven't been applied
 
 To fix this:
-  1. Create a migration: python scripts/flask_migrate_helper.py --create-migration "Describe your changes"
+  1. Create a migration: python -m alembic revision --autogenerate -m "Describe your changes"
   2. Review the generated migration file
   3. Test the migration locally
   4. Commit the migration file and redeploy
@@ -111,13 +111,13 @@ To fix this:
        new_field = Column(String(255))  # Your new field
    ```
 
-2. **Create Migration** (Flask-Migrate detects changes automatically)
+2. **Create Migration** (Alembic detects changes automatically)
    ```powershell
-   python scripts/flask_migrate_helper.py --create-migration "Add new_field to training forms"
+   python -m alembic revision --autogenerate -m "Add new_field to training forms"
    ```
 
 3. **Review Migration** (edit if needed)
-   - Migration file is created in `migrations/versions/`
+   - Migration file is created in `alembic/versions/`
    - Review the auto-generated SQL to ensure it's correct
    - Make manual adjustments if needed
 
@@ -125,7 +125,7 @@ To fix this:
    ```powershell
    # Test in development
    set FLASK_ENV=development
-   python scripts/flask_migrate_helper.py --run-migrations
+   python -m alembic upgrade head
    
    # Test your application
    python main.py
@@ -133,7 +133,7 @@ To fix this:
 
 5. **Commit and Deploy**
    ```bash
-   git add migrations/versions/xxx_add_new_field.py
+   git add alembic/versions/xxx_add_new_field.py
    git commit -m "Add new_field to training forms with migration"
    git push origin main  # Triggers deployment
    ```
@@ -162,16 +162,16 @@ To fix this:
    ```powershell
    # Make changes to models.py
    # Create migration
-   python scripts/flask_migrate_helper.py --create-migration "describe your changes"
+   python -m alembic revision --autogenerate -m "describe your changes"
    
    # Test migration in development
    set FLASK_ENV=development
-   python scripts/flask_migrate_helper.py --run-migrations
+   python -m alembic upgrade head
    ```
 
 2. **Push to Staging**
    ```bash
-   git add migrations/versions/
+   git add alembic/versions/
    git commit -m "Add migration for new feature"
    git push origin main  # Triggers staging deployment
    ```
@@ -195,42 +195,42 @@ To fix this:
 ```powershell
 # Development (SQLite)
 set FLASK_ENV=development
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 
 # Staging (MariaDB staging)
 set FLASK_ENV=staging
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 
 # Production (MariaDB production)
 set FLASK_ENV=production
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 ```
 
 #### Run Migrations
 ```powershell
 # Development
 set FLASK_ENV=development
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 
 # Staging (happens automatically in CI/CD)
 set FLASK_ENV=staging
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 
 # Production (happens automatically in CI/CD)
 set FLASK_ENV=production
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 ```
 
 #### Create Migrations for Model Changes
 ```powershell
 # Detect if you have pending changes
-python scripts/flask_migrate_helper.py --detect-changes
+python -m alembic check
 
 # Create a migration for detected changes
-python scripts/flask_migrate_helper.py --create-migration "Description of your changes"
+python -m alembic revision --autogenerate -m "Description of your changes"
 
 # Validate deployment readiness
-python scripts/flask_migrate_helper.py --validate-deployment
+python -m alembic current
 ```
 
 ## GitHub Actions Deployment
@@ -405,14 +405,14 @@ Your model definitions don't match the database schema.
 **Solution**:
 ```powershell
 # Create the missing migration
-python scripts/flask_migrate_helper.py --create-migration "Describe what you changed"
+python -m alembic revision --autogenerate -m "Describe what you changed"
 
 # Review and test the migration
 set FLASK_ENV=development
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 
 # Commit and redeploy
-git add migrations/versions/
+git add alembic/versions/
 git commit -m "Add missing migration"
 git push origin main
 ```
@@ -426,7 +426,7 @@ git push origin main
 **Solution**:
 ```bash
 # Add the migration file to git
-git add migrations/versions/xxx_your_migration.py
+git add alembic/versions/xxx_your_migration.py
 git commit -m "Add migration for model changes"
 git push origin main
 ```
@@ -440,14 +440,14 @@ git push origin main
 **Solution**:
 ```powershell
 # Fix the migration file locally
-# Edit migrations/versions/xxx_migration.py
+# Edit alembic/versions/xxx_migration.py
 
 # Test the fix in development
 set FLASK_ENV=development
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 
 # Commit the fix
-git add migrations/versions/xxx_migration.py
+git add alembic/versions/xxx_migration.py
 git commit -m "Fix migration issue"
 git push origin main
 ```
@@ -550,7 +550,7 @@ copy "production_backup_TIMESTAMP\training_forms.db" training_forms.db
 xcopy "production_backup_TIMESTAMP\uploads\" uploads\ /e /i /y
 
 # Reset migration version if needed
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 
 # Restart application
 python main.py
@@ -623,11 +623,11 @@ FLASK_ENV=production
 python scripts/schema_validator.py --check-changes
 
 # Create missing migration
-python scripts/flask_migrate_helper.py --create-migration "Fix detected changes"
+python -m alembic revision --autogenerate -m "Fix detected changes"
 
 # Test migration locally
 set FLASK_ENV=development
-python scripts/flask_migrate_helper.py --run-migrations
+python -m alembic upgrade head
 ```
 
 #### Staging Database Connection Failed
@@ -675,7 +675,7 @@ python main.py
 #### Emergency Migration Rollback
 ```powershell
 # Check current migration status
-python scripts/flask_migrate_helper.py --status
+python -m alembic current
 
 # Rollback to previous migration (if needed)
 # Note: This requires manual intervention

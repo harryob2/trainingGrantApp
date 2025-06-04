@@ -4,7 +4,6 @@ Entry point for the training form application.
 This module imports the Flask application and starts the server.
 """
 
-import sys
 import argparse
 from app import app
 

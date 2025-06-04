@@ -130,7 +130,17 @@ FlaskSurveyForm/
 ├── tests/                  # Test files
 │   └── e2e/               # End-to-end tests
 ├── uploads/               # File upload storage
-├── migrations/            # Database migration scripts
+├── scripts/               # Active deployment scripts
+│   ├── start_production.py        # Production startup
+│   ├── start_staging.py          # Staging startup
+│   ├── manage_production_service.ps1  # Service management
+│   └── archive/           # Legacy/utility scripts (archived)
+│       ├── data/          # Data import/export utilities
+│       ├── database/      # Database setup scripts
+│       ├── environment/   # Environment configuration
+│       └── migrations/    # Pre-Alembic migration scripts
+├── alembic/               # Database migration system
+│   └── versions/          # Migration files
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
 ├── forms.py               # Form definitions
@@ -150,8 +160,9 @@ FlaskSurveyForm/
 - [Authentication System](./authentication.md) - Authentication and authorization
 - [Form System](./forms.md) - Form validation and processing
 - [File Management](./file-management.md) - File upload and storage
-- [Testing Guide](./testing.md) - Testing procedures and guidelines
+- [Environment Setup](./environment-setup.md) - Environment configuration
 - [Deployment Guide](./deployment.md) - Deployment and configuration
+- [Scripts Archive](./scripts-archive.md) - Legacy and utility scripts documentation
 - [Troubleshooting](./troubleshooting.md) - Common issues and solutions
 
 ## Getting Started

@@ -9,21 +9,13 @@ The Training Form Application supports both development and production environme
 
 ## Quick Setup
 
-### 1. Run the Setup Script
+### 1. Run the Setup Script (Legacy - Now Archived)
 
-```powershell
-python scripts/setup_environment.py
-```
+**Note**: The automated setup script has been moved to `scripts/archive/environment/setup_environment.py` for reference. For new setups, follow the manual setup process below.
 
-This script will:
-- Install required dependencies
-- Create environment configuration files
-- Test database connections
-- Provide next steps guidance
+### 2. Manual Setup (Recommended)
 
-### 2. Manual Setup (Alternative)
-
-If you prefer manual setup, follow these steps:
+Follow these steps for a clean setup:
 
 #### Install Dependencies
 ```powershell
@@ -113,14 +105,16 @@ python setup_db.py
 
 #### 1. Run the MariaDB Setup Script
 
+**Note**: The setup scripts have been moved to `scripts/archive/database/` for reference. You can use them as templates:
+
 Connect to your MariaDB server and run the setup script:
 
 ```sql
-mysql -u root -p < scripts/setup_mariadb_production.sql
+mysql -u root -p < scripts/archive/database/setup_mariadb_production.sql
 ```
 
 This script will:
-- Create the `training_tool` database
+- Create the `training_tool_production` database
 - Create all required tables with proper indexes
 - Insert default admin users
 - Set up foreign key relationships
@@ -196,18 +190,23 @@ The application loads configuration in this order:
 
 To migrate data from SQLite to MariaDB:
 
-1. **Export data from SQLite**:
+1. **Export data from SQLite** (use archived scripts as reference):
    ```powershell
-   python scripts/export_sqlite_data.py
+   # Legacy export scripts are available in scripts/archive/data/ for reference
+   # For training catalog data export:
+   python scripts/archive/data/export_training_catalog.py
+   
+   # Or manually export using the SQL template:
+   sqlite3 training_forms.db < scripts/archive/data/export_data_manual.sql
    ```
 
-2. **Set up MariaDB** (as described above)
-
-3. **Import data to MariaDB**:
-   ```powershell
-   set FLASK_ENV=production
-   python scripts/import_data_to_mariadb.py
+2. **Import data to MariaDB**:
+   ```sql
+   # Use the generated SQL file
+   mysql -u root -p training_tool_production < scripts/archive/data/training_catalog_data.sql
    ```
+
+**Note**: Data migration scripts are preserved in `scripts/archive/data/` for reference and can be copied to the main scripts folder if needed for one-time migrations.
 
 ### Database Schema Updates
 
