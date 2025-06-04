@@ -35,16 +35,18 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
-        path: ~\AppData\Local\pip\Cache
+        path: |
+          ~\AppData\Local\pip\Cache
+          ~\AppData\Roaming\pip\Cache
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
+        save-always: true
           
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt
         
     - name: Set up test environment
@@ -85,9 +87,20 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~\AppData\Local\pip\Cache
+          ~\AppData\Roaming\pip\Cache
+        key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-dev-
+          ${{ runner.os }}-pip-
+        save-always: true
+        
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt
         
     - name: Create development environment file
@@ -163,9 +176,20 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~\AppData\Local\pip\Cache
+          ~\AppData\Roaming\pip\Cache
+        key: ${{ runner.os }}-pip-staging-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-staging-
+          ${{ runner.os }}-pip-
+        save-always: true
+        
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt
         
     - name: Create staging environment file
@@ -568,9 +592,20 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~\AppData\Local\pip\Cache
+          ~\AppData\Roaming\pip\Cache
+        key: ${{ runner.os }}-pip-prod-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-prod-
+          ${{ runner.os }}-pip-
+        save-always: true
+        
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt
         
     - name: Create production environment
