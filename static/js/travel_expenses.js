@@ -134,7 +134,7 @@ class TravelExpensesManager {
         
         switch(fieldType) {
             case 'travel_date':
-                errorTextToRemove = ['Travel date is required', 'Travel date cannot be before training start date', 'Travel date cannot be after training end date'];
+                errorTextToRemove = ['Travel date is required', 'Travel date must be within 1 week before training start or 1 week after training end'];
                 break;
             case 'destination':
                 errorTextToRemove = ['Destination is required'];
@@ -183,17 +183,36 @@ class TravelExpensesManager {
         this.updateErrorHighlighting();
     }
 
+    calculateAllowedDateRange() {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        
+        let minAllowed = null;
+        let maxAllowed = null;
+        
+        if (startDate) {
+            const startDateObj = new Date(startDate);
+            startDateObj.setDate(startDateObj.getDate() - 7); // 1 week before
+            minAllowed = startDateObj.toISOString().split('T')[0];
+        }
+        
+        if (endDate) {
+            const endDateObj = new Date(endDate);
+            endDateObj.setDate(endDateObj.getDate() + 7); // 1 week after
+            maxAllowed = endDateObj.toISOString().split('T')[0];
+        }
+        
+        return { minAllowed, maxAllowed };
+    }
+
     validateTravelDate() {
         const travelDate = document.getElementById('travel_date').value;
         if (!travelDate) return;
 
-        const startDate = document.getElementById('start_date').value;
-        const endDate = document.getElementById('end_date').value;
+        const { minAllowed, maxAllowed } = this.calculateAllowedDateRange();
         
-        if (startDate && travelDate < startDate) {
-            this.addSpecificError('travel_date', 'Travel date cannot be before training start date');
-        } else if (endDate && travelDate > endDate) {
-            this.addSpecificError('travel_date', 'Travel date cannot be after training end date');
+        if ((minAllowed && travelDate < minAllowed) || (maxAllowed && travelDate > maxAllowed)) {
+            this.addSpecificError('travel_date', 'Travel date must be within 1 week before training start or 1 week after training end');
         }
     }
 
@@ -222,15 +241,11 @@ class TravelExpensesManager {
         if (!travelDate) {
             errors.push({ field: 'travel_date', message: 'Travel date is required' });
         } else {
-            // Check if date is within training period
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
+            // Check if date is within allowed range (1 week before start to 1 week after end)
+            const { minAllowed, maxAllowed } = this.calculateAllowedDateRange();
             
-            if (startDate && travelDate < startDate) {
-                errors.push({ field: 'travel_date', message: 'Travel date cannot be before training start date' });
-            }
-            if (endDate && travelDate > endDate) {
-                errors.push({ field: 'travel_date', message: 'Travel date cannot be after training end date' });
+            if ((minAllowed && travelDate < minAllowed) || (maxAllowed && travelDate > maxAllowed)) {
+                errors.push({ field: 'travel_date', message: 'Travel date must be within 1 week before training start or 1 week after training end' });
             }
         }
 
@@ -572,20 +587,16 @@ class TravelExpensesManager {
     }
 
     setDateConstraints() {
-        const startDateField = document.getElementById('start_date');
-        const endDateField = document.getElementById('end_date');
         const travelDateField = document.getElementById('travel_date');
+        if (!travelDateField) return;
 
-        if (startDateField && endDateField && travelDateField) {
-            const startDate = startDateField.value;
-            const endDate = endDateField.value;
+        const { minAllowed, maxAllowed } = this.calculateAllowedDateRange();
 
-            if (startDate) {
-                travelDateField.setAttribute('min', startDate);
-            }
-            if (endDate) {
-                travelDateField.setAttribute('max', endDate);
-            }
+        if (minAllowed) {
+            travelDateField.setAttribute('min', minAllowed);
+        }
+        if (maxAllowed) {
+            travelDateField.setAttribute('max', maxAllowed);
         }
     }
 

@@ -237,6 +237,7 @@ class TrainingForm(FlaskForm):
     department = HiddenField("Department", default="Engineering")
     trainees_data = HiddenField("Trainees Data")
     trainer_email = HiddenField("Trainer Email")  # New hidden field for trainer email
+    trainer_department = HiddenField("Trainer Department")  # New hidden field for trainer department
 
     # Attachment fields
     attachments = MultipleFileField(
@@ -337,6 +338,7 @@ class TrainingForm(FlaskForm):
             "training_name": self.training_name.data,
             "trainer_name": (self.trainer_name.data if is_internal else None),
             "trainer_email": (self.trainer_email.data if is_internal else None),
+            "trainer_department": (self.trainer_department.data if is_internal else None),
             "supplier_name": (self.supplier_name.data if not is_internal else None),
             "location_type": self.location_type.data,
             "location_details": (

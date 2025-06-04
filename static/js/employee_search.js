@@ -55,6 +55,14 @@ function initEmployeeSearch(
             trainerEmailHidden.value = employee.email || '';
             trainerEmailHidden.dispatchEvent(new Event("change"));
         }
+        
+        // Also update the trainer department hidden field
+        const trainerDepartmentHidden = document.getElementById('trainer_department_hidden');
+        if (trainerDepartmentHidden) {
+            trainerDepartmentHidden.value = employee.department || '';
+            trainerDepartmentHidden.dispatchEvent(new Event("change"));
+            console.log('[EmployeeSearch] Set trainer department:', employee.department);
+        }
       }
 
       // Update hidden field if specified (applies to trainer search)
@@ -71,6 +79,13 @@ function initEmployeeSearch(
           if (trainerEmailHidden) {
             trainerEmailHidden.value = employee.email || '';
             trainerEmailHidden.dispatchEvent(new Event("change"));
+          }
+          
+          const trainerDepartmentHidden = document.getElementById('trainer_department_hidden');
+          if (trainerDepartmentHidden) {
+            trainerDepartmentHidden.value = employee.department || '';
+            trainerDepartmentHidden.dispatchEvent(new Event("change"));
+            console.log('[EmployeeSearch] Set trainer department via hiddenFieldId:', employee.department);
           }
         }
       }
@@ -121,6 +136,13 @@ function findEmployeeByEmail(email) {
 // Core function to add a trainee
 function addTrainee(name, email, department) {
   console.log("Adding trainee:", { name, email, department });
+
+  // Check if trainee is the same as the trainer
+  const trainerEmail = document.getElementById('trainer_email_hidden')?.value;
+  if (trainerEmail && email && trainerEmail.toLowerCase() === email.toLowerCase()) {
+    alert("The trainer cannot be selected as a trainee.");
+    return false;
+  }
 
   // Check if trainee already exists
   if (trainees.some((t) => t.email === email)) {

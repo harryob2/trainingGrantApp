@@ -159,7 +159,7 @@ CREATE TABLE travel_expenses (
 - `created_at`: Record creation timestamp
 
 **Enhanced Business Rules**:
-- Travel date must be between training start and end dates (inclusive)
+- Travel date must be within a week of training start and end dates (inclusive)
 - For mileage travel mode: `distance_km` is required, `cost` is calculated automatically
 - For rail/flight travel modes: `cost` is required, `distance_km` is not used
 - Traveler must be either the trainer or one of the trainees from the form

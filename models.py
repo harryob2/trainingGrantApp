@@ -84,6 +84,7 @@ class TrainingForm(Base):
     training_name = Column(String(255), nullable=False)
     trainer_name = Column(String(255))
     trainer_email = Column(String(255))
+    trainer_department = Column(String(255))
     supplier_name = Column(String(255))
     location_type = Column(String(255), nullable=False)
     location_details = Column(String(500))
@@ -120,6 +121,7 @@ class TrainingForm(Base):
             "training_name": self.training_name,
             "trainer_name": self.trainer_name,
             "trainer_email": self.trainer_email,
+            "trainer_department": self.trainer_department,
             "supplier_name": self.supplier_name,
             "location_type": self.location_type,
             "location_details": self.location_details,
@@ -367,6 +369,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             training_name=form_data["training_name"],
             trainer_name=form_data.get("trainer_name"),
             trainer_email=form_data.get("trainer_email"),
+            trainer_department=form_data.get("trainer_department"),
             training_hours=form_data.get("training_hours"),
             supplier_name=form_data.get("supplier_name"),
             location_type=form_data["location_type"],

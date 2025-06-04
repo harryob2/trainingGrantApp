@@ -554,6 +554,7 @@ def edit_form(form_id):
             form.training_name.data = form_data.get("training_name", "")  # Load training name
             form.trainer_name.data = form_data["trainer_name"]
             form.trainer_email.data = form_data.get("trainer_email", "")  # Load trainer email
+            form.trainer_department.data = form_data.get("trainer_department", "")  # Load trainer department
             form.supplier_name.data = form_data["supplier_name"]
             form.location_type.data = form_data["location_type"]
             form.location_details.data = form_data["location_details"]
@@ -898,17 +899,6 @@ def export_claim5():
         personnel = []
         departments = []  # Track departments corresponding to personnel
         
-        # Get employee data for department lookup
-        employee_data = get_lookup_data("employees")
-        
-        # Create a lookup dictionary for departments by email username
-        department_lookup = {}
-        for emp in employee_data:
-            email = emp.get("email", "")
-            if email and "@" in email:
-                username = email.split("@")[0]
-                department_lookup[username] = emp.get("department", "")
-        
         # Start row for data (header is on row 15)
         trainee_row = 16
         
@@ -950,8 +940,8 @@ def export_claim5():
                     # Add trainee to personnel list if not already in
                     if trainee_name and trainee_name not in personnel:
                         personnel.append(trainee_name)
-                        # Look up department for this trainee
-                        department = department_lookup.get(trainee_name, "")
+                        # Get department from the trainee record (stored in trainees table)
+                        department = trainee.get("department", "")
                         departments.append(department)
 
                     # Fill the row with data according to requirements
@@ -978,9 +968,9 @@ def export_claim5():
                         # Add trainer to personnel list if not already in
                         if trainer_name and trainer_name not in personnel:
                             personnel.append(trainer_name)
-                            # Look up department for this trainer
-                            department = department_lookup.get(trainer_name, "")
-                            departments.append(department)
+                            # Use stored trainer department from training_forms table
+                            trainer_department = form.get("trainer_department", "")
+                            departments.append(trainer_department)
                         trainee_sheet.cell(row=trainee_row, column=10).value = trainer_name  # Internal Trainer Name
                         trainee_sheet.cell(row=trainee_row, column=11).value = ""  # External Trainer Name
                     else:
@@ -1089,9 +1079,9 @@ def export_claim5():
                     # Add trainer to personnel list if not already in
                     if trainer_name and trainer_name not in personnel:
                         personnel.append(trainer_name)
-                        # Look up department for this trainer
-                        department = department_lookup.get(trainer_name, "")
-                        departments.append(department)
+                        # Use stored trainer department from training_forms table
+                        trainer_department = form.get("trainer_department", "")
+                        departments.append(trainer_department)
                     
                     internal_trainers_sheet.cell(row=internal_trainers_row, column=1).value = trainer_name
                     internal_trainers_sheet.cell(row=internal_trainers_row, column=3).value = form.get("training_name", "")

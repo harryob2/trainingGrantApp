@@ -35,6 +35,7 @@
                 <!-- Hidden fields for JavaScript -->
                 {{ form.department(class="d-none", id="department_hidden") }}
                 {{ form.trainer_email(class="d-none", id="trainer_email_hidden") }}
+                <input type="hidden" id="trainer_department_hidden" name="trainer_department" value="{{ form.trainer_department.data if form.trainer_department.data else '' }}" />
                 <input type="hidden" id="trainees_data" name="trainees_data"
                     value="{{ form.trainees_data.data if form.trainees_data.data else '[]' }}" />
 
@@ -478,7 +479,8 @@
                             <div class="col-md-12">
                                 <h3 class="fs-5 form-section-title">Attachments</h3>
                                 <p class="form-text">
-                                    NOTE: Attachments are optional. Only include attachments not already in your Concur Expense Report.
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Optional. Only include attachments not already in your Concur Expense Report.
                                 </p>
                                 <!-- Add the message for Virtual Training -->
                                 <div id="virtual-training-attachment-note" class="alert alert-info d-none mb-3"
@@ -612,7 +614,7 @@
                         <div class="col-md-6">
                             <label for="travel_date" class="form-label">Travel Date <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="travel_date" required>
-                            <div class="form-text">Must be between training start and end dates</div>
+                            <div class="form-text">Must be within a week of training start and end dates</div>
                         </div>
 
                         <!-- Destination -->
