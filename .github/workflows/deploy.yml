@@ -606,7 +606,10 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install --no-cache-dir -r requirements.txt
+        # Verify flask_mail is available
+        python -c "import flask_mail; print('✓ flask_mail available')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: flask_mail missing"; exit 1 }
         
     - name: Create production environment
       run: |
@@ -804,12 +807,24 @@ jobs:
                     $stillRunning = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
                     if ($stillRunning) {
                         Write-Host "PASS: Process is still running after 5 seconds"
+                        
+                        # Check for errors in log files
+                        Start-Sleep -Seconds 10  # Wait a bit more for any startup errors
+                        if (Test-Path "production_direct_error.log") {
+                            $errorContent = Get-Content "production_direct_error.log" -ErrorAction SilentlyContinue
+                            if ($errorContent) {
+                                Write-Host "ERROR: Flask startup errors detected:"
+                                $errorContent | ForEach-Object { Write-Host "  $_" }
+                                exit 1
+                            }
+                        }
                     } else {
-                        Write-Host "WARNING: Process exited after startup - check logs"
+                        Write-Host "ERROR: Process exited after startup"
                         if (Test-Path "production_direct_error.log") {
                             Write-Host "Error log content:"
                             Get-Content "production_direct_error.log" | Write-Host
                         }
+                        exit 1
                     }
                                  } else {
                      Write-Host "ERROR: Failed to start Flask process"
