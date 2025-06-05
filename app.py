@@ -194,13 +194,42 @@ def manage_admins():
                 if admin:
                     session.delete(admin)
                     flash("Admin removed.", "success")
+    
     with db_session() as session:
         admins = session.query(Admin).all()
         admins = [
-            dict(email=a.email, first_name=a.first_name, last_name=a.last_name)
+            dict(
+                email=a.email, 
+                first_name=a.first_name, 
+                last_name=a.last_name,
+                receive_emails=a.receive_emails
+            )
             for a in admins
         ]
     return render_template("manage_admins.html", admins=admins)
+
+
+@app.route("/update_admin_email_preference", methods=["POST"])
+@login_required
+@admin_required
+def update_admin_email_preference_route():
+    """HTMX endpoint to update admin email preference"""
+    email = request.form.get("email")
+    receive_emails = request.form.get("receive_emails") == "on"
+    
+    if not email:
+        return "Error: Missing email", 400
+    
+    from models import update_admin_email_preference
+    success = update_admin_email_preference(email, receive_emails)
+    
+    if success:
+        if receive_emails:
+            return '<span class="text-success small">✓ Enabled</span>'
+        else:
+            return '<span class="text-danger small">✗ Disabled</span>'
+    else:
+        return '<span class="text-danger small">Error updating</span>'
 
 
 @app.route("/logout")

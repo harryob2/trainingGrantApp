@@ -193,6 +193,7 @@ class Admin(Base):
     email = Column(String(255), primary_key=True)
     first_name = Column(String(255))
     last_name = Column(String(255))
+    receive_emails = Column(Boolean, default=True)
 
 
 class Trainee(Base):
@@ -341,14 +342,37 @@ def add_admin(admin_data: Dict[str, str]) -> bool:
             email=admin_data["email"],
             first_name=admin_data["first_name"],
             last_name=admin_data["last_name"],
+            receive_emails=admin_data.get("receive_emails", True),
         )
         session.add(admin)
         return True
 
 
+def get_admin_notification_emails() -> List[str]:
+    """Get emails of all admins who want to receive notifications."""
+    with db_session() as session:
+        admins = session.query(Admin).filter_by(receive_emails=True).all()
+        return [admin.email for admin in admins]
+
+
+def update_admin_email_preference(email: str, receive_emails: bool) -> bool:
+    """Update an admin's email notification preference."""
+    try:
+        with db_session() as session:
+            admin = session.query(Admin).filter_by(email=email).first()
+            if admin:
+                admin.receive_emails = receive_emails
+                return True
+            return False
+    except Exception as e:
+        logging.error(f"Error updating admin email preference: {e}")
+        return False
+
+
 def create_tables():
     """Create all database tables if they don't exist and insert default admins."""
     Base.metadata.create_all(bind=engine)
+    
     admin_emails = [
         {"email": "harry@test.com", "first_name": "Harry", "last_name": "Test"},
         {
@@ -357,10 +381,9 @@ def create_tables():
             "last_name": "O'Brien",
         },
     ]
-    with db_session() as session:
-        for adm in admin_emails:
-            if not session.query(Admin).filter_by(email=adm["email"]).first():
-                session.add(Admin(**adm))
+
+    for admin_data in admin_emails:
+        add_admin(admin_data)
 
 
 def insert_training_form(form_data: Dict[str, Any]) -> int:

@@ -33,8 +33,12 @@ def send_form_submission_notification(form_id, form_data, submitter_email):
         flask_env = current_app.config.get('FLASK_ENV', 'development')
         
         if flask_env == 'production':
-            # Production: send to both Harry and David
-            notification_emails = ['harry.obrien@stryker.com', 'david.higgins@stryker.com']
+            # Production: send to admins who want to receive emails
+            from models import get_admin_notification_emails
+            notification_emails = get_admin_notification_emails()
+            if not notification_emails:
+                logging.warning("No admins configured to receive email notifications in production")
+                return
         else:
             # Development/staging: send only to Harry
             notification_emails = ['harry.obrien@stryker.com']
