@@ -21,21 +21,21 @@ function Test-PythonEnvironment {
     
     try {
         $pythonVersion = python --version 2>&1
-        Write-Host "✓ Python version: $pythonVersion" -ForegroundColor Green
+        Write-Host "[OK] Python version: $pythonVersion" -ForegroundColor Green
         
         $pythonPath = (Get-Command python).Path
-        Write-Host "✓ Python executable: $pythonPath" -ForegroundColor Green
+        Write-Host "[OK] Python executable: $pythonPath" -ForegroundColor Green
         
         # Test Python can import basic modules
         $testImport = python -c "import sys, os, flask; print('Basic imports OK')" 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Basic Python imports working" -ForegroundColor Green
+            Write-Host "[OK] Basic Python imports working" -ForegroundColor Green
         } else {
-            Write-Host "✗ Python import test failed: $testImport" -ForegroundColor Red
+            Write-Host "[FAIL] Python import test failed: $testImport" -ForegroundColor Red
         }
         
     } catch {
-        Write-Host "✗ Python not found or not working: $_" -ForegroundColor Red
+        Write-Host "[FAIL] Python not found or not working: $_" -ForegroundColor Red
     }
 }
 
@@ -61,18 +61,18 @@ function Test-FileStructure {
     $missingFiles = @()
     foreach ($file in $requiredFiles) {
         if (Test-Path $file) {
-            Write-Host "✓ $file" -ForegroundColor Green
+            Write-Host "[OK] $file" -ForegroundColor Green
         } else {
-            Write-Host "✗ $file - MISSING" -ForegroundColor Red
+            Write-Host "[FAIL] $file - MISSING" -ForegroundColor Red
             $missingFiles += $file
         }
     }
     
     if ($missingFiles.Count -gt 0) {
-        Write-Host "`nMissing files: $($missingFiles -join ', ')" -ForegroundColor Red
+        Write-Host "`n[FAIL] Missing files: $($missingFiles -join ', ')" -ForegroundColor Red
         return $false
     } else {
-        Write-Host "`nAll required files found!" -ForegroundColor Green
+        Write-Host "`n[SUCCESS] All required files found!" -ForegroundColor Green
         return $true
     }
 }
@@ -82,7 +82,7 @@ function Test-EnvironmentVariables {
     
     # Check if .env file exists and load it
     if (Test-Path ".env") {
-        Write-Host "✓ .env file found" -ForegroundColor Green
+        Write-Host "[OK] .env file found" -ForegroundColor Green
         
         # Read .env file contents
         $envContent = Get-Content ".env"
@@ -96,7 +96,7 @@ function Test-EnvironmentVariables {
             }
         }
     } else {
-        Write-Host "✗ .env file not found" -ForegroundColor Red
+        Write-Host "[FAIL] .env file not found" -ForegroundColor Red
     }
     
     # Check important environment variables
@@ -105,12 +105,12 @@ function Test-EnvironmentVariables {
         $value = [Environment]::GetEnvironmentVariable($var)
         if ($value) {
             if ($var -match "PASSWORD|SECRET") {
-                Write-Host "✓ $var is set (***)" -ForegroundColor Green
+                Write-Host "[OK] $var is set (***)" -ForegroundColor Green
             } else {
-                Write-Host "✓ $var = $value" -ForegroundColor Green
+                Write-Host "[OK] $var = $value" -ForegroundColor Green
             }
         } else {
-            Write-Host "⚠ $var is not set" -ForegroundColor Yellow
+            Write-Host "[WARN] $var is not set" -ForegroundColor Yellow
         }
     }
 }
@@ -122,7 +122,7 @@ function Test-PythonDiagnostics {
         Write-Host "Running diagnostic script..."
         python scripts\diagnose_production.py
     } else {
-        Write-Host "✗ Diagnostic script not found" -ForegroundColor Red
+        Write-Host "[FAIL] Diagnostic script not found" -ForegroundColor Red
     }
 }
 
@@ -134,10 +134,10 @@ function Test-ManualFlaskStart {
     # Test import first
     $importTest = python -c "import sys, os; os.chdir('.'); sys.path.insert(0, '.'); from app import app; print('Flask import successful')" 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Flask app can be imported" -ForegroundColor Green
+        Write-Host "[OK] Flask app can be imported" -ForegroundColor Green
         Write-Host $importTest
     } else {
-        Write-Host "✗ Flask app import failed: $importTest" -ForegroundColor Red
+        Write-Host "[FAIL] Flask app import failed: $importTest" -ForegroundColor Red
         return $false
     }
     
@@ -157,18 +157,18 @@ function Test-ManualFlaskStart {
         
         # Check if job is still running
         if ($job.State -eq "Running") {
-            Write-Host "✓ Production script started successfully" -ForegroundColor Green
+            Write-Host "[OK] Production script started successfully" -ForegroundColor Green
             Stop-Job $job
             Remove-Job $job
             return $true
         } else {
-            Write-Host "✗ Production script failed to start" -ForegroundColor Red
+            Write-Host "[FAIL] Production script failed to start" -ForegroundColor Red
             Receive-Job $job
             Remove-Job $job
             return $false
         }
     } else {
-        Write-Host "✗ Production start script not found" -ForegroundColor Red
+        Write-Host "[FAIL] Production start script not found" -ForegroundColor Red
         return $false
     }
 }
@@ -183,10 +183,10 @@ function Test-ServiceManagement {
         try {
             . "scripts\manage_production_service.ps1" -Action status -WorkingDir (Get-Location)
         } catch {
-            Write-Host "✗ Service management script failed: $_" -ForegroundColor Red
+            Write-Host "[FAIL] Service management script failed: $_" -ForegroundColor Red
         }
     } else {
-        Write-Host "✗ Service management script not found" -ForegroundColor Red
+        Write-Host "[FAIL] Service management script not found" -ForegroundColor Red
     }
 }
 
@@ -198,9 +198,9 @@ function Test-PortAvailability {
         $socket = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, 5000)
         $socket.Start()
         $socket.Stop()
-        Write-Host "✓ Port 5000 is available" -ForegroundColor Green
+        Write-Host "[OK] Port 5000 is available" -ForegroundColor Green
     } catch {
-        Write-Host "✗ Port 5000 is not available: $_" -ForegroundColor Red
+        Write-Host "[FAIL] Port 5000 is not available: $_" -ForegroundColor Red
         
         # Show what's using the port
         $processesOnPort = netstat -ano | Where-Object { $_ -match ":5000" }
@@ -231,7 +231,7 @@ function Fix-CommonIssues {
     Write-Host "Removing any existing scheduled tasks..."
     try {
         Unregister-ScheduledTask -TaskName "TrainingFormApp" -Confirm:$false -ErrorAction SilentlyContinue
-        Write-Host "✓ Existing scheduled task removed" -ForegroundColor Green
+        Write-Host "[OK] Existing scheduled task removed" -ForegroundColor Green
     } catch {
         Write-Host "  No existing scheduled task found"
     }
@@ -240,7 +240,7 @@ function Fix-CommonIssues {
     if (!(Test-Path "uploads")) {
         Write-Host "Creating uploads directory..."
         New-Item -ItemType Directory -Path "uploads" -Force
-        Write-Host "✓ Uploads directory created" -ForegroundColor Green
+        Write-Host "[OK] Uploads directory created" -ForegroundColor Green
     }
     
     Write-Host "Common issue fixes completed"

@@ -50,9 +50,9 @@ def check_file_structure():
     for file in required_files:
         file_path = parent_dir / file
         if file_path.exists():
-            print(f"✓ {file}")
+            print(f"[OK] {file}")
         else:
-            print(f"✗ {file} - MISSING")
+            print(f"[FAIL] {file} - MISSING")
             missing_files.append(file)
     
     if missing_files:
@@ -113,9 +113,9 @@ def test_imports():
     for module in modules_to_test:
         try:
             importlib.import_module(module)
-            print(f"✓ {module}")
+            print(f"[OK] {module}")
         except Exception as e:
-            print(f"✗ {module} - ERROR: {e}")
+            print(f"[FAIL] {module} - ERROR: {e}")
             failed_imports.append(module)
     
     if failed_imports:
@@ -140,11 +140,11 @@ def test_database_connection():
         
         # Test connection
         conn = engine.connect()
-        print("✓ Database connection successful!")
+        print("[OK] Database connection successful!")
         conn.close()
         return True
     except Exception as e:
-        print(f"✗ Database connection failed: {e}")
+        print(f"[FAIL] Database connection failed: {e}")
         return False
 
 def check_port_availability():
@@ -159,10 +159,10 @@ def check_port_availability():
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('0.0.0.0', 5000))
         sock.close()
-        print("✓ Port 5000 is available")
+        print("[OK] Port 5000 is available")
         return True
     except socket.error as e:
-        print(f"✗ Port 5000 is not available: {e}")
+        print(f"[FAIL] Port 5000 is not available: {e}")
         return False
 
 def main():
@@ -184,7 +184,7 @@ def main():
         try:
             results[check_name] = check_func()
         except Exception as e:
-            print(f"✗ {check_name} - CRITICAL ERROR: {e}")
+            print(f"[CRITICAL ERROR] {check_name} - {e}")
             results[check_name] = False
         print()
     
@@ -201,10 +201,10 @@ def main():
     
     print()
     if all_passed:
-        print("✓ All diagnostics passed! The app should start successfully.")
+        print("[SUCCESS] All diagnostics passed! The app should start successfully.")
         return 0
     else:
-        print("✗ Some diagnostics failed. Fix the issues above before starting the app.")
+        print("[WARNING] Some diagnostics failed. Fix the issues above before starting the app.")
         return 1
 
 if __name__ == "__main__":

@@ -90,7 +90,7 @@ def test_flask_import():
         print("Attempting to import Flask app...")
         
         from app import app
-        print("✓ Flask app imported successfully!")
+        print("[OK] Flask app imported successfully!")
         
         print(f"App name: {app.name}")
         print(f"Debug mode: {app.config.get('DEBUG', 'Not set')}")
@@ -98,7 +98,7 @@ def test_flask_import():
         
         return True
     except Exception as e:
-        print(f"✗ Failed to import Flask app: {e}")
+        print(f"[FAIL] Failed to import Flask app: {e}")
         import traceback
         print("Traceback:")
         print(traceback.format_exc())
@@ -140,9 +140,9 @@ def main():
     
     all_passed = all(results.values())
     if all_passed:
-        print("\n✓ All manual tests passed!")
+        print("\n[SUCCESS] All manual tests passed!")
     else:
-        print("\n✗ Some manual tests failed.")
+        print("\n[WARNING] Some manual tests failed.")
     
     return 0 if all_passed else 1
 

@@ -60,9 +60,9 @@ def main():
         for file in critical_files:
             file_path = os.path.join(parent_dir, file)
             if os.path.exists(file_path):
-                logger.info(f"✓ Found {file}")
+                logger.info(f"[OK] Found {file}")
             else:
-                logger.error(f"✗ Missing critical file: {file}")
+                logger.error(f"[FAIL] Missing critical file: {file}")
                 raise FileNotFoundError(f"Critical file missing: {file}")
         
         # Check environment variables
@@ -88,9 +88,9 @@ def main():
         try:
             from models import engine
             with engine.connect() as conn:
-                logger.info("✓ Database connection test successful")
+                logger.info("[OK] Database connection test successful")
         except Exception as e:
-            logger.error(f"✗ Database connection test failed: {e}")
+            logger.error(f"[FAIL] Database connection test failed: {e}")
             # Don't fail here - let Flask handle database errors
         
         # Write PID file for management
