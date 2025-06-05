@@ -39,8 +39,45 @@
                 <input type="hidden" id="trainees_data" name="trainees_data"
                     value="{{ form.trainees_data.data if form.trainees_data.data else '[]' }}" />
 
+                <!-- IDA Training Grant Information Box -->
+                <div class="ida-info-box mb-4">
+                    <p class="mb-3">
+                        <strong>The information you enter in this form will be used by Stryker Limerick to apply for the IDA training grant, which reimburses 30% of the cost of upskilling staff.</strong>
+                    </p>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="ida-info-section">
+                                <h6 class="fw-bold mb-2">
+                                    <i class="bi bi-question-circle me-1"></i>
+                                    If you're unsure about any field:
+                                </h6>
+                                <ul class="mb-0 small">
+                                    <li>Enter <code>NA</code> for text fields</li>
+                                    <li>Enter <code>1111</code> for number fields</li>
+                                    <li>Add context in the <strong>'Notes for Reviewer'</strong> section at the bottom</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="ida-info-section">
+                                <h6 class="fw-bold mb-2">
+                                    <i class="bi bi-people me-1"></i>
+                                    Review Process:
+                                </h6>
+                                <p class="mb-0 small">
+                                    Our training grant application team (including <strong>Siobhan Nolan</strong> and <strong>Annette Costello</strong>) will review every submission and can reach out directly if more information is needed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ida-info-tip small">
+                        <i class="bi bi-lightbulb me-1"></i>
+                        <strong>Tip:</strong> Take your time filling out this form accurately - it helps ensure faster processing of the grant application.
+                    </div>
+                </div>
+
                 <div class="row">
-                    <!-- Training Catalog Search (Now at the top) -->
+                    <!-- Training Catalog Search -->
                     <div class="col-md-12 mb-4">
                         <label for="training_catalog_search_input" class="form-label">Search Training Catalog</label>
                         <div class="catalog-search-box">
@@ -522,7 +559,7 @@
                                 </div>
                                 <div class="form-text">
                                     <i class="bi bi-info-circle me-1"></i>
-                                    Optional notes for the person reviewing this form submission. Use this space to ask questions or provide additional context.
+                                    Optional. Include notes for the person reviewing this form submission. Use this space to ask questions or provide additional context.
                                 </div>
                                 {% if form.notes.errors %}
                                 <div class="text-danger">
