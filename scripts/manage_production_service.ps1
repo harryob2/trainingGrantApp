@@ -29,30 +29,46 @@ function Install-Service {
         Write-Log "No existing task to remove"
     }
     
-    # Create the scheduled task
+    # Ensure we have absolute paths
+    $absoluteWorkingDir = (Resolve-Path $WorkingDir).Path
     $pythonExe = (Get-Command python).Path
-    $scriptPath = Join-Path $WorkingDir "scripts\start_production.py"
+    $scriptPath = Join-Path $absoluteWorkingDir "scripts\start_production.py"
     
     Write-Log "Python executable: $pythonExe"
     Write-Log "Script path: $scriptPath"
-    Write-Log "Working directory: $WorkingDir"
+    Write-Log "Working directory: $absoluteWorkingDir"
     
-    # Create task action
-    $action = New-ScheduledTaskAction -Execute $pythonExe -Argument $scriptPath -WorkingDirectory $WorkingDir
+    # Verify script exists
+    if (-not (Test-Path $scriptPath)) {
+        Write-Log "ERROR: Start script not found at $scriptPath"
+        throw "Start script not found"
+    }
+    
+    # Create environment variables for the task
+    $envVars = @{
+        "FLASK_ENV" = "production"
+        "PYTHONUNBUFFERED" = "1"
+    }
+    
+    # Create task action with environment variables
+    $action = New-ScheduledTaskAction -Execute $pythonExe -Argument "`"$scriptPath`"" -WorkingDirectory $absoluteWorkingDir
     
     # Create task trigger (at startup)
     $trigger = New-ScheduledTaskTrigger -AtStartup
     
-    # Create task settings
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Days 365)
+    # Create task settings with better configuration
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Days 365) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 5)
     
-    # Create task principal (run as SYSTEM)
+    # Create task principal (run as SYSTEM with highest privileges)
     $principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     
     # Register the task
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Training Form Flask Application"
     
     Write-Log "Task '$TaskName' installed successfully"
+    Write-Log "Python path: $pythonExe"
+    Write-Log "Script path: $scriptPath"  
+    Write-Log "Working directory: $absoluteWorkingDir"
     Write-Log "The application will start automatically on system boot"
 }
 

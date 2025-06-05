@@ -672,6 +672,12 @@ jobs:
         Start-Sleep -Seconds 3
       shell: powershell
         
+    - name: Run production diagnostics
+      run: |
+        Write-Host "Running production deployment diagnostics..."
+        python scripts\diagnose_production.py
+      shell: powershell
+
     - name: Install and start production service
       run: |
         Write-Host "Installing and starting Training Form Application as a Windows service..."
@@ -682,14 +688,21 @@ jobs:
         Write-Host "Using service management script: $scriptPath"
         Write-Host "Working directory: $currentDir"
         
+        # Ensure we have absolute paths
+        $absoluteScriptPath = Join-Path $currentDir $scriptPath
+        $absoluteCurrentDir = $currentDir.Path
+        
+        Write-Host "Absolute script path: $absoluteScriptPath"
+        Write-Host "Absolute working directory: $absoluteCurrentDir"
+        
         try {
             # Install the service (this will create a Windows scheduled task)
             Write-Host "Installing service..."
-            & powershell.exe -ExecutionPolicy Bypass -File $scriptPath -Action install -WorkingDir $currentDir
+            & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action install -WorkingDir $absoluteCurrentDir
             
             # Start the service
             Write-Host "Starting service..."
-            & powershell.exe -ExecutionPolicy Bypass -File $scriptPath -Action start -WorkingDir $currentDir
+            & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action start -WorkingDir $absoluteCurrentDir
             
             Write-Host "PASS: Service installed and started successfully"
             
@@ -697,14 +710,27 @@ jobs:
             Write-Host "ERROR: Failed to install/start service: $_"
             Write-Host "Falling back to direct Python execution..."
             
-            # Fallback: Start Flask directly
+            # Fallback: Start Flask directly with absolute paths
             $pythonExe = (Get-Command python).Path
-            $startScript = "scripts\start_production.py"
+            $startScript = Join-Path $currentDir "scripts\start_production.py"
             
-            Write-Host "Starting Flask directly with: $pythonExe $startScript"
-            Start-Process -FilePath $pythonExe -ArgumentList $startScript -WorkingDirectory $currentDir -WindowStyle Hidden -PassThru
+            Write-Host "Python executable: $pythonExe"
+            Write-Host "Start script: $startScript"
+            Write-Host "Working directory: $currentDir"
             
-            Write-Host "Fallback startup completed"
+            # Set environment for the process
+            $env:FLASK_ENV = "production"
+            
+            $proc = Start-Process -FilePath $pythonExe -ArgumentList $startScript -WorkingDirectory $currentDir -WindowStyle Hidden -PassThru
+            
+            if ($proc) {
+                Write-Host "Fallback startup completed - Process ID: $($proc.Id)"
+                # Save PID for later reference
+                $proc.Id | Out-File -FilePath "production_fallback.pid"
+            } else {
+                Write-Host "FAIL: Fallback startup failed"
+                exit 1
+            }
         }
       shell: powershell
         
