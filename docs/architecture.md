@@ -50,6 +50,8 @@ The Flask Survey Form System follows a traditional Model-View-Controller (MVC) a
 - `/edit/<id>` - Form editing
 - `/view/<id>` - Form viewing with complete details
 - `/approve/<id>` - Admin approval action
+- `/delete/<id>` - **NEW**: Soft delete form submission (admin or submitter only)
+- `/recover/<id>` - **NEW**: Recover soft-deleted form submission (admin or submitter only)
 - `/success` - Submission confirmation
 
 #### Data Management Routes
@@ -250,6 +252,8 @@ Frontend Enhancements
 - **Expense Tracking**: Separate models for travel and material expenses
 - **Enhanced Search**: Multi-field search with relationship traversal
 - **Analytics Dashboard**: Leaderboard with training statistics
+- **Soft Delete Management**: **NEW**: Forms can be soft deleted and recovered with 180-day retention
+- **Delete Status Filtering**: **NEW**: Filter forms by delete status (not deleted, deleted, all)
 
 ### 3. Enhanced File Management
 - **Form-Specific Organization**: Files organized by form ID

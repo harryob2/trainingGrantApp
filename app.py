@@ -41,6 +41,8 @@ from models import (
     db_session,
     Admin,
     Attachment,
+    soft_delete_training_form,
+    recover_training_form,
 )
 from setup_db import setup_database
 from auth import init_auth, authenticate_user, is_admin_email
@@ -433,6 +435,62 @@ def approve_training(form_id):
         return redirect(url_for("view_form", form_id=form_id))
 
 
+@app.route("/delete/<int:form_id>", methods=["POST"])
+@login_required
+def delete_training_form(form_id):
+    """Soft delete a training form"""
+    # Get the form to check permissions (including deleted forms for recovery)
+    form_data = get_training_form(form_id, include_deleted=True)
+    if not form_data:
+        flash("Training form not found", "danger")
+        return redirect(url_for("list_forms"))
+    
+    # Check if user is admin or the submitter
+    if not (is_admin_user(current_user) or form_data.get("submitter") == current_user.email):
+        flash("You don't have permission to delete this form", "danger")
+        return redirect(url_for("view_form", form_id=form_id))
+    
+    # Perform soft delete
+    if soft_delete_training_form(form_id):
+        flash("Training form has been deleted successfully", "success")
+        # Redirect to appropriate list based on user role
+        if is_admin_user(current_user):
+            return redirect(url_for("list_forms"))
+        else:
+            return redirect(url_for("my_submissions"))
+    else:
+        flash("Error deleting training form", "danger")
+        return redirect(url_for("view_form", form_id=form_id))
+
+
+@app.route("/recover/<int:form_id>", methods=["POST"])
+@login_required
+def recover_training_form_route(form_id):
+    """Recover a soft deleted training form"""
+    # Get the form to check permissions (including deleted forms)
+    form_data = get_training_form(form_id, include_deleted=True)
+    if not form_data:
+        flash("Training form not found", "danger")
+        return redirect(url_for("list_forms"))
+    
+    # Check if user is admin or the submitter
+    if not (is_admin_user(current_user) or form_data.get("submitter") == current_user.email):
+        flash("You don't have permission to recover this form", "danger")
+        return redirect(url_for("view_form", form_id=form_id))
+    
+    # Perform recovery
+    if recover_training_form(form_id):
+        flash("Training form has been recovered successfully", "success")
+        # Redirect to appropriate list based on user role
+        if is_admin_user(current_user):
+            return redirect(url_for("list_forms"))
+        else:
+            return redirect(url_for("my_submissions"))
+    else:
+        flash("Error recovering training form", "danger")
+        return redirect(url_for("view_form", form_id=form_id))
+
+
 @app.route("/success")
 @login_required
 def success():
@@ -452,6 +510,7 @@ def list_forms():
     date_to = request.args.get("date_to", "")
     training_type = request.args.get("training_type", "")
     approval_status = request.args.get("approval_status", "")
+    delete_status = request.args.get("delete_status", "")
     sort_by = request.args.get("sort_by", "submission_date")
     sort_order = request.args.get("sort_order", "DESC")
     page = request.args.get("page", 1, type=int)
@@ -470,6 +529,7 @@ def list_forms():
             pass
     form.training_type.data = training_type
     form.approval_status.data = approval_status
+    form.delete_status.data = delete_status
     form.sort_by.data = sort_by
     form.sort_order.data = sort_order
 
@@ -480,6 +540,7 @@ def list_forms():
         date_to=date_to,
         training_type=training_type,
         approval_status=approval_status,
+        delete_status=delete_status,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -495,6 +556,7 @@ def list_forms():
         "date_to": date_to,
         "training_type": training_type,
         "approval_status": approval_status,
+        "delete_status": delete_status,
         "sort_by": sort_by,
         "sort_order": sort_order,
     }
@@ -511,11 +573,12 @@ def list_forms():
         date_to=date_to,
         training_type=training_type,
         approval_status=approval_status,
+        delete_status=delete_status,
         sort_by=sort_by,
         sort_order=sort_order,
         now=datetime.now(),
         params=params,
-        has_filters=bool(search_term or date_from or date_to or training_type or approval_status),
+        has_filters=bool(search_term or date_from or date_to or training_type or approval_status or delete_status),
         total_forms=total_count,
         is_admin=is_admin_user(current_user),
     )
@@ -525,7 +588,7 @@ def list_forms():
 @login_required
 def view_form(form_id):
     """Display a single training form submission"""
-    form_data = get_training_form(form_id)
+    form_data = get_training_form(form_id, include_deleted=True)
     if not form_data:
         flash("Training form not found", "danger")
         return redirect(url_for("list_forms"))
@@ -1219,6 +1282,7 @@ def my_submissions():
     date_to = request.args.get("date_to", "")
     training_type = request.args.get("training_type", "")
     approval_status = request.args.get("approval_status", "")
+    delete_status = request.args.get("delete_status", "")
     sort_by = request.args.get("sort_by", "submission_date")
     sort_order = request.args.get("sort_order", "DESC")
     page = request.args.get("page", 1, type=int)
@@ -1237,6 +1301,7 @@ def my_submissions():
             pass
     form.training_type.data = training_type
     form.approval_status.data = approval_status
+    form.delete_status.data = delete_status
     form.sort_by.data = sort_by
     form.sort_order.data = sort_order
 
@@ -1247,6 +1312,7 @@ def my_submissions():
         date_to=date_to,
         training_type=training_type,
         approval_status=approval_status,
+        delete_status=delete_status,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -1258,6 +1324,7 @@ def my_submissions():
         "date_to": date_to,
         "training_type": training_type,
         "approval_status": approval_status,
+        "delete_status": delete_status,
         "sort_by": sort_by,
         "sort_order": sort_order,
     }
@@ -1273,11 +1340,12 @@ def my_submissions():
         date_to=date_to,
         training_type=training_type,
         approval_status=approval_status,
+        delete_status=delete_status,
         sort_by=sort_by,
         sort_order=sort_order,
         now=datetime.now(),
         params=params,
-        has_filters=bool(search_term or date_from or date_to or training_type or approval_status),
+        has_filters=bool(search_term or date_from or date_to or training_type or approval_status or delete_status),
         total_forms=total_count,
         my_submissions=True,
         is_admin=is_admin_user(current_user),

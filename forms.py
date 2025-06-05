@@ -433,6 +433,17 @@ class SearchForm(FlaskForm):
         validators=[Optional()],
     )
 
+    delete_status = SelectField(
+        "Form Status",
+        choices=[
+            ("", "Not Deleted"),
+            ("deleted", "Deleted"),
+            ("all", "All Forms")
+        ],
+        validators=[Optional()],
+        default=""
+    )
+
     submit = SubmitField("Search")
 
     def validate_date_to(self, field):

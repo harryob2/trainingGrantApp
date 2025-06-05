@@ -170,7 +170,7 @@ csrf_token=...
 - **Error**: Return form with error messages
 
 #### GET /view/<int:form_id>
-**Purpose**: Display comprehensive training form details with all related data
+**Purpose**: Display comprehensive training form details with all related data including soft delete management
 
 **Authentication**: User
 
@@ -186,11 +186,13 @@ csrf_token=...
 - Enhanced attachment display with descriptions
 - Form-specific file organization
 - Approval status and admin controls
+- **NEW**: Delete/recover button functionality with permission checks
+- **NEW**: Visual indicators for deleted forms with red "DELETED" badges
 
 ### Data Management Routes
 
 #### GET /list
-**Purpose**: Display training submissions with enhanced search and filter capabilities
+**Purpose**: Display training submissions with enhanced search and filter capabilities including soft delete management
 
 **Authentication**: User
 
@@ -200,6 +202,7 @@ csrf_token=...
 - `date_to`: End date filter (YYYY-MM-DD)
 - `training_type`: Filter by training type
 - `approval_status`: Filter by approval status (approved, unapproved)
+- `delete_status`: **NEW**: Filter by delete status ("" for not deleted, "deleted" for deleted, "all" for all forms)
 - `sort_by`: Sort field (submission_date, start_date, end_date, cost, training_name)
 - `sort_order`: Sort direction (ASC, DESC)
 - `page`: Page number for pagination
@@ -210,18 +213,19 @@ csrf_token=...
 - Training name prioritized in search
 - Trainer email included in search
 - Improved result relevance
+- **NEW**: Soft delete status filtering with default to show only non-deleted forms
 
 **Example**:
 ```http
-GET /list?search=python&date_from=2024-01-01&training_type=External+Training&approval_status=approved&sort_by=training_name&sort_order=ASC&page=1
+GET /list?search=python&date_from=2024-01-01&training_type=External+Training&approval_status=approved&delete_status=&sort_by=training_name&sort_order=ASC&page=1
 ```
 
 #### GET /my_submissions
-**Purpose**: Display current user's training submissions with enhanced filtering
+**Purpose**: Display current user's training submissions with enhanced filtering including soft delete management
 
 **Authentication**: User
 
-**Query Parameters**: Same as /list
+**Query Parameters**: Same as /list including the new delete_status parameter
 
 **Response**: HTML page with user's submissions only
 
@@ -229,6 +233,7 @@ GET /list?search=python&date_from=2024-01-01&training_type=External+Training&app
 - Personal submission history
 - Status tracking for user's forms
 - Quick access to edit unapproved forms
+- **NEW**: View deleted forms with recovery option
 
 #### GET /leaderboard
 **Purpose**: Display training statistics, analytics, and leaderboard
@@ -294,6 +299,53 @@ remove_admin=admin@company.com&csrf_token=...
 - Comprehensive audit logging
 - Email notifications (future feature)
 - Approval timestamp tracking
+
+#### POST /delete/<int:form_id>
+**Purpose**: **NEW**: Soft delete a training form submission (marks as deleted for 180 days)
+
+**Authentication**: Admin or form submitter
+
+**Parameters**:
+- `form_id`: Training form ID to delete
+
+**Request**:
+```http
+POST /delete/123
+Content-Type: application/x-www-form-urlencoded
+
+csrf_token=...
+```
+
+**Response**: Redirect to form list with deletion confirmation
+
+**Features**:
+- Soft delete implementation (form retained for 180 days)
+- Only admin users or form submitters can delete
+- Deleted forms remain in database with deleted flag and timestamp
+- Forms can be recovered using the recover endpoint
+
+#### POST /recover/<int:form_id>
+**Purpose**: **NEW**: Recover a soft-deleted training form submission
+
+**Authentication**: Admin or form submitter
+
+**Parameters**:
+- `form_id`: Training form ID to recover
+
+**Request**:
+```http
+POST /recover/123
+Content-Type: application/x-www-form-urlencoded
+
+csrf_token=...
+```
+
+**Response**: Redirect to form view with recovery confirmation
+
+**Features**:
+- Restores deleted forms by removing deleted flag and timestamp
+- Only admin users or form submitters can recover
+- Recovered forms return to normal active status
 
 ### Utility Routes
 

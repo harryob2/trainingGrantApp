@@ -110,3 +110,33 @@ def prepare_form_data(form, request=None):
     logging.debug(f"Final prepared data: {data}")
     logging.debug("=== End prepare_form_data ===")
     return data
+
+
+def cleanup_form_files(form_id):
+    """Remove all files associated with a deleted form"""
+    form_folder = f"form_{form_id}"
+    form_path = os.path.join(UPLOAD_FOLDER, form_folder)
+    
+    if os.path.exists(form_path):
+        try:
+            # Count files before deletion
+            file_count = 0
+            for filename in os.listdir(form_path):
+                file_path = os.path.join(form_path, filename)
+                if os.path.isfile(file_path):
+                    file_count += 1
+            
+            # Remove all files in the form directory
+            for filename in os.listdir(form_path):
+                file_path = os.path.join(form_path, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            
+            # Remove the directory
+            os.rmdir(form_path)
+            logging.info(f"Cleaned up files for form {form_id}: {file_count} files removed")
+            return file_count
+        except Exception as e:
+            logging.error(f"Error cleaning up files for form {form_id}: {e}")
+            return 0
+    return 0

@@ -1149,6 +1149,18 @@ jobs:
         }
       shell: powershell
         
+    - name: Install maintenance task
+      run: |
+        Write-Host "Installing maintenance task..."
+        try {
+            powershell -ExecutionPolicy Bypass -File "scripts\manage_maintenance.ps1" -Action install
+            Write-Host "Maintenance task installed - runs daily at 3:00 AM"
+        } catch {
+            Write-Host "WARNING: Failed to install maintenance task"
+            Write-Host "Install manually: manage_app.bat maintenance-install"
+        }
+      shell: powershell
+        
     - name: Verify production deployment
       run: |
         Write-Host "=== POST-DEPLOYMENT VERIFICATION ==="

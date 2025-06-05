@@ -39,6 +39,8 @@ Code Push → Unit Tests → Schema Validation → Staging Deployment → Integr
 3. **Provide Clear Instructions**: Tell you exactly how to fix the issue
 4. **Prevent Data Loss**: Ensure staging and production databases stay in sync with your code
 
+**Recent Example**: The soft delete functionality added `deleted` and `deleted_datetimestamp` columns to the `training_forms` table. The migration script `2927b5fcd043_add_soft_delete_columns_to_training_.py` was created to handle this schema change safely across all environments.
+
 ### How Schema Detection Works
 
 #### 1. Automatic Detection in CI/CD Pipeline

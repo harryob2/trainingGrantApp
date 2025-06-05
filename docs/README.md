@@ -36,12 +36,14 @@ The Flask Survey Form System is a comprehensive web application designed for man
 - **File Attachments**: Support for multiple file types with secure upload
 - **Dynamic Validation**: Context-aware form validation based on training type
 - **Edit Capability**: Users can edit their own submissions before approval
+- **Soft Delete Management**: **NEW**: Delete forms with 180-day retention and recovery option
 
 ### Administrative Features
 - **Approval Workflow**: Admin approval system for training submissions
 - **User Administration**: Manage admin users through web interface
-- **Search and Filter**: Advanced search capabilities with multiple criteria
+- **Search and Filter**: Advanced search capabilities with multiple criteria including delete status
 - **Export Functionality**: Export approved forms to Claim 5 format
+- **Form Recovery**: **NEW**: Recover soft-deleted forms with admin or submitter permissions
 
 ### Data Management
 - **Employee Lookup**: Integration with employee directory
@@ -164,6 +166,7 @@ FlaskSurveyForm/
 - [Deployment Guide](./deployment.md) - Deployment and configuration
 - [Scripts Archive](./scripts-archive.md) - Legacy and utility scripts documentation
 - [Troubleshooting](./troubleshooting.md) - Common issues and solutions
+- [Soft Delete Feature Summary](./soft_delete_feature_summary.md) - **NEW**: Soft delete functionality implementation
 
 ## Getting Started
 

@@ -101,6 +101,8 @@ class TrainingForm(Base):
     submitter = Column(String(255))
     created_at = Column(DateTime, default=func.now())
     ida_class = Column(String(255))
+    deleted = Column(Boolean, default=False, nullable=False)
+    deleted_datetimestamp = Column(DateTime, nullable=True)
     attachments = relationship(
         "Attachment", back_populates="training_form", cascade="all, delete-orphan"
     )
@@ -137,6 +139,10 @@ class TrainingForm(Base):
             "ida_class": self.ida_class,
             "training_description": self.training_description,
             "notes": self.notes,
+            "deleted": bool(self.deleted),
+            "deleted_datetimestamp": (
+                self.deleted_datetimestamp.isoformat() if self.deleted_datetimestamp else None
+            ),
             "trainees": [trainee.to_dict() for trainee in self.trainees],
         }
         
@@ -281,8 +287,18 @@ class MaterialExpense(Base):
 
 
 def _apply_training_form_filters(query, search_term="", date_from=None, date_to=None, 
-                                training_type=None, approval_status=None):
+                                training_type=None, approval_status=None, delete_status=""):
     """Apply common filters to TrainingForm queries."""
+    # Apply delete status filter
+    if delete_status == "deleted":
+        query = query.filter(TrainingForm.deleted == True)
+    elif delete_status == "all":
+        # Show all forms regardless of delete status
+        pass
+    else:
+        # Default: only show non-deleted forms
+        query = query.filter(TrainingForm.deleted == False)
+    
     if search_term:
         like_term = f"%{search_term}%"
         query = query.filter(
@@ -425,10 +441,43 @@ def update_training_form(form_id: int, form_data: Dict[str, Any]) -> bool:
         return True
 
 
-def get_training_form(form_id: int) -> Optional[Dict[str, Any]]:
+def soft_delete_training_form(form_id: int) -> bool:
+    """Soft delete a training form by marking it as deleted."""
+    try:
+        with db_session() as session:
+            form = session.query(TrainingForm).filter_by(id=form_id, deleted=False).first()
+            if not form:
+                return False
+            form.deleted = True
+            form.deleted_datetimestamp = datetime.now()
+            return True
+    except Exception as e:
+        logging.error(f"Error soft deleting training form {form_id}: {e}")
+        return False
+
+
+def recover_training_form(form_id: int) -> bool:
+    """Recover a soft deleted training form by marking it as not deleted."""
+    try:
+        with db_session() as session:
+            form = session.query(TrainingForm).filter_by(id=form_id, deleted=True).first()
+            if not form:
+                return False
+            form.deleted = False
+            form.deleted_datetimestamp = None
+            return True
+    except Exception as e:
+        logging.error(f"Error recovering training form {form_id}: {e}")
+        return False
+
+
+def get_training_form(form_id: int, include_deleted: bool = False) -> Optional[Dict[str, Any]]:
     """Get a training form by ID"""
     with db_session() as session:
-        form = session.query(TrainingForm).filter_by(id=form_id).first()
+        if include_deleted:
+            form = session.query(TrainingForm).filter_by(id=form_id).first()
+        else:
+            form = session.query(TrainingForm).filter_by(id=form_id, deleted=False).first()
         return form.to_dict(include_costs=True) if form else None
 
 
@@ -438,6 +487,7 @@ def get_all_training_forms(
     date_to: Optional[date] = None,
     training_type: Optional[str] = None,
     approval_status: Optional[str] = None,
+    delete_status: str = "",
     sort_by: str = "submission_date",
     sort_order: str = "DESC",
     page: int = 1,
@@ -446,7 +496,7 @@ def get_all_training_forms(
     with db_session() as session:
         query = session.query(TrainingForm)
         query = _apply_training_form_filters(
-            query, search_term, date_from, date_to, training_type, approval_status
+            query, search_term, date_from, date_to, training_type, approval_status, delete_status
         )
         total_count = query.count()
         query = _apply_sorting_and_pagination(query, sort_by, sort_order, page)
@@ -470,6 +520,7 @@ def get_user_training_forms(
     date_to: Optional[date] = None,
     training_type: Optional[str] = None,
     approval_status: Optional[str] = None,
+    delete_status: str = "",
     sort_by: str = "submission_date",
     sort_order: str = "DESC",
     page: int = 1,
@@ -478,7 +529,7 @@ def get_user_training_forms(
     with db_session() as session:
         query = session.query(TrainingForm).filter_by(submitter=submitter_email)
         query = _apply_training_form_filters(
-            query, search_term, date_from, date_to, training_type, approval_status
+            query, search_term, date_from, date_to, training_type, approval_status, delete_status
         )
         total_count = query.count()
         query = _apply_sorting_and_pagination(query, sort_by, sort_order, page)

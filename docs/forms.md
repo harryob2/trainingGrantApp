@@ -631,6 +631,9 @@ class SearchForm(FlaskForm):
         validators=[Optional()])
     approval_status = SelectField("Approval Status", 
         choices=APPROVAL_STATUS_OPTIONS, validators=[Optional()])
+    delete_status = SelectField("Delete Status",
+        choices=[("", "Not Deleted"), ("deleted", "Deleted"), ("all", "All Forms")],
+        validators=[Optional()], default="")
     sort_by = SelectField("Sort By", choices=SORT_OPTIONS, default="submission_date")
     sort_order = SelectField("Order", 
         choices=[("DESC", "Newest First"), ("ASC", "Oldest First")], 

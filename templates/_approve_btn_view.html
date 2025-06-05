@@ -19,4 +19,17 @@
         {% endif %}
     </span>
     {% endif %}
+    
+    <!-- Delete/Recover Button (for admins or form submitters) -->
+    {% if is_admin or form.submitter == current_user.email %}
+      {% if form.deleted %}
+      <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#recoverModal">
+        <i class="bi bi-arrow-clockwise"></i> Recover
+      </button>
+      {% else %}
+      <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+      {% endif %}
+    {% endif %}
 </div>

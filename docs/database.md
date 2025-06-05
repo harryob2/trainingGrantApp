@@ -48,7 +48,9 @@ CREATE TABLE training_forms (
     training_description TEXT NOT NULL,
     submitter VARCHAR,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    ida_class VARCHAR
+    ida_class VARCHAR,
+    deleted BOOLEAN DEFAULT FALSE NOT NULL,
+    deleted_datetimestamp DATETIME
 );
 ```
 
@@ -73,6 +75,8 @@ CREATE TABLE training_forms (
 - `submitter`: Email of the person who submitted the form
 - `created_at`: Record creation timestamp
 - `ida_class`: Training classification (Class A-D, required)
+- `deleted`: **NEW**: Soft delete flag (boolean, default=False, not null)
+- `deleted_datetimestamp`: **NEW**: Timestamp when form was deleted (datetime, nullable)
 
 **Enhanced Business Rules**:
 - **Training name is always required** for all training types
@@ -521,44 +525,64 @@ def update_material_expenses(form_id, material_expenses_data):
 
 #### Enhanced Delete Operations
 ```python
-# Delete handled through CASCADE relationships
-# When TrainingForm is deleted, all related records are automatically deleted
-
-# Delete individual travel expense with validation
-def delete_travel_expense(expense_id):
+# Enhanced soft delete functionality (no physical deletion)
+def soft_delete_training_form(form_id):
+    """Mark a training form as deleted with timestamp (soft delete)"""
     with db_session() as session:
-        expense = session.query(TravelExpense).filter_by(id=expense_id).first()
-        if expense:
-            session.delete(expense)
+        form = session.query(TrainingForm).filter_by(id=form_id).first()
+        if form:
+            form.deleted = True
+            form.deleted_datetimestamp = datetime.now()
             return True
         return False
 
-# Delete individual material expense with validation
-def delete_material_expense(expense_id):
+def recover_training_form(form_id):
+    """Recover a soft-deleted training form"""
     with db_session() as session:
-        expense = session.query(MaterialExpense).filter_by(id=expense_id).first()
-        if expense:
-            session.delete(expense)
+        form = session.query(TrainingForm).filter_by(id=form_id).first()
+        if form and form.deleted:
+            form.deleted = False
+            form.deleted_datetimestamp = None
             return True
         return False
 
-# Delete individual trainee with validation
-def delete_trainee(trainee_id):
+# Enhanced read operations with delete status filtering
+def get_training_form(form_id, include_deleted=False):
+    """Get training form by ID with optional inclusion of deleted forms"""
     with db_session() as session:
-        trainee = session.query(Trainee).filter_by(id=trainee_id).first()
-        if trainee:
-            session.delete(trainee)
-            return True
-        return False
+        query = session.query(TrainingForm).filter_by(id=form_id)
+        if not include_deleted:
+            query = query.filter_by(deleted=False)
+        form = query.first()
+        if form:
+            return form.to_dict(include_costs=True)
+        return None
+
+def get_all_training_forms(search_term="", date_from=None, date_to=None, 
+                          training_type=None, approval_status=None, delete_status="",
+                          sort_by="submission_date", sort_order="DESC", page=1):
+    """Enhanced query with delete status filtering"""
+    with db_session() as session:
+        query = session.query(TrainingForm)
+        
+        # Apply delete status filter
+        query = _apply_training_form_filters(query, search_term, date_from, date_to,
+                                           training_type, approval_status, delete_status)
+        
+        return _apply_sorting_and_pagination(query, sort_by, sort_order, page)
+
+# Note: Physical deletion is not implemented in current version
+# Forms are retained for 180 days before permanent deletion (future implementation)
 ```
 
 ### Advanced Query Operations
 
 #### Enhanced Search and Filter
 ```python
-# Multi-criteria search including all new fields and relationships
+# Multi-criteria search including all new fields and relationships with delete status
 def _apply_training_form_filters(query, search_term="", date_from=None, 
-                                date_to=None, training_type=None, approval_status=None):
+                                date_to=None, training_type=None, approval_status=None, 
+                                delete_status=""):
     if search_term:
         search_pattern = f"%{search_term}%"
         query = query.filter(
@@ -585,6 +609,15 @@ def _apply_training_form_filters(query, search_term="", date_from=None,
         query = query.filter(TrainingForm.approved == True)
     elif approval_status == "unapproved":
         query = query.filter(TrainingForm.approved == False)
+
+    # Enhanced delete status filtering
+    if delete_status == "deleted":
+        query = query.filter(TrainingForm.deleted == True)
+    elif delete_status == "all":
+        # No filter - show all forms regardless of delete status
+        pass
+    else:  # Default behavior - show only non-deleted forms
+        query = query.filter(TrainingForm.deleted == False)
 
     return query
 ```
