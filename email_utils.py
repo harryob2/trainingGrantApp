@@ -61,44 +61,7 @@ def send_form_submission_notification(form_id, form_data, submitter_email):
         # Create email subject
         subject = f"New Training Form Submitted - {training_type}"
         
-        # Create email body
-        body = f"""
-A new training form has been submitted and requires your attention.
-
-Form Details:
-- Submitted by: {submitter_email}
-- Training Type: {training_type}
-- Training Name: {form_data.get('training_name', 'N/A')}
-- Training Date: {form_data.get('start_date', 'N/A')}
-- Training Location: {form_data.get('location_type', 'N/A')}"""
-
-        # Add location details if offsite
-        if form_data.get('location_details'):
-            body += f" - {form_data.get('location_details')}"
-        
-        body += f"""
-- Number of Trainees: {trainee_count}"""
-
-        # Add external training specific info
-        if is_external:
-            body += f"""
-- External Vendor: {form_data.get('supplier_name', 'N/A')}
-- Training Cost: €{form_data.get('course_cost', 0):.2f}"""
-        
-        # Add notes if any
-        notes = form_data.get('notes', '').strip()
-        if notes:
-            body += f"""
-- Notes for Reviewer: {notes}"""
-
-        body += """
-
-Please log into the training application to review and approve this form.
-
-This is an automated notification from the Training Form Application.
-        """
-        
-        # Create HTML body for better formatting
+        # Create HTML body
         html_body = f"""
         <html>
         <body>
@@ -135,7 +98,7 @@ This is an automated notification from the Training Form Application.
         html_body += """
             </ul>
             
-            <p>Please log into the training application to review and approve this form.</p>
+            <p>You can log in to the training application to review and approve this form <a href="http://azulimpbi01:5000">by clicking this link.</a></p>
             
             <p><em>This is an automated notification from the Training Form Application.</em></p>
         </body>
@@ -146,7 +109,6 @@ This is an automated notification from the Training Form Application.
         msg = Message(
             subject=subject,
             recipients=notification_emails,
-            body=body,
             html=html_body,
             sender=current_app.config.get('MAIL_DEFAULT_SENDER')
         )

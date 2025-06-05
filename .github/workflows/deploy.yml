@@ -43,6 +43,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
+        enableCrossOsArchive: false
           
     - name: Install dependencies
       run: |
@@ -96,6 +97,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-dev-
           ${{ runner.os }}-pip-
+        enableCrossOsArchive: false
         
     - name: Install dependencies
       run: |
@@ -184,6 +186,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-staging-
           ${{ runner.os }}-pip-
+        enableCrossOsArchive: false
         
     - name: Install dependencies
       run: |
@@ -599,6 +602,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-prod-
           ${{ runner.os }}-pip-
+        enableCrossOsArchive: false
         
     - name: Install dependencies
       run: |
