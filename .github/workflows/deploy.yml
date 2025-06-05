@@ -26,6 +26,72 @@ jobs:
     name: Run Unit Tests
     
     steps:
+    - name: Pre-cleanup workspace
+      run: |
+        Write-Host "Cleaning up workspace before checkout..."
+        
+        # Stop any running Flask processes
+        try {
+            $flaskProcesses = Get-WmiObject Win32_Process | Where-Object { 
+                $_.CommandLine -and (
+                    $_.CommandLine -match "start_production\.py" -or 
+                    $_.CommandLine -match "start_staging\.py" -or
+                    $_.CommandLine -match "main\.py.*port.*500" -or
+                    $_.CommandLine -match "flask.*run"
+                )
+            }
+            
+            if ($flaskProcesses) {
+                Write-Host "Found Flask processes to terminate:"
+                $flaskProcesses | ForEach-Object { 
+                    Write-Host "  PID: $($_.ProcessId), Command: $($_.CommandLine)"
+                    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 3
+            }
+        } catch {
+            Write-Host "Error checking Flask processes: $_"
+        }
+        
+        # Kill processes using common ports
+        $ports = @(5000, 5001)
+        foreach ($port in $ports) {
+            try {
+                $procs = netstat -ano | Where-Object { $_ -match ":$port.*LISTENING" }
+                if ($procs) {
+                    $processIds = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                    foreach ($processId in $processIds) {
+                        if ($processId -match '^\d+$') {
+                            Write-Host "Killing process $processId using port $port"
+                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+            } catch {
+                Write-Host "Error checking port $port : $_"
+            }
+        }
+        
+        # Wait for file handles to be released
+        Start-Sleep -Seconds 5
+        
+        # Force unlock common log files
+        $logFiles = @("production.log", "production_direct.log", "production_direct_error.log", "staging_direct.log", "staging_error.log")
+        foreach ($logFile in $logFiles) {
+            if (Test-Path $logFile) {
+                try {
+                    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+                    Write-Host "Removed log file: $logFile"
+                } catch {
+                    Write-Host "Could not remove $logFile : $_"
+                }
+            }
+        }
+        
+        Write-Host "Pre-cleanup completed"
+      shell: powershell
+      continue-on-error: true
+      
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -79,6 +145,72 @@ jobs:
     environment: development
     
     steps:
+    - name: Pre-cleanup workspace
+      run: |
+        Write-Host "Cleaning up workspace before checkout..."
+        
+        # Stop any running Flask processes
+        try {
+            $flaskProcesses = Get-WmiObject Win32_Process | Where-Object { 
+                $_.CommandLine -and (
+                    $_.CommandLine -match "start_production\.py" -or 
+                    $_.CommandLine -match "start_staging\.py" -or
+                    $_.CommandLine -match "main\.py.*port.*500" -or
+                    $_.CommandLine -match "flask.*run"
+                )
+            }
+            
+            if ($flaskProcesses) {
+                Write-Host "Found Flask processes to terminate:"
+                $flaskProcesses | ForEach-Object { 
+                    Write-Host "  PID: $($_.ProcessId), Command: $($_.CommandLine)"
+                    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 3
+            }
+        } catch {
+            Write-Host "Error checking Flask processes: $_"
+        }
+        
+        # Kill processes using common ports
+        $ports = @(5000, 5001)
+        foreach ($port in $ports) {
+            try {
+                $procs = netstat -ano | Where-Object { $_ -match ":$port.*LISTENING" }
+                if ($procs) {
+                    $processIds = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                    foreach ($processId in $processIds) {
+                        if ($processId -match '^\d+$') {
+                            Write-Host "Killing process $processId using port $port"
+                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+            } catch {
+                Write-Host "Error checking port $port : $_"
+            }
+        }
+        
+        # Wait for file handles to be released
+        Start-Sleep -Seconds 5
+        
+        # Force unlock common log files
+        $logFiles = @("production.log", "production_direct.log", "production_direct_error.log", "staging_direct.log", "staging_error.log")
+        foreach ($logFile in $logFiles) {
+            if (Test-Path $logFile) {
+                try {
+                    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+                    Write-Host "Removed log file: $logFile"
+                } catch {
+                    Write-Host "Could not remove $logFile : $_"
+                }
+            }
+        }
+        
+        Write-Host "Pre-cleanup completed"
+      shell: powershell
+      continue-on-error: true
+      
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -168,6 +300,72 @@ jobs:
     environment: staging
     
     steps:
+    - name: Pre-cleanup workspace
+      run: |
+        Write-Host "Cleaning up workspace before checkout..."
+        
+        # Stop any running Flask processes
+        try {
+            $flaskProcesses = Get-WmiObject Win32_Process | Where-Object { 
+                $_.CommandLine -and (
+                    $_.CommandLine -match "start_production\.py" -or 
+                    $_.CommandLine -match "start_staging\.py" -or
+                    $_.CommandLine -match "main\.py.*port.*500" -or
+                    $_.CommandLine -match "flask.*run"
+                )
+            }
+            
+            if ($flaskProcesses) {
+                Write-Host "Found Flask processes to terminate:"
+                $flaskProcesses | ForEach-Object { 
+                    Write-Host "  PID: $($_.ProcessId), Command: $($_.CommandLine)"
+                    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 3
+            }
+        } catch {
+            Write-Host "Error checking Flask processes: $_"
+        }
+        
+        # Kill processes using common ports
+        $ports = @(5000, 5001)
+        foreach ($port in $ports) {
+            try {
+                $procs = netstat -ano | Where-Object { $_ -match ":$port.*LISTENING" }
+                if ($procs) {
+                    $processIds = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                    foreach ($processId in $processIds) {
+                        if ($processId -match '^\d+$') {
+                            Write-Host "Killing process $processId using port $port"
+                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+            } catch {
+                Write-Host "Error checking port $port : $_"
+            }
+        }
+        
+        # Wait for file handles to be released
+        Start-Sleep -Seconds 5
+        
+        # Force unlock common log files
+        $logFiles = @("production.log", "production_direct.log", "production_direct_error.log", "staging_direct.log", "staging_error.log")
+        foreach ($logFile in $logFiles) {
+            if (Test-Path $logFile) {
+                try {
+                    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+                    Write-Host "Removed log file: $logFile"
+                } catch {
+                    Write-Host "Could not remove $logFile : $_"
+                }
+            }
+        }
+        
+        Write-Host "Pre-cleanup completed"
+      shell: powershell
+      continue-on-error: true
+      
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -554,6 +752,72 @@ jobs:
     environment: production
     
     steps:
+    - name: Pre-cleanup workspace
+      run: |
+        Write-Host "Cleaning up workspace before checkout..."
+        
+        # Stop any running Flask processes
+        try {
+            $flaskProcesses = Get-WmiObject Win32_Process | Where-Object { 
+                $_.CommandLine -and (
+                    $_.CommandLine -match "start_production\.py" -or 
+                    $_.CommandLine -match "start_staging\.py" -or
+                    $_.CommandLine -match "main\.py.*port.*500" -or
+                    $_.CommandLine -match "flask.*run"
+                )
+            }
+            
+            if ($flaskProcesses) {
+                Write-Host "Found Flask processes to terminate:"
+                $flaskProcesses | ForEach-Object { 
+                    Write-Host "  PID: $($_.ProcessId), Command: $($_.CommandLine)"
+                    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 3
+            }
+        } catch {
+            Write-Host "Error checking Flask processes: $_"
+        }
+        
+        # Kill processes using common ports
+        $ports = @(5000, 5001)
+        foreach ($port in $ports) {
+            try {
+                $procs = netstat -ano | Where-Object { $_ -match ":$port.*LISTENING" }
+                if ($procs) {
+                    $processIds = ($procs | ForEach-Object { ($_ -split '\s+')[-1] }) | Sort-Object -Unique
+                    foreach ($processId in $processIds) {
+                        if ($processId -match '^\d+$') {
+                            Write-Host "Killing process $processId using port $port"
+                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+            } catch {
+                Write-Host "Error checking port $port : $_"
+            }
+        }
+        
+        # Wait for file handles to be released
+        Start-Sleep -Seconds 5
+        
+        # Force unlock common log files
+        $logFiles = @("production.log", "production_direct.log", "production_direct_error.log", "staging_direct.log", "staging_error.log")
+        foreach ($logFile in $logFiles) {
+            if (Test-Path $logFile) {
+                try {
+                    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+                    Write-Host "Removed log file: $logFile"
+                } catch {
+                    Write-Host "Could not remove $logFile : $_"
+                }
+            }
+        }
+        
+        Write-Host "Pre-cleanup completed"
+      shell: powershell
+      continue-on-error: true
+      
     - name: Debug - Show runner environment
       run: |
         Write-Host "=== RUNNER ENVIRONMENT DEBUG ==="
