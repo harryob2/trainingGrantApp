@@ -12,6 +12,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Set up error handling and verbose output
+$VerbosePreference = "Continue"
+
 function Write-Log {
     param([string]$Message)
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -63,13 +66,28 @@ function Install-Service {
     $principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     
     # Register the task
-    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Training Form Flask Application"
-    
-    Write-Log "Task '$TaskName' installed successfully"
-    Write-Log "Python path: $pythonExe"
-    Write-Log "Script path: $scriptPath"  
-    Write-Log "Working directory: $absoluteWorkingDir"
-    Write-Log "The application will start automatically on system boot"
+    try {
+        Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Training Form Flask Application"
+        Write-Log "Task '$TaskName' installed successfully"
+        
+        # Verify the task was created
+        $verifyTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if ($verifyTask) {
+            Write-Log "Task verification successful - State: $($verifyTask.State)"
+        } else {
+            throw "Task was not created properly"
+        }
+        
+        Write-Log "Python path: $pythonExe"
+        Write-Log "Script path: $scriptPath"  
+        Write-Log "Working directory: $absoluteWorkingDir"
+        Write-Log "The application will start automatically on system boot"
+        
+    } catch {
+        Write-Log "ERROR: Failed to register scheduled task: $($_.Exception.Message)"
+        Write-Log "Full error: $_"
+        throw $_
+    }
 }
 
 function Uninstall-Service {

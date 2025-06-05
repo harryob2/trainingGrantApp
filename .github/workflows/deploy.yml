@@ -695,42 +695,145 @@ jobs:
         Write-Host "Absolute script path: $absoluteScriptPath"
         Write-Host "Absolute working directory: $absoluteCurrentDir"
         
+        # Verify the script exists
+        if (-not (Test-Path $absoluteScriptPath)) {
+            Write-Host "ERROR: Service management script not found at $absoluteScriptPath"
+            exit 1
+        }
+        
+        # Track if service installation was successful
+        $serviceInstalled = $false
+        $serviceStarted = $false
+        
         try {
-            # Install the service (this will create a Windows scheduled task)
-            Write-Host "Installing service..."
-            & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action install -WorkingDir $absoluteCurrentDir
+            Write-Host "Attempting service installation..."
             
-            # Start the service
-            Write-Host "Starting service..."
-            & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action start -WorkingDir $absoluteCurrentDir
+            # Install the service with detailed output capture
+            $installOutput = & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action install -WorkingDir $absoluteCurrentDir 2>&1
+            $installExitCode = $LASTEXITCODE
             
-            Write-Host "PASS: Service installed and started successfully"
+            Write-Host "Install command output:"
+            Write-Host $installOutput
+            Write-Host "Install exit code: $installExitCode"
+            
+            if ($installExitCode -eq 0) {
+                Write-Host "Service installation successful"
+                $serviceInstalled = $true
+                
+                # Try to start the service
+                Write-Host "Attempting to start service..."
+                $startOutput = & powershell.exe -ExecutionPolicy Bypass -File $absoluteScriptPath -Action start -WorkingDir $absoluteCurrentDir 2>&1
+                $startExitCode = $LASTEXITCODE
+                
+                Write-Host "Start command output:"
+                Write-Host $startOutput
+                Write-Host "Start exit code: $startExitCode"
+                
+                if ($startExitCode -eq 0) {
+                    Write-Host "Service started successfully"
+                    $serviceStarted = $true
+                } else {
+                    Write-Host "WARNING: Service installation succeeded but start failed"
+                }
+            } else {
+                Write-Host "Service installation failed with exit code: $installExitCode"
+            }
             
         } catch {
-            Write-Host "ERROR: Failed to install/start service: $_"
-            Write-Host "Falling back to direct Python execution..."
+            Write-Host "EXCEPTION during service installation: $($_.Exception.Message)"
+            Write-Host "Full exception: $_"
+        }
+        
+        # If service installation or startup failed, use direct startup
+        if (-not $serviceInstalled -or -not $serviceStarted) {
+            Write-Host ""
+            Write-Host "=== FALLBACK: Starting Flask directly ==="
             
-            # Fallback: Start Flask directly with absolute paths
-            $pythonExe = (Get-Command python).Path
+            # Get Python executable
+            $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Path
+            if (-not $pythonExe) {
+                Write-Host "ERROR: Python executable not found"
+                exit 1
+            }
+            
             $startScript = Join-Path $currentDir "scripts\start_production.py"
+            
+            # Verify start script exists
+            if (-not (Test-Path $startScript)) {
+                Write-Host "ERROR: Start script not found at $startScript"
+                exit 1
+            }
             
             Write-Host "Python executable: $pythonExe"
             Write-Host "Start script: $startScript"
             Write-Host "Working directory: $currentDir"
             
-            # Set environment for the process
+            # Set environment variables for the process
             $env:FLASK_ENV = "production"
+            $env:PYTHONUNBUFFERED = "1"
             
-            $proc = Start-Process -FilePath $pythonExe -ArgumentList $startScript -WorkingDirectory $currentDir -WindowStyle Hidden -PassThru
-            
-            if ($proc) {
-                Write-Host "Fallback startup completed - Process ID: $($proc.Id)"
-                # Save PID for later reference
-                $proc.Id | Out-File -FilePath "production_fallback.pid"
-            } else {
-                Write-Host "FAIL: Fallback startup failed"
+            # Start the process with more robust error handling
+            try {
+                $processArgs = @{
+                    FilePath = $pythonExe
+                    ArgumentList = "`"$startScript`""
+                    WorkingDirectory = $currentDir
+                    WindowStyle = "Hidden"
+                    PassThru = $true
+                    RedirectStandardOutput = "production_direct.log"
+                    RedirectStandardError = "production_direct_error.log"
+                }
+                
+                Write-Host "Starting process with arguments:"
+                Write-Host "  FilePath: $($processArgs.FilePath)"
+                Write-Host "  Arguments: $($processArgs.ArgumentList)"
+                Write-Host "  WorkingDirectory: $($processArgs.WorkingDirectory)"
+                
+                $proc = Start-Process @processArgs
+                
+                if ($proc -and $proc.Id) {
+                    Write-Host "PASS: Flask started directly with Process ID: $($proc.Id)"
+                    
+                    # Save PID for later reference
+                    $proc.Id | Out-File -FilePath "production_direct.pid" -Force
+                    
+                    # Wait a moment to ensure it started properly
+                    Start-Sleep -Seconds 5
+                    
+                    # Check if process is still running
+                    $stillRunning = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+                    if ($stillRunning) {
+                        Write-Host "PASS: Process is still running after 5 seconds"
+                    } else {
+                        Write-Host "WARNING: Process exited after startup - check logs"
+                        if (Test-Path "production_direct_error.log") {
+                            Write-Host "Error log content:"
+                            Get-Content "production_direct_error.log" | Write-Host
+                        }
+                    }
+                } else {
+                    Write-Host "ERROR: Failed to start Flask process"
+                    exit 1
+                }
+                
+            } catch {
+                Write-Host "EXCEPTION during direct startup: $($_.Exception.Message)"
+                Write-Host "Full exception: $_"
                 exit 1
             }
+        } else {
+            Write-Host "PASS: Service installed and started successfully via scheduled task"
+        }
+        
+        Write-Host ""
+        Write-Host "=== STARTUP COMPLETED ==="
+        if ($serviceStarted) {
+            Write-Host "Method: Windows Scheduled Task"
+            Write-Host "Management: Use scripts\manage_production_service.ps1"
+        } else {
+            Write-Host "Method: Direct Python Process"
+            Write-Host "Process ID file: production_direct.pid"
+            Write-Host "Logs: production_direct.log, production_direct_error.log"
         }
       shell: powershell
         
@@ -794,6 +897,19 @@ jobs:
             }
         } else {
             Write-Host "WARNING: No Flask process found with start_production.py"
+        }
+        
+        # Also check for direct process using our PID file
+        if (Test-Path "production_direct.pid") {
+            $directPid = Get-Content "production_direct.pid" -ErrorAction SilentlyContinue
+            if ($directPid) {
+                $directProcess = Get-Process -Id $directPid -ErrorAction SilentlyContinue
+                if ($directProcess) {
+                    Write-Host "PASS: Direct Flask process found (PID: $directPid)"
+                } else {
+                    Write-Host "WARNING: Direct process PID file exists but process not running"
+                }
+            }
         }
         
         # Check if port 5000 is listening
