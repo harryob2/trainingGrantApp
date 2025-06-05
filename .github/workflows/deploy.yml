@@ -608,7 +608,7 @@ jobs:
       run: |
         pip install --no-cache-dir -r requirements.txt
         # Verify flask_mail is available
-        python -c "import flask_mail; print('✓ flask_mail available')"
+        python -c "import flask_mail; print('PASS: flask_mail available')"
         if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: flask_mail missing"; exit 1 }
         
     - name: Create production environment
