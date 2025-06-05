@@ -46,6 +46,7 @@ from setup_db import setup_database
 from auth import init_auth, authenticate_user, is_admin_email
 from lookups import get_lookup_data
 from utils import get_quarter
+from email_utils import init_mail, send_form_submission_notification
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -61,6 +62,9 @@ app.secret_key = app.config["SECRET_KEY"]
 
 # Initialize authentication
 init_auth(app)
+
+# Initialize email
+init_mail(app)
 
 # Make json module available in templates
 app.jinja_env.globals["json"] = json
@@ -305,6 +309,13 @@ def submit_form():
                     logging.error(f"Error processing trainees: {e}")
                     # Don't fail the form submission for trainee errors
                     flash("Warning: There was an issue processing trainees, but the form was submitted successfully.", "warning")
+
+            # Send email notification
+            try:
+                send_form_submission_notification(form_id, form_data, current_user.email)
+            except Exception as e:
+                logging.error(f"Failed to send email notification for form {form_id}: {e}")
+                # Don't fail the form submission if email fails
 
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))

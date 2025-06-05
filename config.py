@@ -76,6 +76,15 @@ LDAP_DOMAIN = os.environ.get("LDAP_DOMAIN", "strykercorp.com")
 LDAP_USE_SSL = os.environ.get("LDAP_USE_SSL", "False").lower() == "true"
 LDAP_REQUIRED_GROUP = os.environ.get("LDAP_REQUIRED_GROUP", "")
 
+# Email Configuration
+MAIL_SERVER = 'syksmtp.strykercorp.com'
+MAIL_PORT = 25
+MAIL_USE_TLS = False
+MAIL_USE_SSL = False
+MAIL_USERNAME = None  # Usually not needed for internal SMTP
+MAIL_PASSWORD = None  # Usually not needed for internal SMTP
+MAIL_DEFAULT_SENDER = 'training-app@strykercorp.com'
+
 # Environment-specific settings
 FLASK_ENV = os.environ.get("FLASK_ENV", "development")
 IS_PRODUCTION = FLASK_ENV == "production"
