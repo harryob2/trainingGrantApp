@@ -21,6 +21,9 @@ def check_python_environment():
     for path in sys.path:
         print(f"  {path}")
     print()
+    
+    # Always return True since if we get here, Python is working
+    return True
 
 def check_file_structure():
     """Check if all required files exist."""
@@ -68,6 +71,8 @@ def check_environment_variables():
     print("ENVIRONMENT VARIABLES CHECK")
     print("=" * 50)
     
+    # First check system environment variables
+    print("System environment variables:")
     important_vars = [
         "FLASK_ENV",
         "SECRET_KEY", 
@@ -79,6 +84,7 @@ def check_environment_variables():
         "DB_PASSWORD"
     ]
     
+    system_env_count = 0
     for var in important_vars:
         value = os.environ.get(var, "NOT SET")
         # Hide sensitive values
@@ -86,8 +92,64 @@ def check_environment_variables():
             display_value = "***" if value != "NOT SET" else value
         else:
             display_value = value
-        print(f"{var}: {display_value}")
-    print()
+        print(f"  {var}: {display_value}")
+        if value != "NOT SET":
+            system_env_count += 1
+    
+    print(f"\nSystem environment variables set: {system_env_count}/{len(important_vars)}")
+    
+    # Now check if config can load environment from .env file
+    print("\nChecking .env file loading...")
+    try:
+        # Add parent directory to path and change directory
+        script_dir = Path(__file__).parent
+        parent_dir = script_dir.parent
+        sys.path.insert(0, str(parent_dir))
+        original_cwd = os.getcwd()
+        os.chdir(parent_dir)
+        
+        # Import config to load .env file
+        import config
+        
+        # Check if critical config values are set
+        critical_configs = {
+            "SECRET_KEY": getattr(config, 'SECRET_KEY', None),
+            "DATABASE_URL": getattr(config, 'DATABASE_URL', None),
+            "DEBUG": getattr(config, 'DEBUG', None),
+            "USE_SQLITE": getattr(config, 'USE_SQLITE', None)
+        }
+        
+        print("Configuration values from config.py:")
+        config_set_count = 0
+        for key, value in critical_configs.items():
+            if value is not None:
+                if "SECRET" in key or "PASSWORD" in key:
+                    display_value = "***"
+                elif "DATABASE_URL" in key and value:
+                    display_value = "***configured***"
+                else:
+                    display_value = str(value)
+                print(f"  {key}: {display_value}")
+                config_set_count += 1
+            else:
+                print(f"  {key}: NOT SET")
+        
+        os.chdir(original_cwd)
+        
+        # Return True if essential config is loaded
+        has_secret = critical_configs.get('SECRET_KEY') is not None
+        has_db = critical_configs.get('DATABASE_URL') is not None
+        
+        if has_secret and has_db:
+            print("\n[OK] Essential configuration loaded successfully")
+            return True
+        else:
+            print("\n[FAIL] Missing essential configuration")
+            return False
+            
+    except Exception as e:
+        print(f"\n[FAIL] Failed to load configuration: {e}")
+        return False
 
 def test_imports():
     """Test importing key modules."""
@@ -202,9 +264,15 @@ def main():
     print()
     if all_passed:
         print("[SUCCESS] All diagnostics passed! The app should start successfully.")
+        print("\nYou can now start the production application using:")
+        print("  python scripts\\start_production.py")
+        print("  OR")
+        print("  powershell -File scripts\\manage_production_service.ps1 -Action start")
         return 0
     else:
-        print("[WARNING] Some diagnostics failed. Fix the issues above before starting the app.")
+        failed_checks = [name for name, passed in results.items() if not passed]
+        print(f"[WARNING] Failed checks: {', '.join(failed_checks)}")
+        print("Fix the issues above before starting the app.")
         return 1
 
 if __name__ == "__main__":
