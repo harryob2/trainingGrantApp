@@ -811,30 +811,35 @@ jobs:
                             Get-Content "production_direct_error.log" | Write-Host
                         }
                     }
-                } else {
-                    Write-Host "ERROR: Failed to start Flask process"
-                    exit 1
-                }
-                
-            } catch {
-                Write-Host "EXCEPTION during direct startup: $($_.Exception.Message)"
-                Write-Host "Full exception: $_"
-                exit 1
-            }
+                                 } else {
+                     Write-Host "ERROR: Failed to start Flask process"
+                     exit 1
+                 }
+                 
+             } catch {
+                 Write-Host "EXCEPTION during direct startup: $($_.Exception.Message)"
+                 Write-Host "Full exception: $_"
+                 exit 1
+             }
         } else {
             Write-Host "PASS: Service installed and started successfully via scheduled task"
         }
         
-        Write-Host ""
-        Write-Host "=== STARTUP COMPLETED ==="
-        if ($serviceStarted) {
-            Write-Host "Method: Windows Scheduled Task"
-            Write-Host "Management: Use scripts\manage_production_service.ps1"
-        } else {
-            Write-Host "Method: Direct Python Process"
-            Write-Host "Process ID file: production_direct.pid"
-            Write-Host "Logs: production_direct.log, production_direct_error.log"
-        }
+                 Write-Host ""
+         Write-Host "=== STARTUP COMPLETED ==="
+         if ($serviceStarted) {
+             Write-Host "Method: Windows Scheduled Task"
+             Write-Host "Management: Use scripts\manage_production_service.ps1"
+             Write-Host "PASS: Production deployment completed successfully (service method)"
+         } else {
+             Write-Host "Method: Direct Python Process"
+             Write-Host "Process ID file: production_direct.pid"
+             Write-Host "Logs: production_direct.log, production_direct_error.log"
+             Write-Host "PASS: Production deployment completed successfully (direct method)"
+         }
+         
+         # Ensure we exit with success code since the app is running
+         exit 0
       shell: powershell
         
     - name: Configure Windows Firewall for port 5000
@@ -890,13 +895,14 @@ jobs:
             $_.CommandLine -and $_.CommandLine -match "start_production\.py"
         }
         
+        $flaskRunning = $false
+        
         if ($flaskProcesses) {
-            Write-Host "PASS: Flask process found"
+            Write-Host "PASS: Flask process found via process search"
             $flaskProcesses | ForEach-Object { 
                 Write-Host "  PID: $($_.ProcessId), Command: $($_.CommandLine)"
             }
-        } else {
-            Write-Host "WARNING: No Flask process found with start_production.py"
+            $flaskRunning = $true
         }
         
         # Also check for direct process using our PID file
@@ -906,10 +912,15 @@ jobs:
                 $directProcess = Get-Process -Id $directPid -ErrorAction SilentlyContinue
                 if ($directProcess) {
                     Write-Host "PASS: Direct Flask process found (PID: $directPid)"
+                    $flaskRunning = $true
                 } else {
                     Write-Host "WARNING: Direct process PID file exists but process not running"
                 }
             }
+        }
+        
+        if (-not $flaskRunning) {
+            Write-Host "WARNING: No Flask process found via any method"
         }
         
         # Check if port 5000 is listening

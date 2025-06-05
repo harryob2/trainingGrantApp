@@ -21,7 +21,7 @@ echo Training Form Application Management
 echo Action: %ACTION%
 echo.
 
-powershell.exe -ExecutionPolicy Bypass -File "scripts\manage_production_service.ps1" -Action %ACTION%
+powershell.exe -ExecutionPolicy Bypass -File "scripts\manage_production.ps1" -Action %ACTION%
 
 if errorlevel 1 (
     echo.
