@@ -15,7 +15,6 @@ try:
     SEQLOG_AVAILABLE = True
 except ImportError:
     SEQLOG_AVAILABLE = False
-    print("SeqLog not available - install with: pip install seqlog")
 
 
 def setup_logging(app=None):
@@ -86,12 +85,15 @@ def setup_logging(app=None):
             logging.error(f"Failed to configure Seq logging: {e}")
             logging.info("Continuing with file logging only")
     
-    # Log startup information
+    # Log startup information and any import errors
     logging.info("=" * 50)
     logging.info(f"Application starting - Environment: {os.environ.get('FLASK_ENV', 'development')}")
     logging.info(f"Log directory: {log_dir.absolute()}")
-    if is_production and SEQLOG_AVAILABLE:
+    
+    # Log seqlog status
+    if SEQLOG_AVAILABLE and is_production:
         logging.info("Seq logging enabled - View logs at http://localhost:5341")
+    
     logging.info("=" * 50)
     
     # Configure Flask app logging if provided

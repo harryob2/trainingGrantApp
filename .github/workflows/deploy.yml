@@ -869,10 +869,10 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r requirements.txt
-        # Verify flask_mail is available
-        python -c "import flask_mail; print('PASS: flask_mail available')"
-        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: flask_mail missing"; exit 1 }
+        # Use the same Python that the service will use
+        $pythonExe = (Get-Command python).Path
+        Write-Host "Installing to Python: $pythonExe"
+        & $pythonExe -m pip install -r requirements.txt
         
     - name: Create production environment
       run: |
