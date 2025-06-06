@@ -1164,8 +1164,8 @@ jobs:
       run: |
         Write-Host "Installing Seq logging server..."
         
-        $seqInstaller = "seq-2024.3.msi"
-        $seqUrl = "https://getseq.blob.core.windows.net/releases/Seq-2024.3.12581.msi"
+        $seqInstaller = "Seq-2025.1.14117.msi"
+        $seqUrl = "https://github.com/datalust/seq-releases/releases/download/v2025.1.14117/Seq-2025.1.14117.msi"
         $seqDataPath = "C:\ProgramData\Seq"
         
         # Check if Seq is already installed
