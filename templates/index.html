@@ -77,8 +77,8 @@
                 </div>
 
                 <div class="row">
-                    <!-- Training Catalog Search -->
-                    <div class="col-md-12 mb-4">
+                    <!-- Training Catalog Search (hidden if there are validation errors) -->
+                    <div class="col-md-12 mb-4 {% if not edit_mode and (form.errors or request.method == 'POST') %}d-none{% endif %}">
                         <label for="training_catalog_search_input" class="form-label">Search Training Catalog</label>
                         <div class="catalog-search-box">
                             <input type="text" id="training_catalog_search_input" class="form-control" placeholder="Type to search catalog by title or area...">
@@ -92,8 +92,8 @@
                         </div>
                     </div>
 
-                    <!-- Rest of the form (initially hidden) -->
-                    <div id="training-form-details" class="col-12 d-none">
+                    <!-- Rest of the form (initially hidden, unless there are validation errors) -->
+                    <div id="training-form-details" class="col-12 {% if not edit_mode and (form.errors or request.method == 'POST') %}{% else %}d-none{% endif %}">
                         <hr />
                         <div class="col-md-12 mb-3">
                             <h3 class="fs-5 form-section-title">Training Details</h3>

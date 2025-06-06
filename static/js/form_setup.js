@@ -36,10 +36,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const trainingFormDetails = document.getElementById("training-form-details");
     const addManuallyBtn = document.getElementById("add-manually-btn");
 
-    // Show form details immediately if in edit mode
-    if (isEditMode && trainingFormDetails) {
+    // Show form details immediately if in edit mode or if form has validation errors
+    if (trainingFormDetails && (isEditMode || !trainingFormDetails.classList.contains('d-none'))) {
         trainingFormDetails.classList.remove('d-none');
-        console.log('[FormSetup] Edit mode: showing form details immediately');
+        console.log('[FormSetup] Form details visible immediately (edit mode or validation errors)');
     }
 
     if (trainingCatalogSearchInput && document.getElementById(trainingCatalogSearchResultsDivId)) {

@@ -108,6 +108,35 @@ def RequiredIfExternal(message=None):
     return RequiredIf("training_type", "External Training", message)
 
 
+class SmartFloatField(FloatField):
+    """FloatField that handles empty strings gracefully by converting them to None"""
+    
+    def process_formdata(self, valuelist):
+        if valuelist:
+            # Convert empty strings to None before float conversion
+            if valuelist[0] == '' or valuelist[0] is None:
+                self.data = None
+                return
+        # Use parent's processing for non-empty values
+        super().process_formdata(valuelist)
+
+
+def ExternalTrainingField(message=None, min_value=0):
+    """Comprehensive validator for external training fields that handles requirement and range"""
+    def _validator(form, field):
+        if form.training_type.data == "External Training":
+            # Required for external training
+            if not field.data and field.data != 0:
+                raise ValidationError(message or f"This field is required for external training.")
+            # Must be non-negative if provided
+            if field.data is not None and field.data < min_value:
+                raise ValidationError(f"Value cannot be negative.")
+        # For internal training, clear the field to prevent validation issues
+        elif form.training_type.data == "Internal Training":
+            field.data = None
+    return _validator
+
+
 def RequiredIfInternal(message=None):
     """Validator that makes field required if training type is Internal Training"""
     return RequiredIf("training_type", "Internal Training", message)
@@ -223,13 +252,12 @@ class TrainingForm(FlaskForm):
         default=None,
         render_kw={"type": "number", "step": "0.1", "min": "0"},
     )
-    course_cost = FloatField(
+    course_cost = SmartFloatField(
         "Course Cost",
         validators=[
-            RequiredIfExternal("Course Cost is required for external training."),
-            NumberRange(min=0, message="Course Cost cannot be negative."),
+            ExternalTrainingField("Course Cost is required for external training.", min_value=0),
         ],
-        default=0,
+        default=None,
     )
     invoice_number = StringField(
         "Invoice Number",
@@ -373,17 +401,7 @@ class TrainingForm(FlaskForm):
         
         return data
 
-    def validate_course_cost(self, field):
-        """Validate that Course Cost is provided if required and not empty."""
-        if self.training_type.data == "External Training":
-            if field.data is None or str(field.data).strip() == "" or field.data < 0:
-                raise ValidationError(
-                    "Course Cost is required for external training and cannot be negative."
-                )
-        # For Internal Training, ensure the field has a valid default value
-        elif self.training_type.data == "Internal Training":
-            if field.data is None or str(field.data).strip() == "":
-                field.data = 0
+
 
 
 class InvoiceForm(FlaskForm):

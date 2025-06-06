@@ -110,7 +110,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function handleTrainingTypeChange() {
             const selectedTrainingType = form.elements["training_type"]?.value;
-            const courseCostField = document.getElementById("course_cost");
             
             // Check if there are any validation errors in the training details section
             const hasValidationErrors = trainingDetailsSection.querySelector('.text-danger');
@@ -129,9 +128,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 invoiceNumberContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
                 concurClaimContainer?.classList.toggle("d-none", selectedTrainingType !== "External Training");
                 
-                // Set course cost to 0 for Internal Training to prevent validation errors
-                if (selectedTrainingType === "Internal Training" && courseCostField) {
-                    courseCostField.value = "0";
+                // Clear course cost when switching to internal training to prevent client-side validation issues
+                if (selectedTrainingType === "Internal Training") {
+                    const courseCostField = document.getElementById("course_cost");
+                    if (courseCostField && courseCostField.value) {
+                        // Use currency function if available, otherwise clear directly
+                        if (window.setCurrencyValue) {
+                            window.setCurrencyValue(courseCostField, "");
+                        } else {
+                            courseCostField.value = "";
+                        }
+                    }
                 }
             }
         }
