@@ -84,6 +84,16 @@ class TravelExpensesManager {
             });
         }
 
+        // Concur claim number field
+        const concurClaimField = document.getElementById('concur_claim_number');
+        if (concurClaimField) {
+            concurClaimField.addEventListener('input', () => {
+                if (concurClaimField.value.trim()) {
+                    this.clearFieldErrors(concurClaimField, 'concur_claim_number');
+                }
+            });
+        }
+
         // Travel mode radio buttons
         const travelModeInputs = document.querySelectorAll('input[name="travel_mode"]');
         travelModeInputs.forEach(input => {
@@ -138,6 +148,9 @@ class TravelExpensesManager {
                 break;
             case 'destination':
                 errorTextToRemove = ['Destination is required'];
+                break;
+            case 'concur_claim_number':
+                errorTextToRemove = ['Concur claim number is required'];
                 break;
             case 'travelers':
                 errorTextToRemove = ['Please select at least one traveler'];
@@ -253,6 +266,12 @@ class TravelExpensesManager {
         const destination = document.getElementById('destination').value.trim();
         if (!destination) {
             errors.push({ field: 'destination', message: 'Destination is required' });
+        }
+
+        // Concur claim number validation
+        const concurClaimNumber = document.getElementById('concur_claim_number').value.trim();
+        if (!concurClaimNumber) {
+            errors.push({ field: 'concur_claim_number', message: 'Concur claim number is required' });
         }
 
         // Traveler validation (multiple selection)
@@ -428,6 +447,7 @@ class TravelExpensesManager {
                     travel_mode: expense.travel_mode,
                     cost: expense.cost,
                     distance_km: expense.distance_km,
+                    concur_claim_number: expense.concur_claim_number,
                     travelers: []
                 };
             }
@@ -529,6 +549,7 @@ class TravelExpensesManager {
         // Populate form fields
         document.getElementById('travel_date').value = expense.travel_date;
         document.getElementById('destination').value = expense.destination;
+        document.getElementById('concur_claim_number').value = expense.concur_claim_number || '';
         
         // Set traveler selections (multiple travelers)
         const travelers = expense.travelers || [];
@@ -653,6 +674,7 @@ class TravelExpensesManager {
         const expense = {
             travel_date: document.getElementById('travel_date').value,
             destination: document.getElementById('destination').value.trim(),
+            concur_claim_number: document.getElementById('concur_claim_number').value.trim(),
             travelers: selectedTravelers,
             travel_mode: travelMode,
             cost: travelMode === 'mileage' ? null : this.getCostValue(),
@@ -710,6 +732,7 @@ class TravelExpensesManager {
                         <tr>
                             <th>Date</th>
                             <th>Destination</th>
+                            <th>Concur Claim</th>
                             <th>Travelers</th>
                             <th>Mode</th>
                             <th>Distance/Cost</th>
@@ -746,6 +769,7 @@ class TravelExpensesManager {
             <tr>
                 <td>${formattedDate}</td>
                 <td>${expense.destination}</td>
+                <td>${expense.concur_claim_number || '-'}</td>
                 <td>${travelersList}</td>
                 <td>${modeDisplay}</td>
                 <td>${distanceDisplay}</td>
@@ -768,16 +792,17 @@ class TravelExpensesManager {
         // Convert the format to be compatible with backend processing
         const formattedExpenses = this.travelExpenses.map(expense => {
             // Create separate entries for each traveler
-            return expense.travelers.map(traveler => ({
-                travel_date: expense.travel_date,
-                destination: expense.destination,
-                traveler_type: traveler.traveler_type,
-                traveler_email: traveler.traveler_email,
-                traveler_name: traveler.traveler_name,
-                travel_mode: expense.travel_mode,
-                cost: expense.cost,
-                distance_km: expense.distance_km
-            }));
+                            return expense.travelers.map(traveler => ({
+                    travel_date: expense.travel_date,
+                    destination: expense.destination,
+                    concur_claim_number: expense.concur_claim_number,
+                    traveler_type: traveler.traveler_type,
+                    traveler_email: traveler.traveler_email,
+                    traveler_name: traveler.traveler_name,
+                    travel_mode: expense.travel_mode,
+                    cost: expense.cost,
+                    distance_km: expense.distance_km
+                }));
         }).flat(); // Flatten the array
 
         let hiddenField = document.getElementById('travel_expenses_data');
@@ -831,6 +856,10 @@ class TravelExpensesManager {
                 const field = document.getElementById('destination');
                 if (field) field.classList.add('is-invalid');
             }
+            if (error.includes('Concur claim number')) {
+                const field = document.getElementById('concur_claim_number');
+                if (field) field.classList.add('is-invalid');
+            }
             if (error.includes('select at least one traveler')) {
                 const checkboxContainer = document.getElementById('traveler-checkboxes');
                 if (checkboxContainer) checkboxContainer.classList.add('is-invalid');
@@ -855,7 +884,7 @@ class TravelExpensesManager {
 
     clearAllHighlighting() {
         // Clear highlighting from regular input fields
-        const fields = ['travel_date', 'destination', 'cost', 'distance_km'];
+        const fields = ['travel_date', 'destination', 'concur_claim_number', 'cost', 'distance_km'];
         fields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) field.classList.remove('is-invalid');

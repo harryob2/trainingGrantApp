@@ -167,6 +167,7 @@ content %}
                 <tr>
                   <th>Date</th>
                   <th>Destination</th>
+                  <th>Concur Claim</th>
                   <th>Traveler</th>
                   <th>Mode</th>
                   <th>Distance/Cost</th>
@@ -177,6 +178,7 @@ content %}
                 <tr>
                   <td>{{ expense.travel_date }}</td>
                   <td>{{ expense.destination }}</td>
+                  <td>{{ expense.concur_claim_number or '-' }}</td>
                   <td>
                     <strong>{{ expense.traveler_name }}</strong>
                     <small class="text-muted d-block">({{ expense.traveler_type.title() }})</small>
@@ -220,6 +222,7 @@ content %}
                   <th>Supplier</th>
                   <th>Invoice Number</th>
                   <th>Cost (excl. VAT)</th>
+                  <th>Concur Claim</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,6 +232,7 @@ content %}
                   <td>{{ expense.supplier_name }}</td>
                   <td>{{ expense.invoice_number }}</td>
                   <td>€{{ "%.2f"|format(expense.material_cost) }}</td>
+                  <td>{{ expense.concur_claim_number or '-' }}</td>
                 </tr>
                 {% endfor %}
               </tbody>

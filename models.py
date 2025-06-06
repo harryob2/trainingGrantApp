@@ -240,6 +240,7 @@ class TravelExpense(Base):
     travel_mode = Column(String(255), nullable=False)  # 'mileage', 'rail', 'economy_flight'
     cost = Column(Float)  # for rail/flight
     distance_km = Column(Float)  # for mileage
+    concur_claim_number = Column(String(255))  # Concur claim number for this expense
     created_at = Column(DateTime, default=func.now())
     training_form = relationship("TrainingForm", back_populates="travel_expenses")
 
@@ -256,6 +257,7 @@ class TravelExpense(Base):
             "travel_mode": self.travel_mode,
             "cost": float(self.cost) if self.cost else None,
             "distance_km": float(self.distance_km) if self.distance_km else None,
+            "concur_claim_number": self.concur_claim_number,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -270,6 +272,7 @@ class MaterialExpense(Base):
     supplier_name = Column(String(255), nullable=False)
     invoice_number = Column(String(255), nullable=False)
     material_cost = Column(Float, nullable=False)
+    concur_claim_number = Column(String(255))  # Concur claim number for this expense
     created_at = Column(DateTime, default=func.now())
     training_form = relationship("TrainingForm", back_populates="material_expenses")
 
@@ -282,6 +285,7 @@ class MaterialExpense(Base):
             "supplier_name": self.supplier_name,
             "invoice_number": self.invoice_number,
             "material_cost": float(self.material_cost) if self.material_cost else None,
+            "concur_claim_number": self.concur_claim_number,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -554,6 +558,7 @@ def insert_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, An
                     travel_mode=expense_data["travel_mode"],
                     cost=expense_data.get("cost"),
                     distance_km=expense_data.get("distance_km"),
+                    concur_claim_number=expense_data.get("concur_claim_number"),
                 )
                 session.add(expense)
         return True
@@ -581,6 +586,7 @@ def update_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, An
                     travel_mode=expense_data["travel_mode"],
                     cost=expense_data.get("cost"),
                     distance_km=expense_data.get("distance_km"),
+                    concur_claim_number=expense_data.get("concur_claim_number"),
                 )
                 session.add(expense)
         return True
@@ -623,6 +629,7 @@ def insert_material_expenses(form_id: int, material_expenses_data: List[Dict[str
                     supplier_name=expense_data["supplier_name"],
                     invoice_number=expense_data["invoice_number"],
                     material_cost=expense_data["material_cost"],
+                    concur_claim_number=expense_data.get("concur_claim_number"),
                 )
                 session.add(expense)
         return True
@@ -646,6 +653,7 @@ def update_material_expenses(form_id: int, material_expenses_data: List[Dict[str
                     supplier_name=expense_data["supplier_name"],
                     invoice_number=expense_data["invoice_number"],
                     material_cost=expense_data["material_cost"],
+                    concur_claim_number=expense_data.get("concur_claim_number"),
                 )
                 session.add(expense)
         return True

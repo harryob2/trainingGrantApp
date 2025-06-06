@@ -67,7 +67,8 @@ class MaterialExpensesManager {
             'material_purchase_date',
             'material_supplier_name', 
             'material_invoice_number',
-            'material_cost'
+            'material_cost',
+            'material_concur_claim_number'
         ];
 
         modalFields.forEach(fieldId => {
@@ -107,6 +108,9 @@ class MaterialExpensesManager {
                 break;
             case 'material_cost':
                 errorTextToRemove = ['Material cost is required and must be greater than 0'];
+                break;
+            case 'material_concur_claim_number':
+                errorTextToRemove = ['Concur claim number is required'];
                 break;
         }
         
@@ -207,6 +211,7 @@ class MaterialExpensesManager {
         document.getElementById('material_supplier_name').value = expense.supplier_name;
         document.getElementById('material_invoice_number').value = expense.invoice_number;
         document.getElementById('material_cost').value = expense.material_cost;
+        document.getElementById('material_concur_claim_number').value = expense.concur_claim_number || '';
     }
 
     resetModal() {
@@ -218,7 +223,7 @@ class MaterialExpensesManager {
         errorMessages.forEach(msg => msg.remove());
 
         // Clear any error styling from fields
-        const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost'];
+        const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost', 'material_concur_claim_number'];
         allFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) {
@@ -274,6 +279,12 @@ class MaterialExpensesManager {
             errors.push('Material cost is required and must be greater than 0');
         }
 
+        // Concur claim number validation
+        const concurClaimNumber = document.getElementById('material_concur_claim_number').value.trim();
+        if (!concurClaimNumber) {
+            errors.push('Concur claim number is required');
+        }
+
         return errors;
     }
 
@@ -289,7 +300,8 @@ class MaterialExpensesManager {
             purchase_date: document.getElementById('material_purchase_date').value,
             supplier_name: document.getElementById('material_supplier_name').value.trim(),
             invoice_number: document.getElementById('material_invoice_number').value.trim(),
-            material_cost: this.getCostValue()
+            material_cost: this.getCostValue(),
+            concur_claim_number: document.getElementById('material_concur_claim_number').value.trim()
         };
 
         // Add or update expense
@@ -336,7 +348,7 @@ class MaterialExpensesManager {
 
     highlightErrorFields(errors) {
         // Clear all previous error styling first
-        const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost'];
+        const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost', 'material_concur_claim_number'];
         allFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) {
@@ -362,6 +374,10 @@ class MaterialExpensesManager {
                 const field = document.getElementById('material_cost');
                 if (field) field.classList.add('is-invalid');
             }
+            if (error.includes('Concur claim number')) {
+                const field = document.getElementById('material_concur_claim_number');
+                if (field) field.classList.add('is-invalid');
+            }
         });
     }
 
@@ -370,7 +386,7 @@ class MaterialExpensesManager {
         const errorContainer = this.modal.querySelector('.validation-error');
         if (!errorContainer) {
             // No errors, clear all highlighting
-            const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost'];
+            const allFields = ['material_purchase_date', 'material_supplier_name', 'material_invoice_number', 'material_cost', 'material_concur_claim_number'];
             allFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) field.classList.remove('is-invalid');
@@ -423,6 +439,7 @@ class MaterialExpensesManager {
                             <th>Supplier</th>
                             <th>Invoice Number</th>
                             <th>Cost (excl. VAT)</th>
+                            <th>Concur Claim</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -444,6 +461,7 @@ class MaterialExpensesManager {
                 <td>${expense.supplier_name}</td>
                 <td>${expense.invoice_number}</td>
                 <td>€${expense.material_cost.toFixed(2)}</td>
+                <td>${expense.concur_claim_number || '-'}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-primary me-1" 
                             onclick="materialExpensesManager.openModal(${index})" title="Edit">
