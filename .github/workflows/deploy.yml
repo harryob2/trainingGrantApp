@@ -142,7 +142,6 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     name: Deploy to Development (Local)
-    environment: development
     
     steps:
     - name: Pre-cleanup workspace
@@ -1159,6 +1158,93 @@ jobs:
             Write-Host "WARNING: Failed to install maintenance task"
             Write-Host "Install manually: manage_app.bat maintenance-install"
         }
+      shell: powershell
+        
+    - name: Install and configure Seq logging server
+      run: |
+        Write-Host "Installing Seq logging server..."
+        
+        $seqInstaller = "seq-2024.3.msi"
+        $seqUrl = "https://getseq.blob.core.windows.net/releases/Seq-2024.3.12581.msi"
+        $seqDataPath = "C:\ProgramData\Seq"
+        
+        # Check if Seq is already installed
+        $seqService = Get-Service -Name "Seq" -ErrorAction SilentlyContinue
+        if ($seqService) {
+            Write-Host "Seq is already installed, skipping installation"
+        } else {
+            # Download Seq installer
+            Write-Host "Downloading Seq installer..."
+            try {
+                Invoke-WebRequest -Uri $seqUrl -OutFile $seqInstaller -UseBasicParsing
+                Write-Host "Download complete"
+            } catch {
+                Write-Host "WARNING: Failed to download Seq installer: $_"
+                Write-Host "Seq logging will not be available"
+                return
+            }
+            
+            # Install Seq
+            Write-Host "Installing Seq..."
+            try {
+                # Install silently with default settings
+                $msiArgs = @(
+                    "/i", $seqInstaller,
+                    "/quiet",
+                    "/norestart",
+                    "INSTALLFOLDER=`"C:\Program Files\Seq`"",
+                    "DATADIR=`"$seqDataPath`""
+                )
+                
+                $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
+                
+                if ($process.ExitCode -eq 0) {
+                    Write-Host "Seq installed successfully"
+                } else {
+                    Write-Host "WARNING: Seq installation failed with exit code: $($process.ExitCode)"
+                    return
+                }
+                
+                # Clean up installer
+                Remove-Item $seqInstaller -Force -ErrorAction SilentlyContinue
+                
+            } catch {
+                Write-Host "WARNING: Failed to install Seq: $_"
+                return
+            }
+        }
+        
+        # Configure Seq
+        Write-Host "Configuring Seq..."
+        
+        # Set retention policy (180 days)
+        & "C:\Program Files\Seq\seq.exe" config set -k retentionPolicy -v "180.00:00:00" 2>$null
+        
+        # Disable authentication for easy access
+        & "C:\Program Files\Seq\seq.exe" config set -k api.requireAuthenticationForHttpIngestion -v false 2>$null
+        
+        # Start Seq service
+        $seqService = Get-Service -Name "Seq" -ErrorAction SilentlyContinue
+        if ($seqService) {
+            if ($seqService.Status -ne "Running") {
+                Start-Service -Name "Seq"
+                Write-Host "Seq service started"
+            } else {
+                Write-Host "Seq service is already running"
+            }
+        }
+        
+        # Configure firewall for Seq web interface
+        try {
+            Remove-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -ErrorAction SilentlyContinue
+            New-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -Direction Inbound -Protocol TCP -LocalPort 5341 -Action Allow -Profile Any
+            Write-Host "Firewall configured for Seq web interface on port 5341"
+        } catch {
+            Write-Host "WARNING: Could not configure firewall for Seq"
+        }
+        
+        Write-Host "Seq installation complete - Web interface: http://localhost:5341"
+        Write-Host "Python apps can now send logs to: http://localhost:5341"
       shell: powershell
         
     - name: Verify production deployment

@@ -17,6 +17,7 @@ function Install-MaintenanceTask {
     # Get paths
     $pythonExe = (Get-Command python).Path
     $scriptPath = Join-Path (Get-Location) "scripts\maintenance.py"
+    $workingDir = Get-Location
     
     # Verify script exists
     if (-not (Test-Path $scriptPath)) {
@@ -24,17 +25,24 @@ function Install-MaintenanceTask {
         exit 1
     }
     
-    # Create task
-    $action = New-ScheduledTaskAction -Execute $pythonExe -Argument "`"$scriptPath`"" -WorkingDirectory (Get-Location)
+    # Create logs directory if it doesn't exist
+    $logsDir = Join-Path (Get-Location) "logs"
+    if (-not (Test-Path $logsDir)) {
+        New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    }
+    
+    # Create task with proper environment and logging
+    $action = New-ScheduledTaskAction -Execute $pythonExe -Argument "`"$scriptPath`"" -WorkingDirectory $workingDir
     $trigger = New-ScheduledTaskTrigger -Daily -At "03:00"
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -StartWhenAvailable
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 1)
     $principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     
     # Register task
-    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Daily maintenance at 3:00 AM"
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Daily maintenance at 3:00 AM with file logging"
     
     Write-Host "Maintenance task installed successfully" -ForegroundColor Green
     Write-Host "Will run daily at 3:00 AM"
+    Write-Host "Logs will be saved to: $logsDir\maintenance.log"
 }
 
 function Get-MaintenanceStatus {

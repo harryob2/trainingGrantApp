@@ -50,8 +50,8 @@ from lookups import get_lookup_data
 from utils import get_quarter
 from email_utils import init_mail, send_form_submission_notification
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Import our new logging configuration
+from logging_config import setup_logging, get_logger
 
 # Create and configure the Flask application
 app = Flask(__name__)
@@ -61,6 +61,12 @@ app.config.from_pyfile("config.py")
 
 # Set the secret key for CSRF protection
 app.secret_key = app.config["SECRET_KEY"]
+
+# Initialize centralized logging
+setup_logging(app)
+
+# Get logger for this module
+logger = get_logger(__name__)
 
 # Initialize authentication
 init_auth(app)
@@ -157,7 +163,14 @@ def login():
         if user:
             # Log the user in
             login_user(user)
-            logging.info(f"User {username} logged in successfully")
+            logger.info(
+                "User login successful",
+                extra={
+                    "user": username,
+                    "ip_address": request.remote_addr,
+                    "user_agent": str(request.user_agent)
+                }
+            )
 
             # Redirect to the requested page or the index
             next_page = request.args.get("next")
@@ -166,7 +179,14 @@ def login():
             return redirect(url_for("index"))
 
         # If we get here, authentication failed (flash messages set in authenticate_user)
-        logging.warning(f"Failed login attempt for {username}")
+        logger.warning(
+            "Failed login attempt",
+            extra={
+                "user": username,
+                "ip_address": request.remote_addr,
+                "user_agent": str(request.user_agent)
+            }
+        )
 
     return render_template("login.html", form=form)
 
@@ -269,6 +289,19 @@ def submit_form():
 
             # Insert the form data into the database
             form_id = insert_training_form(form_data)
+            
+            # Log form submission
+            logger.info(
+                "Training form submitted",
+                extra={
+                    "form_id": form_id,
+                    "submitter": current_user.email,
+                    "training_type": form_data.get("training_type"),
+                    "training_name": form_data.get("training_name"),
+                    "start_date": str(form_data.get("start_date")),
+                    "end_date": str(form_data.get("end_date"))
+                }
+            )
 
             # Create a unique folder for attachments
             unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
@@ -307,9 +340,17 @@ def submit_form():
                     travel_expenses = json.loads(travel_expenses_data)
                     if travel_expenses and isinstance(travel_expenses, list):
                         insert_travel_expenses(form_id, travel_expenses)
-                        logging.info(f"Inserted {len(travel_expenses)} travel expenses for form {form_id}")
+                        logger.info(f"Inserted {len(travel_expenses)} travel expenses for form {form_id}")
                 except (json.JSONDecodeError, Exception) as e:
-                    logging.error(f"Error processing travel expenses: {e}")
+                    logger.error(
+                        "Error processing travel expenses",
+                        extra={
+                            "form_id": form_id,
+                            "error": str(e),
+                            "submitter": current_user.email
+                        },
+                        exc_info=True
+                    )
                     # Don't fail the form submission for travel expense errors
                     flash("Warning: There was an issue processing travel expenses, but the form was submitted successfully.", "warning")
 
@@ -321,9 +362,17 @@ def submit_form():
                     material_expenses = json.loads(material_expenses_data)
                     if material_expenses and isinstance(material_expenses, list):
                         insert_material_expenses(form_id, material_expenses)
-                        logging.info(f"Inserted {len(material_expenses)} material expenses for form {form_id}")
+                        logger.info(f"Inserted {len(material_expenses)} material expenses for form {form_id}")
                 except (json.JSONDecodeError, Exception) as e:
-                    logging.error(f"Error processing material expenses: {e}")
+                    logger.error(
+                        "Error processing material expenses",
+                        extra={
+                            "form_id": form_id,
+                            "error": str(e),
+                            "submitter": current_user.email
+                        },
+                        exc_info=True
+                    )
                     # Don't fail the form submission for material expense errors
                     flash("Warning: There was an issue processing material expenses, but the form was submitted successfully.", "warning")
 
@@ -335,9 +384,17 @@ def submit_form():
                     trainees = json.loads(trainees_data)
                     if trainees and isinstance(trainees, list):
                         insert_trainees(form_id, trainees)
-                        logging.info(f"Inserted {len(trainees)} trainees for form {form_id}")
+                        logger.info(f"Inserted {len(trainees)} trainees for form {form_id}")
                 except (json.JSONDecodeError, Exception) as e:
-                    logging.error(f"Error processing trainees: {e}")
+                    logger.error(
+                        "Error processing trainees",
+                        extra={
+                            "form_id": form_id,
+                            "error": str(e),
+                            "submitter": current_user.email
+                        },
+                        exc_info=True
+                    )
                     # Don't fail the form submission for trainee errors
                     flash("Warning: There was an issue processing trainees, but the form was submitted successfully.", "warning")
 
@@ -345,13 +402,28 @@ def submit_form():
             try:
                 send_form_submission_notification(form_id, form_data, current_user.email)
             except Exception as e:
-                logging.error(f"Failed to send email notification for form {form_id}: {e}")
+                logger.error(
+                    "Failed to send email notification",
+                    extra={
+                        "form_id": form_id,
+                        "error": str(e),
+                        "submitter": current_user.email
+                    },
+                    exc_info=True
+                )
                 # Don't fail the form submission if email fails
 
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))
         except Exception as e:
-            logging.error(f"Error processing form submission: {e}", exc_info=True)
+            logger.error(
+                "Error processing form submission",
+                extra={
+                    "submitter": current_user.email,
+                    "error": str(e)
+                },
+                exc_info=True
+            )
             flash(
                 "An error occurred while submitting the form. Please try again.",
                 "danger",
@@ -406,8 +478,20 @@ def approve_training(form_id):
     with db_session() as session:
         form = session.query(TrainingForm).filter_by(id=form_id).first()
         if form:
-            form.approved = not bool(form.approved)
+            was_approved = bool(form.approved)
+            form.approved = not was_approved
             session.flush()
+            
+            # Log approval action
+            logger.info(
+                "Form approval status changed",
+                extra={
+                    "form_id": form_id,
+                    "admin": current_user.email,
+                    "action": "approved" if not was_approved else "unapproved",
+                    "new_status": not was_approved
+                }
+            )
 
     # If htmx request for row update in list
     if request.args.get("row") == "1":
@@ -452,6 +536,15 @@ def delete_training_form(form_id):
     
     # Perform soft delete
     if soft_delete_training_form(form_id):
+        logger.warning(
+            "Training form deleted",
+            extra={
+                "form_id": form_id,
+                "deleted_by": current_user.email,
+                "is_admin": is_admin_user(current_user),
+                "original_submitter": form_data.get("submitter")
+            }
+        )
         flash("Training form has been deleted successfully", "success")
         # Redirect to appropriate list based on user role
         if is_admin_user(current_user):
@@ -459,6 +552,13 @@ def delete_training_form(form_id):
         else:
             return redirect(url_for("my_submissions"))
     else:
+        logger.error(
+            "Error deleting training form",
+            extra={
+                "form_id": form_id,
+                "attempted_by": current_user.email
+            }
+        )
         flash("Error deleting training form", "danger")
         return redirect(url_for("view_form", form_id=form_id))
 
@@ -480,6 +580,15 @@ def recover_training_form_route(form_id):
     
     # Perform recovery
     if recover_training_form(form_id):
+        logger.info(
+            "Training form recovered",
+            extra={
+                "form_id": form_id,
+                "recovered_by": current_user.email,
+                "is_admin": is_admin_user(current_user),
+                "original_submitter": form_data.get("submitter")
+            }
+        )
         flash("Training form has been recovered successfully", "success")
         # Redirect to appropriate list based on user role
         if is_admin_user(current_user):
@@ -487,6 +596,13 @@ def recover_training_form_route(form_id):
         else:
             return redirect(url_for("my_submissions"))
     else:
+        logger.error(
+            "Error recovering training form",
+            extra={
+                "form_id": form_id,
+                "attempted_by": current_user.email
+            }
+        )
         flash("Error recovering training form", "danger")
         return redirect(url_for("view_form", form_id=form_id))
 

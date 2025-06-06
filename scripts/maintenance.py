@@ -9,6 +9,7 @@ import os
 import sys
 import shutil
 import subprocess
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -16,10 +17,35 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+except ImportError:
+    # dotenv not available, continue without it
+    pass
+
+# Configure file logging
+log_dir = project_root / "logs"
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / "maintenance.log"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler(sys.stdout)  # Also log to console for manual runs
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
 def log(message):
-    """Simple logging"""
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{timestamp}] {message}")
+    """Log message both to file and console"""
+    logger.info(message)
 
 def should_run():
     """Only run in production"""
@@ -53,16 +79,26 @@ def backup_database():
             log("SQLite database file not found")
     else:
         # MariaDB backup
+        db_host = os.environ.get("DB_HOST")
+        db_name = os.environ.get("DB_NAME")
+        db_user = os.environ.get("DB_USER")
+        db_password = os.environ.get("DB_PASSWORD")
+        
+        # Check that all required environment variables are set
+        if not all([db_host, db_name, db_user, db_password]):
+            log("ERROR: Missing MariaDB environment variables (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)")
+            return False
+        
         backup_file = backup_dir / f"backup_{timestamp}.sql"
         
         cmd = [
             'mysqldump',
-            f'--host={os.environ.get("DB_HOST")}',
+            f'--host={db_host}',
             f'--port={os.environ.get("DB_PORT", "3306")}',
-            f'--user={os.environ.get("DB_USER")}',
-            f'--password={os.environ.get("DB_PASSWORD")}',
+            f'--user={db_user}',
+            f'--password={db_password}',
             '--single-transaction',
-            os.environ.get("DB_NAME")
+            db_name
         ]
         
         try:
