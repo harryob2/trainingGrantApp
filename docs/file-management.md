@@ -181,11 +181,34 @@ unique_filename = f"{timestamp}_{secure_filename(original_filename)}"
 ### File Path Management
 
 #### Upload Folder Configuration
-```python
-# Development configuration
-UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
 
-# Production configuration (network storage)
+The application uses environment-specific upload folders to prevent deployment issues:
+
+```python
+# Environment-specific configuration (config.py)
+FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
+
+if FLASK_ENV == 'production':
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppFormUploads")
+else:
+    # Development and staging use local uploads folder
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))
+```
+
+**Environment-specific paths**:
+- **Development**: `uploads/` (local folder within project)
+- **Staging**: `uploads_staging/` (local folder for testing)
+- **Production**: `c:/TrainingAppFormUploads/` (dedicated folder outside project)
+
+**Key Benefits**:
+- Prevents production deployments from overwriting uploaded files
+- Development files stay local and don't interfere with deployments
+- Clean separation between environments
+- No risk of losing uploaded attachments during deployments
+
+**Legacy Network Storage Configuration**:
+```python
+# Production network storage (if using network shares)
 NETWORK_STORAGE_PATH = "\\\\strykercorp.com\\lim\\Engineering_DOG\\5. Automation & Controls\\01. Projects\\Training Form Invoices"
 ```
 

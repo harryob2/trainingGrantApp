@@ -8,9 +8,23 @@ This guide covers the GitHub Actions deployment pipeline and database migration 
 
 The deployment pipeline follows a three-tier approach:
 
-1. **Development** (Local): SQLite-based development environment on your local machine
-2. **Staging** (Server): MariaDB-based staging environment that mirrors production for testing
-3. **Production** (Server): MariaDB-based production environment for live application
+1. **Development** (Local): SQLite-based development environment on your local machine with local `uploads/` folder
+2. **Staging** (Server): MariaDB-based staging environment that mirrors production for testing with local `uploads_staging/` folder
+3. **Production** (Server): MariaDB-based production environment for live application with dedicated `c:/TrainingAppFormUploads/` folder
+
+### Upload Folder Strategy
+
+The application uses environment-specific upload folders to prevent deployment issues:
+
+- **Development**: Uses local `uploads/` folder within the project directory
+- **Staging**: Uses local `uploads_staging/` folder for testing
+- **Production**: Uses dedicated `c:/TrainingAppFormUploads/` folder outside the project directory
+
+**Key Benefits**:
+- Prevents production deployments from overwriting uploaded files
+- Development files stay local and don't interfere with deployments
+- Clean separation between environments
+- No risk of losing uploaded attachments during deployments
 
 ### Deployment Flow
 
@@ -565,6 +579,7 @@ python main.py
 DEBUG=True
 USE_SQLITE=True
 DB_PATH=training_forms.db
+UPLOAD_FOLDER=uploads
 FLASK_ENV=development
 ```
 
@@ -575,6 +590,7 @@ USE_SQLITE=False
 DB_HOST=azulimpbi01
 DB_NAME=training_tool_staging
 DB_USER=training_staging
+UPLOAD_FOLDER=uploads_staging
 FLASK_ENV=staging
 ```
 
@@ -585,6 +601,7 @@ USE_SQLITE=False
 DB_HOST=azulimpbi01
 DB_NAME=training_tool
 DB_USER=training_app
+UPLOAD_FOLDER=c:/TrainingAppFormUploads
 FLASK_ENV=production
 ```
 

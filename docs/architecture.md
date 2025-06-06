@@ -205,8 +205,11 @@ LDAP Integration
 └── Corporate LDAP Server
 
 File System
-├── Form-specific Storage Organization
-└── Network Storage (Production)
+├── Environment-Specific Storage Organization
+│   ├── Development: Local uploads/ folder
+│   ├── Staging: Local uploads_staging/ folder
+│   └── Production: Dedicated c:/TrainingAppFormUploads/ folder
+└── Network Storage (Legacy)
 
 Frontend Enhancements
 ├── Bootstrap 5 (UI Framework)
@@ -256,7 +259,8 @@ Frontend Enhancements
 - **Delete Status Filtering**: **NEW**: Filter forms by delete status (not deleted, deleted, all)
 
 ### 3. Enhanced File Management
-- **Form-Specific Organization**: Files organized by form ID
+- **Environment-Specific Storage**: Different upload folders per environment to prevent deployment conflicts
+- **Form-Specific Organization**: Files organized by form ID within each environment
 - **Metadata Tracking**: File descriptions and attachment details
 - **Secure Access Control**: User-based file access permissions
 - **Enhanced Export**: Multi-worksheet Excel exports with complete data
@@ -277,7 +281,7 @@ Frontend Enhancements
 
 ### Production Scalability Features
 - **MariaDB Database**: Dedicated database server with relationship support
-- **Network File Storage**: Centralized file management with form organization
+- **Environment-Specific File Storage**: Dedicated production folder outside project directory
 - **LDAP Integration**: Centralized authentication
 - **Stateless Design**: Session data stored externally
 

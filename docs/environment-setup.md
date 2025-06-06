@@ -35,6 +35,21 @@ cp env.example .env.production
 
 ## Environment Configuration
 
+### Upload Folder Configuration
+
+The application uses environment-specific upload folders to prevent deployment issues:
+
+- **Development**: Uses local `uploads/` folder within the project directory
+- **Production**: Uses dedicated `c:/TrainingAppFormUploads/` folder outside the project
+
+This design prevents production deployments from overwriting uploaded files, as the local development `uploads/` folder is excluded from git (via `.gitignore`) and won't affect production storage.
+
+**Key Benefits**:
+- Development files stay local and don't interfere with deployments
+- Production files are preserved outside the project directory
+- No risk of losing uploaded attachments during deployments
+- Clean separation between environments
+
 ### Development Environment (.env.development)
 
 ```bash
@@ -46,7 +61,8 @@ SECRET_KEY=dev-secret-key-change-for-production
 USE_SQLITE=True
 DB_PATH=training_forms.db
 
-# File upload settings
+# File upload settings (Environment-specific)
+# Development: Local uploads folder within project
 UPLOAD_FOLDER=uploads
 
 # LDAP Configuration
@@ -75,8 +91,9 @@ DB_NAME=training_tool
 DB_USER=admin
 DB_PASSWORD=your-secure-password
 
-# File upload settings
-UPLOAD_FOLDER=uploads
+# File upload settings (Environment-specific)
+# Production: Dedicated folder outside project directory
+UPLOAD_FOLDER=c:/TrainingAppFormUploads
 NETWORK_STORAGE_PATH=\\strykercorp.com\lim\Engineering_DOG\5. Automation & Controls\01. Projects\Training Form Invoices
 
 # LDAP Configuration
@@ -89,6 +106,8 @@ LDAP_USE_SSL=False
 # Environment
 FLASK_ENV=production
 ```
+
+## Environment specific settings
 
 ## Database Setup
 
