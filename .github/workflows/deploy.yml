@@ -1169,17 +1169,15 @@ jobs:
         if ($seqService) {
             Write-Host "Seq found - configuring..."
             
-            # Configure Seq settings
+            # Check Seq configuration
             try {
-                # Set retention policy (180 days)
-                & "C:\Program Files\Seq\seq.exe" config set -k retentionPolicy -v "180.00:00:00" 2>$null
+                # Check authentication setting (should already be false)
+                $authSetting = & "C:\Program Files\Seq\seq.exe" config show -k firstRun.requireAuthenticationForHttpIngestion 2>$null
+                Write-Host "Authentication required for ingestion: $authSetting"
                 
-                # Disable authentication for easy access
-                & "C:\Program Files\Seq\seq.exe" config set -k api.requireAuthenticationForHttpIngestion -v false 2>$null
-                
-                Write-Host "Seq configuration updated"
+                Write-Host "Seq configuration verified"
             } catch {
-                Write-Host "WARNING: Could not configure Seq settings: $_"
+                Write-Host "WARNING: Could not check Seq settings: $_"
             }
             
             # Start Seq service
