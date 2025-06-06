@@ -1160,91 +1160,54 @@ jobs:
         }
       shell: powershell
         
-    - name: Install and configure Seq logging server
+    - name: Configure Seq logging server (if installed)
       run: |
-        Write-Host "Installing Seq logging server..."
+        Write-Host "Checking for Seq logging server..."
         
-        $seqInstaller = "Seq-2025.1.14117.msi"
-        $seqUrl = "https://github.com/datalust/seq-releases/releases/download/v2025.1.14117/Seq-2025.1.14117.msi"
-        $seqDataPath = "C:\ProgramData\Seq"
-        
-        # Check if Seq is already installed
+        # Check if Seq is installed
         $seqService = Get-Service -Name "Seq" -ErrorAction SilentlyContinue
         if ($seqService) {
-            Write-Host "Seq is already installed, skipping installation"
-        } else {
-            # Download Seq installer
-            Write-Host "Downloading Seq installer..."
+            Write-Host "Seq found - configuring..."
+            
+            # Configure Seq settings
             try {
-                Invoke-WebRequest -Uri $seqUrl -OutFile $seqInstaller -UseBasicParsing
-                Write-Host "Download complete"
+                # Set retention policy (180 days)
+                & "C:\Program Files\Seq\seq.exe" config set -k retentionPolicy -v "180.00:00:00" 2>$null
+                
+                # Disable authentication for easy access
+                & "C:\Program Files\Seq\seq.exe" config set -k api.requireAuthenticationForHttpIngestion -v false 2>$null
+                
+                Write-Host "Seq configuration updated"
             } catch {
-                Write-Host "WARNING: Failed to download Seq installer: $_"
-                Write-Host "Seq logging will not be available"
-                return
+                Write-Host "WARNING: Could not configure Seq settings: $_"
             }
             
-            # Install Seq
-            Write-Host "Installing Seq..."
-            try {
-                # Install silently with default settings
-                $msiArgs = @(
-                    "/i", $seqInstaller,
-                    "/quiet",
-                    "/norestart",
-                    "INSTALLFOLDER=`"C:\Program Files\Seq`"",
-                    "DATADIR=`"$seqDataPath`""
-                )
-                
-                $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
-                
-                if ($process.ExitCode -eq 0) {
-                    Write-Host "Seq installed successfully"
-                } else {
-                    Write-Host "WARNING: Seq installation failed with exit code: $($process.ExitCode)"
-                    return
-                }
-                
-                # Clean up installer
-                Remove-Item $seqInstaller -Force -ErrorAction SilentlyContinue
-                
-            } catch {
-                Write-Host "WARNING: Failed to install Seq: $_"
-                return
-            }
-        }
-        
-        # Configure Seq
-        Write-Host "Configuring Seq..."
-        
-        # Set retention policy (180 days)
-        & "C:\Program Files\Seq\seq.exe" config set -k retentionPolicy -v "180.00:00:00" 2>$null
-        
-        # Disable authentication for easy access
-        & "C:\Program Files\Seq\seq.exe" config set -k api.requireAuthenticationForHttpIngestion -v false 2>$null
-        
-        # Start Seq service
-        $seqService = Get-Service -Name "Seq" -ErrorAction SilentlyContinue
-        if ($seqService) {
+            # Start Seq service
             if ($seqService.Status -ne "Running") {
-                Start-Service -Name "Seq"
-                Write-Host "Seq service started"
+                try {
+                    Start-Service -Name "Seq"
+                    Write-Host "Seq service started"
+                } catch {
+                    Write-Host "WARNING: Could not start Seq service: $_"
+                }
             } else {
                 Write-Host "Seq service is already running"
             }
+            
+            # Configure firewall
+            try {
+                Remove-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -ErrorAction SilentlyContinue
+                New-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -Direction Inbound -Protocol TCP -LocalPort 5341 -Action Allow -Profile Any
+                Write-Host "Firewall configured for Seq on port 5341"
+            } catch {
+                Write-Host "WARNING: Could not configure firewall for Seq"
+            }
+            
+            Write-Host "Seq ready - Web interface: http://localhost:5341"
+        } else {
+            Write-Host "Seq not installed - logging will use file-only mode"
+            Write-Host "To install Seq manually: Download from https://datalust.co/download"
         }
-        
-        # Configure firewall for Seq web interface
-        try {
-            Remove-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -ErrorAction SilentlyContinue
-            New-NetFirewallRule -DisplayName "Seq Web Interface Port 5341" -Direction Inbound -Protocol TCP -LocalPort 5341 -Action Allow -Profile Any
-            Write-Host "Firewall configured for Seq web interface on port 5341"
-        } catch {
-            Write-Host "WARNING: Could not configure firewall for Seq"
-        }
-        
-        Write-Host "Seq installation complete - Web interface: http://localhost:5341"
-        Write-Host "Python apps can now send logs to: http://localhost:5341"
       shell: powershell
         
     - name: Verify production deployment
