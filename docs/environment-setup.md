@@ -22,6 +22,8 @@ Follow these steps for a clean setup:
 pip install -r requirements.txt
 ```
 
+**Note**: The requirements now include Waitress, a production WSGI server that replaces Flask's development server for staging and production environments.
+
 #### Create Environment Files
 Copy the environment template and create your configuration files:
 
@@ -176,9 +178,11 @@ python main.py
 # Set environment
 set FLASK_ENV=production
 
-# Run the application
+# Run the application (uses Waitress WSGI server)
 python main.py
 ```
+
+**Note**: Production and staging modes now use Waitress WSGI server instead of Flask's development server for better performance and security.
 
 ### Using Different Environment Files
 
@@ -262,6 +266,25 @@ When updating the database schema:
 - Verify LDAP server connectivity
 - Check LDAP configuration values
 - Test with bypass accounts for development
+
+#### 4. Production Server Issues
+
+**"Development server" warning in production logs**:
+- Ensure you're using the updated startup scripts that use Waitress
+- Check that `waitress` is installed: `pip install waitress`
+- Verify the script is using `serve()` instead of `app.run()`
+
+**Service management**:
+```powershell
+# Check if Waitress is working
+python scripts/test_waitress.py
+
+# Check service status
+scripts/restart_waitress.ps1 -Status
+
+# Restart with Waitress
+scripts/restart_waitress.ps1
+```
 
 ### Database Connection Testing
 

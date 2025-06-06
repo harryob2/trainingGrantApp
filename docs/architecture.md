@@ -200,6 +200,10 @@ Flask Framework
 ├── Werkzeug (WSGI Utilities)
 └── Jinja2 (Template Engine)
 
+Production WSGI Server
+├── Waitress (Production WSGI Server)
+└── Threading and Connection Management
+
 LDAP Integration
 ├── ldap3 (Enhanced LDAP Client)
 └── Corporate LDAP Server
@@ -281,6 +285,7 @@ Frontend Enhancements
 
 ### Production Scalability Features
 - **MariaDB Database**: Dedicated database server with relationship support
+- **Waitress WSGI Server**: Production-grade WSGI server replacing Flask's development server
 - **Environment-Specific File Storage**: Dedicated production folder outside project directory
 - **LDAP Integration**: Centralized authentication
 - **Stateless Design**: Session data stored externally

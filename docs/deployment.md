@@ -9,8 +9,8 @@ This guide covers the GitHub Actions deployment pipeline and database migration 
 The deployment pipeline follows a three-tier approach:
 
 1. **Development** (Local): SQLite-based development environment on your local machine with local `uploads/` folder
-2. **Staging** (Server): MariaDB-based staging environment that mirrors production for testing with local `uploads_staging/` folder
-3. **Production** (Server): MariaDB-based production environment for live application with dedicated `c:/TrainingAppFormUploads/` folder
+2. **Staging** (Server): MariaDB-based staging environment that mirrors production for testing with local `uploads_staging/` folder using Waitress WSGI server
+3. **Production** (Server): MariaDB-based production environment for live application with dedicated `c:/TrainingAppFormUploads/` folder using Waitress WSGI server
 
 ### Upload Folder Strategy
 
@@ -615,6 +615,7 @@ FLASK_ENV=production
 5. **Review staging results** - Check staging logs before production
 6. **Have rollback plan** - Always be ready to rollback production
 7. **Validate production** - Monitor production deployment carefully
+8. **Use production WSGI server** - Waitress is used instead of Flask's development server
 
 ### Enhanced Database Management
 1. **Create migrations for all model changes** - No exceptions!
@@ -701,6 +702,44 @@ python -m alembic current
 mysql -u training_app -p training_tool
 ```
 
+## Production Server Improvements
+
+### Waitress WSGI Server
+
+The application now uses **Waitress** as the production WSGI server instead of Flask's built-in development server:
+
+#### Benefits of Waitress
+- **Production-Ready**: Designed specifically for production environments
+- **Windows Compatible**: Works excellently on Windows servers
+- **Multi-threaded**: Handles concurrent requests efficiently
+- **No Development Warnings**: Clean production logs without "development server" warnings
+- **Better Performance**: Optimized for production workloads
+
+#### Server Configuration
+```python
+# Production server configuration (scripts/start_production.py)
+from waitress import serve
+serve(app, host='0.0.0.0', port=5000, threads=6, connection_limit=1000, cleanup_interval=30)
+
+# Staging server configuration (scripts/start_staging.py)  
+from waitress import serve
+serve(app, host='0.0.0.0', port=5001, threads=4, connection_limit=500, cleanup_interval=30)
+```
+
+#### Management Tools
+- **scripts/restart_waitress.ps1**: Simple PowerShell script for service management
+- **scripts/test_waitress.py**: Validation script to test Waitress setup
+- Enhanced configuration with proper DEBUG=False defaults
+
+#### Usage
+```powershell
+# Check service status
+.\scripts\restart_waitress.ps1 -Status
+
+# Restart production service with Waitress
+.\scripts\restart_waitress.ps1
+```
+
 ## Summary
 
 The enhanced deployment pipeline now provides **comprehensive protection** against database schema issues:
@@ -710,5 +749,6 @@ The enhanced deployment pipeline now provides **comprehensive protection** again
 3. **✅ Staging Protection**: Prevents problematic deployments from reaching production
 4. **✅ Easy Migration Creation**: Flask-Migrate integration for automatic migration generation
 5. **✅ Comprehensive Testing**: Validates schema consistency across all environments
+6. **✅ Production WSGI Server**: Waitress replaces Flask's development server for better performance and security
 
 **You can now confidently make model changes** knowing that the deployment pipeline will catch any missing migrations and prevent data inconsistencies! 

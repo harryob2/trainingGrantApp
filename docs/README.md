@@ -36,19 +36,20 @@ The Flask Survey Form System is a comprehensive web application designed for man
 - **File Attachments**: Support for multiple file types with secure upload
 - **Dynamic Validation**: Context-aware form validation based on training type
 - **Edit Capability**: Users can edit their own submissions before approval
-- **Soft Delete Management**: **NEW**: Delete forms with 180-day retention and recovery option
+- **Soft Delete Management**: Delete forms with 180-day retention and recovery option
 
 ### Administrative Features
 - **Approval Workflow**: Admin approval system for training submissions
 - **User Administration**: Manage admin users through web interface
 - **Search and Filter**: Advanced search capabilities with multiple criteria including delete status
 - **Export Functionality**: Export approved forms to Claim 5 format
-- **Form Recovery**: **NEW**: Recover soft-deleted forms with admin or submitter permissions
+- **Form Recovery**: Recover soft-deleted forms with admin or submitter permissions
 
 ### Data Management
 - **Employee Lookup**: Integration with employee directory
 - **Training Catalog**: Predefined training courses with autocomplete
-- **Cost Tracking**: Comprehensive expense tracking for training activities
+- **Cost Tracking**: Comprehensive expense tracking for training activities with Concur claim number integration
+- **Travel & Material Expenses**: Individual expense tracking with Concur claim numbers
 - **Audit Trail**: Complete submission and approval history
 
 ## Data Flow
@@ -77,11 +78,17 @@ Filter Approved Forms → Generate Excel → Apply Formatting → Download/Save
 
 ### Core Tables
 - **training_forms**: Main training submission data
+- **trainees**: Individual trainee information per form
+- **travel_expenses**: Travel expense tracking with Concur integration
+- **material_expenses**: Material expense tracking with Concur integration
 - **attachments**: File attachments linked to forms
 - **admins**: Administrative users
 - **training_catalog**: Predefined training courses
 
 ### Relationships
+- One-to-Many: TrainingForm → Trainees
+- One-to-Many: TrainingForm → TravelExpenses
+- One-to-Many: TrainingForm → MaterialExpenses
 - One-to-Many: TrainingForm → Attachments
 - Many-to-Many: Users ↔ Roles (through LDAP groups)
 
@@ -156,17 +163,17 @@ FlaskSurveyForm/
 
 ## Related Documentation
 
-- [Application Architecture](./architecture.md) - Detailed system architecture
-- [Database Schema](./database.md) - Complete database documentation
-- [API Reference](./api.md) - API endpoints and usage
-- [Authentication System](./authentication.md) - Authentication and authorization
-- [Form System](./forms.md) - Form validation and processing
-- [File Management](./file-management.md) - File upload and storage
-- [Environment Setup](./environment-setup.md) - Environment configuration
-- [Deployment Guide](./deployment.md) - Deployment and configuration
-- [Scripts Archive](./scripts-archive.md) - Legacy and utility scripts documentation
+- [Application Architecture](./architecture.md) - System architecture and components
+- [Database Schema](./database.md) - Database structure and relationships
+- [API Reference](./api.md) - API endpoints and usage examples
+- [Authentication System](./authentication.md) - LDAP integration and user management
+- [Form System](./forms.md) - Form validation and processing logic
+- [File Management](./file-management.md) - File upload, storage, and security
+- [Environment Setup](./environment-setup.md) - Environment configuration and setup
+- [Deployment Guide](./deployment.md) - Deployment pipeline and migrations
+- [Scripts Archive](./scripts-archive.md) - Legacy and utility scripts reference
 - [Troubleshooting](./troubleshooting.md) - Common issues and solutions
-- [Soft Delete Feature Summary](./soft_delete_feature_summary.md) - **NEW**: Soft delete functionality implementation
+
 
 ## Getting Started
 

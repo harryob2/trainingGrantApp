@@ -170,30 +170,54 @@ The enhanced training form implements a sophisticated progressive disclosure pat
 - Email format validation
 - Duplicate detection and prevention
 
-#### 4. Travel Expenses Section (Future Feature)
+#### 4. Travel Expenses Section
 **Purpose**: Detailed travel expense tracking for training-related travel
 
-**Current Status**: Section placeholder with informational content
+**Current Status**: **IMPLEMENTED** - Full functionality with Concur integration
 
-**Planned Enhanced Features**: 
-- **Travel Date Management**: Date selection within training period
+**Enhanced Features**: 
+- **Travel Date Management**: Date selection within training period (1 week before to 1 week after)
 - **Destination Specification**: Text input with validation
-- **Traveler Selection**: Dropdown from trainees/trainer list
-- **Transportation Mode**: Radio buttons (Mileage, Rail, Flight)
+- **Traveler Selection**: Multi-select checkboxes from trainees/trainer list
+- **Transportation Mode**: Radio buttons (Mileage, Rail, Bus, Economy Flight)
 - **Cost/Distance Tracking**: Dynamic fields based on transport mode
-- **Multiple Entries**: Support for multiple travel records
+- **Concur Claim Number**: **NEW** - Required field for expense tracking and reconciliation
+- **Multiple Entries**: Support for multiple travel records per training
+- **Modal Interface**: User-friendly popup forms for adding/editing expenses
+- **Validation**: Real-time validation with contextual error messages
+- **Table Display**: Comprehensive expense listing with edit/delete capabilities
 
-#### 5. Material Expenses Section (Future Feature)
+**Travel Modes**:
+- **Mileage**: Distance in kilometers (cost calculated automatically at 60 cents/km)
+- **Rail/Bus/Flight**: Direct cost entry with currency validation
+
+**Business Rules**:
+- Travel date must be within 1 week of training start/end dates
+- At least one traveler must be selected
+- Concur claim number is required for all expenses
+- Multiple travelers can share the same travel expense record
+
+#### 5. Material Expenses Section
 **Purpose**: Comprehensive material cost tracking for training delivery
 
-**Current Status**: Section placeholder with informational content
+**Current Status**: **IMPLEMENTED** - Full functionality with Concur integration
 
-**Planned Enhanced Features**:
-- **Purchase Date Tracking**: Date picker with validation
-- **Supplier Information**: Text input with history
+**Enhanced Features**:
+- **Purchase Date Tracking**: Date picker with validation (cannot be after training end)
+- **Supplier Information**: Text input with validation
 - **Invoice Number Management**: Text input with format validation
-- **Material Cost Recording**: Currency input with validation
-- **Multiple Entries**: Support for multiple material records
+- **Material Cost Recording**: Currency input with AutoNumeric formatting
+- **Concur Claim Number**: **NEW** - Required field for expense tracking and reconciliation
+- **Multiple Entries**: Support for multiple material records per training
+- **Modal Interface**: User-friendly popup forms for adding/editing expenses
+- **Validation**: Real-time validation with contextual error messages
+- **Table Display**: Comprehensive expense listing with edit/delete capabilities
+
+**Business Rules**:
+- All fields are required including Concur claim number
+- Purchase date cannot be after training end date
+- Material costs are entered excluding VAT
+- Each expense requires its own Concur claim number
 
 #### 6. Enhanced Attachments Section
 **Purpose**: Sophisticated file upload and document management

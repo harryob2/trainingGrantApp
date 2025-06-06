@@ -144,6 +144,7 @@ CREATE TABLE travel_expenses (
     travel_mode VARCHAR NOT NULL,
     cost FLOAT,
     distance_km FLOAT,
+    concur_claim_number VARCHAR,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (form_id) REFERENCES training_forms(id) ON DELETE CASCADE
 );
@@ -160,6 +161,7 @@ CREATE TABLE travel_expenses (
 - `travel_mode`: Mode of transportation ("mileage", "rail", "economy_flight")
 - `cost`: Travel cost (for rail and flight expenses)
 - `distance_km`: Distance in kilometers (for mileage expenses)
+- `concur_claim_number`: **NEW**: Concur claim number for expense tracking (required)
 - `created_at`: Record creation timestamp
 
 **Enhanced Business Rules**:
@@ -167,6 +169,7 @@ CREATE TABLE travel_expenses (
 - For mileage travel mode: `distance_km` is required, `cost` is calculated automatically
 - For rail/flight travel modes: `cost` is required, `distance_km` is not used
 - Traveler must be either the trainer or one of the trainees from the form
+- **Concur claim number is required for all travel expenses** for financial tracking and reconciliation
 - Multiple travel expenses can be associated with a single training form
 
 **Relationships**:
@@ -186,6 +189,7 @@ CREATE TABLE material_expenses (
     supplier_name VARCHAR NOT NULL,
     invoice_number VARCHAR NOT NULL,
     material_cost FLOAT NOT NULL,
+    concur_claim_number VARCHAR,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (form_id) REFERENCES training_forms(id) ON DELETE CASCADE
 );
@@ -198,10 +202,12 @@ CREATE TABLE material_expenses (
 - `supplier_name`: Name of the supplier/vendor
 - `invoice_number`: Invoice number for the purchase
 - `material_cost`: Cost of the materials (required)
+- `concur_claim_number`: **NEW**: Concur claim number for expense tracking (required)
 - `created_at`: Record creation timestamp
 
 **Business Rules**:
 - All fields are required for material expense records
+- **Concur claim number is required for all material expenses** for financial tracking and reconciliation
 - Multiple material expenses can be associated with a single training form
 - Purchase date tracking for audit and reporting purposes
 - Invoice number tracking for financial reconciliation
