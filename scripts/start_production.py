@@ -99,12 +99,13 @@ def main():
             f.write(str(os.getpid()))
         logger.info(f"PID {os.getpid()} written to {pid_file}")
         
-        # Run the application
-        logger.info("Starting Flask server on 0.0.0.0:5000...")
+        # Run the application using Waitress (production WSGI server)
+        logger.info("Starting Waitress production server on 0.0.0.0:5000...")
         logger.info("Application is now ready to serve requests")
         
-        # Use threaded mode for better performance in production
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        # Use Waitress for production deployment
+        from waitress import serve
+        serve(app, host='0.0.0.0', port=5000, threads=6, connection_limit=1000, cleanup_interval=30)
         
     except Exception as e:
         logger.error(f"Failed to start application: {e}")

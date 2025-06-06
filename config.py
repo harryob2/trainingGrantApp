@@ -32,7 +32,7 @@ except ImportError:
     print("python-dotenv not installed. Using system environment variables only.")
 
 # Application settings
-DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 SECRET_KEY = os.environ.get("SECRET_KEY", os.environ.get("SESSION_SECRET", "dev-secret-key"))
 
 # File upload settings

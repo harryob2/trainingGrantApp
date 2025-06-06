@@ -40,9 +40,10 @@ def main():
         from app import app
         logger.info("Flask app imported successfully")
         
-        # Run the application
-        logger.info("Starting Flask server on port 5001...")
-        app.run(host='0.0.0.0', port=5001, debug=False)
+        # Run the application using Waitress (production WSGI server)
+        logger.info("Starting Waitress staging server on port 5001...")
+        from waitress import serve
+        serve(app, host='0.0.0.0', port=5001, threads=4, connection_limit=500, cleanup_interval=30)
         
     except Exception as e:
         logger.error(f"Failed to start application: {e}")
