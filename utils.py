@@ -21,7 +21,12 @@ except ImportError:
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "./uploads")
 
 # Ensure upload folder exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    logging.info(f"Upload folder initialized: {UPLOAD_FOLDER}")
+except Exception as e:
+    logging.error(f"Failed to create upload folder {UPLOAD_FOLDER}: {e}")
+    # Continue without raising to avoid import errors
 
 
 def allowed_file(filename):

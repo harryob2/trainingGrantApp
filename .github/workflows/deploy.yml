@@ -891,7 +891,7 @@ jobs:
         "DB_NAME=${{ secrets.PROD_DB_NAME }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "DB_USER=${{ secrets.PROD_DB_USER }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
-        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=c:/TrainingAppFormUploads" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "FLASK_ENV=production" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "SEQ_API_KEY=${{ secrets.SEQ_API_KEY }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "SEQ_AUTH_REQUIRED=false" | Out-File -FilePath ".env" -Append -Encoding UTF8
@@ -909,6 +909,18 @@ jobs:
         Write-Host "Running database migrations..."
         python -m alembic upgrade head
         Write-Host "PASS: Migrations completed"
+      shell: powershell
+      
+    - name: Create production uploads directory
+      run: |
+        Write-Host "Creating production uploads directory..."
+        $uploadsDir = "c:\TrainingAppFormUploads"
+        if (-not (Test-Path $uploadsDir)) {
+            New-Item -ItemType Directory -Path $uploadsDir -Force
+            Write-Host "PASS: Created uploads directory: $uploadsDir"
+        } else {
+            Write-Host "PASS: Uploads directory already exists: $uploadsDir"
+        }
       shell: powershell
       
     - name: Stop existing production service

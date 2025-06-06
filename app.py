@@ -81,7 +81,13 @@ app.jinja_env.globals["json"] = json
 setup_database(force_recreate=False)
 
 # Ensure upload folder exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+upload_folder = app.config["UPLOAD_FOLDER"]
+try:
+    os.makedirs(upload_folder, exist_ok=True)
+    logger.info(f"Upload folder configured: {upload_folder}")
+except Exception as e:
+    logger.error(f"Failed to create upload folder {upload_folder}: {e}")
+    raise
 
 # Function to get a training form by ID - make available to templates
 def get_form_by_id(form_id):
