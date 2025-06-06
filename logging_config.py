@@ -65,17 +65,26 @@ def setup_logging(app=None):
     # Seq handler (production only)
     if is_production and SEQLOG_AVAILABLE:
         try:
-            seqlog.log_to_seq(
-                server_url="http://localhost:5341",
-                api_key=None,  # No auth required
-                level=logging.INFO,
-                batch_size=10,
-                auto_flush_timeout=10,
-                override_root_logger=False
-            )
-            logging.info("Seq logging configured successfully")
+            # Configure Seq logging with API key authentication
+            seq_api_key = os.environ.get('SEQ_API_KEY')
+            
+            if seq_api_key:
+                seqlog.log_to_seq(
+                    server_url="http://localhost:5341",
+                    api_key=seq_api_key,
+                    level=logging.INFO,
+                    batch_size=10,
+                    auto_flush_timeout=10,
+                    override_root_logger=False
+                )
+                logging.info("Seq logging configured successfully with API key")
+            else:
+                logging.info("No Seq API key found - using file logging only")
+                logging.info("Set SEQ_API_KEY environment variable to enable Seq logging")
+                
         except Exception as e:
             logging.error(f"Failed to configure Seq logging: {e}")
+            logging.info("Continuing with file logging only")
     
     # Log startup information
     logging.info("=" * 50)

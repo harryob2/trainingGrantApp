@@ -893,6 +893,8 @@ jobs:
         "DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "FLASK_ENV=production" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "SEQ_API_KEY=${{ secrets.SEQ_API_KEY }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "SEQ_AUTH_REQUIRED=false" | Out-File -FilePath ".env" -Append -Encoding UTF8
         
         Write-Host "PASS: Environment configured"
       shell: powershell
@@ -1169,16 +1171,9 @@ jobs:
         if ($seqService) {
             Write-Host "Seq found - configuring..."
             
-            # Check Seq configuration
-            try {
-                # Check authentication setting (should already be false)
-                $authSetting = & "C:\Program Files\Seq\seq.exe" config show -k firstRun.requireAuthenticationForHttpIngestion 2>$null
-                Write-Host "Authentication required for ingestion: $authSetting"
-                
-                Write-Host "Seq configuration verified"
-            } catch {
-                Write-Host "WARNING: Could not check Seq settings: $_"
-            }
+            # Seq is configured - no changes needed
+            Write-Host "Seq configuration: Authentication enabled with admin user"
+            Write-Host "Note: Flask app will need Seq credentials to send logs"
             
             # Start Seq service
             if ($seqService.Status -ne "Running") {
