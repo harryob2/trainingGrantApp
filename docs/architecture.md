@@ -13,8 +13,8 @@ The Flask Survey Form System follows a traditional Model-View-Controller (MVC) a
 **Purpose**: Handles user interface and user experience
 
 **Components**:
-- **HTML Templates** (`templates/`): Jinja2 templates for dynamic content rendering
-- **CSS Stylesheets** (`static/css/`): Bootstrap-based responsive styling with custom components
+- **HTML Templates** (`templates/`): Jinja2 templates for dynamic content rendering with enhanced UI components
+- **CSS Stylesheets** (`static/css/`): Bootstrap-based responsive styling with modular custom components and approve button system
 - **JavaScript** (`static/js/`): Enhanced client-side interactivity and AJAX calls
 - **Images & Assets** (`static/images/`, `static/data/`): Static resources
 
@@ -247,14 +247,38 @@ Frontend Enhancements
 
 ## Enhanced Features
 
-### 1. Progressive Form Disclosure
+### 1. User Interface Components
+
+#### Approve Button System
+- **Three-State Design**: Approved, Ready for Approval, and Needs Changes states with distinct visual indicators
+- **Color-Coded Feedback**: Green for approve, red for unapprove, orange for needs changes
+- **Icon Swapping**: Dynamic icon changes on hover for clear action indication  
+- **HTMX Integration**: Asynchronous state updates without page refresh
+- **Accessibility Compliant**: Proper color contrast and keyboard navigation support
+
+#### Visual Validation Indicators
+- **Flagged Value Highlighting**: Automatic visual highlighting of fields containing placeholder or incomplete values
+- **Orange Border Styling**: Clean border indicators around flagged field rows maintaining layout integrity
+- **"Needs Review" Tags**: Positioned indicators that appear adjacent to flagged fields for immediate identification
+- **Smart Field Detection**: Automatic detection of common placeholder values ('1111', 'na', 'NA', 'N/A', 'Not sure')
+- **Template Macro System**: Reusable rendering macros for consistent flagged value display across views
+
+#### CSS Architecture
+- **Modular Organization**: CSS organized into logical sections for improved maintainability
+- **Performance Optimized**: Optimized selectors and consolidated styles
+- **Responsive Design**: Mobile-first approach with consistent spacing and typography
+- **Modern Features**: CSS variables and modern features for flexibility and theming
+- **Logo Styling**: White background container for Stryker logo visibility
+- **Validation Styling**: Consistent color scheme for validation states with accessibility compliance
+
+### 2. Progressive Form Disclosure
 - **Multi-Section Layout**: Training Details, Trainees, Travel Expenses, Material Expenses, Attachments
 - **Dynamic Visibility**: Sections shown progressively in new form submissions based on user progress and selections
 - **Edit Mode Display**: All sections visible immediately in edit mode for comprehensive data review and modification
 - **Training Catalog Integration**: Quick form population from predefined courses
 - **Enhanced User Experience**: Reduced cognitive load for new forms and complete visibility for edits
 
-### 2. Advanced Data Management
+### 3. Advanced Data Management
 - **Trainee Management**: Individual trainee records with department tracking
 - **Expense Tracking**: Separate models for travel and material expenses
 - **Enhanced Search**: Multi-field search with relationship traversal
@@ -262,7 +286,7 @@ Frontend Enhancements
 - **Soft Delete Management**: **NEW**: Forms can be soft deleted and recovered with 180-day retention
 - **Delete Status Filtering**: **NEW**: Filter forms by delete status (not deleted, deleted, all)
 
-### 3. Enhanced File Management
+### 4. Enhanced File Management
 - **Environment-Specific Storage**: Different upload folders per environment to prevent deployment conflicts
 - **Form-Specific Organization**: Files organized by form ID within each environment
 - **Metadata Tracking**: File descriptions and attachment details

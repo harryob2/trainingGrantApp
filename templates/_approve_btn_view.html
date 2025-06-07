@@ -13,7 +13,7 @@
     {% elif form.ready_for_approval %}
         <!-- Ready for approval - can be approved -->
         <a href="{{ url_for('approve_training', form_id=form.id) }}"
-            class="btn btn-sm approve-btn btn-outline-secondary"
+            class="btn btn-sm approve-btn unapproved btn-outline-secondary"
             data-hover-text="Approve"
             hx-get="{{ url_for('approve_training', form_id=form.id) }}?view=1"
             hx-target="closest .d-flex.align-items-center.gap-2" hx-swap="outerHTML">
@@ -22,7 +22,7 @@
         </a>
     {% else %}
         <!-- Not ready for approval - shows "Needs Changes" on hover -->
-        <span class="btn btn-sm approve-btn btn-outline-secondary"
+        <span class="btn btn-sm approve-btn needs-changes btn-outline-secondary"
               data-hover-text="Needs Changes"
               title="Form contains NA values and needs changes before approval">
             {{ render_x_icon('icon-default') }}
@@ -54,18 +54,3 @@
     {% endif %}
 </div>
 
-<style>
-.approve-btn:hover .btn-text {
-    display: none;
-}
-
-.approve-btn:hover::after {
-    content: attr(data-hover-text);
-}
-
-.approve-btn[data-hover-text="Needs Changes"]:hover {
-    background-color: #fd7e14 !important;
-    border-color: #fd7e14 !important;
-    color: white !important;
-}
-</style>

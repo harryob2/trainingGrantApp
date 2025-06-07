@@ -1,251 +1,231 @@
 /* Custom styles for the Training Form application */
 
-/* Logo styling */
+/* ========================================
+   LOGO AND BRANDING
+======================================== */
 .logo-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
   background-color: #ffffff;
   border-radius: 4px;
   padding: 5px 10px;
 }
 
 .logo-container img {
-  max-height: 40px;
+  max-height: 60px;
   width: auto;
 }
 
-/* Form container styling with max width and outline */
+/* ========================================
+   FORM LAYOUT AND CONTAINERS
+======================================== */
 .training-form-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--bs-body-bg);
   border-radius: 8px;
-  padding: 20px;
 }
 
-/* Form section headings */
 .form-section-heading {
-  border-bottom: 1px solid var(--bs-gray-600);
-  margin-bottom: 1.5rem;
+  color: var(--bs-primary);
+  border-bottom: 2px solid var(--bs-primary);
   padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-/* Improve form field spacing */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-/* Custom field validation styling */
-.is-invalid {
-  border-color: var(--bs-danger) !important;
-}
-
-.invalid-feedback {
-  color: var(--bs-danger);
-  display: block;
-  margin-top: 0.25rem;
-}
-
-/* Enhanced validation styles for main form */
-/* Training type cards validation */
-.training-type-card.is-invalid {
-  border-color: var(--bs-danger) !important;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-  animation: shake 0.5s ease-in-out;
-}
-
-/* Location type radio buttons validation */
-.form-check.is-invalid {
-  border: 1px solid var(--bs-danger);
-  border-radius: 4px;
-  padding: 0.5rem;
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-.form-check.is-invalid .form-check-label {
-  color: var(--bs-danger);
-}
-
-/* Trainee search container validation */
-.trainee-search-container.is-invalid {
-  border: 2px solid var(--bs-danger);
-  border-radius: 6px;
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-.trainee-search-container.is-invalid .trainee-search-box {
-  border-color: var(--bs-danger);
-}
-
-/* Shake animation for invalid elements */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-/* Input field validation enhancement */
-.form-control.is-invalid,
-.form-select.is-invalid {
-  border-color: var(--bs-danger) !important;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-  background-image: none !important; /* Remove Bootstrap's default icon */
-}
-
-/* Floating labels with validation */
-.form-floating .form-control.is-invalid {
-  border-color: var(--bs-danger) !important;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-}
-
-.form-floating .form-control.is-invalid:focus {
-  border-color: var(--bs-danger) !important;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
-}
-
-/* Validation message styling */
-.validation-message {
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.validation-message.alert {
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Clear button styling for invalid fields */
-.is-invalid + .btn,
-.is-invalid ~ .btn {
-  border-color: var(--bs-danger);
-}
-
-/* Make certain elements stand out */
-.card-header {
-  font-weight: 500;
-}
-
-/* Style required field labels */
+/* ========================================
+   FORM VALIDATION STYLES
+======================================== */
 .required-field::after {
   content: "*";
   color: var(--bs-danger);
   margin-left: 0.25rem;
 }
 
-/* Custom styling for radio buttons and checkboxes */
+.is-invalid {
+  border-color: var(--bs-danger) !important;
+}
+
+.invalid-feedback {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--bs-danger);
+  display: block;
+}
+
+.training-type-card.is-invalid {
+  border-color: var(--bs-danger) !important;
+  animation: shake 0.3s ease-in-out;
+}
+
+.form-check.is-invalid {
+  border: 1px solid var(--bs-danger);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.form-check.is-invalid .form-check-label {
+  color: var(--bs-danger);
+}
+
+.trainee-search-container.is-invalid {
+  border: 1px solid var(--bs-danger);
+  border-radius: 4px;
+}
+
+.trainee-search-container.is-invalid .trainee-search-box {
+  border-color: var(--bs-danger);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid,
+.form-check-input.is-invalid {
+  border-color: var(--bs-danger);
+  animation: shake 0.3s ease-in-out;
+}
+
+.form-floating .form-control.is-invalid {
+  border-color: var(--bs-danger);
+}
+
+.form-floating .form-control.is-invalid:focus {
+  border-color: var(--bs-danger);
+  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.validation-message {
+  margin-top: 0.5rem;
+}
+
+.validation-message.alert {
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.is-invalid + .btn,
+.is-invalid + .input-group .btn {
+  border-color: var(--bs-danger);
+}
+
+/* ========================================
+   FORM INPUTS AND CONTROLS
+======================================== */
 .form-check-input:checked {
   background-color: var(--bs-primary);
   border-color: var(--bs-primary);
 }
 
-/* File input styling */
 .form-control[type="file"]:not(:disabled):not([readonly]) {
   cursor: pointer;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .d-flex.justify-content-between {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .btn {
-    width: 100%;
-  }
-}
-
-/* Custom styling for date picker inputs */
 .flatpickr-input {
   background-color: var(--bs-body-bg) !important;
 }
 
-/* Icon hover swap */
-a.approve-btn .icon-hover {
+/* ========================================
+   APPROVAL BUTTONS
+======================================== */
+/* Icon hover swap for all approve buttons */
+.approve-btn .icon-hover {
   display: none;
-}
-a.approve-btn .icon-default {
-  display: inline-block; /* Or inline-flex if needed */
-}
-a.approve-btn:hover .icon-default {
-  display: none;
-}
-a.approve-btn:hover .icon-hover {
-  display: inline-block; /* Or inline-flex if needed */
 }
 
-/* Approval button text replacement */
-a.approve-btn .btn-text {
+.approve-btn .icon-default {
+  display: inline-block;
+}
+
+.approve-btn:hover .icon-default {
+  display: none;
+}
+
+.approve-btn:hover .icon-hover {
+  display: inline-block;
+}
+
+/* Base text styling for all approve buttons */
+.approve-btn .btn-text {
   color: transparent;
   position: relative;
-  font-size: 0; /* Collapse original text space */
-  line-height: 0; /* Further collapse space */
+  font-size: 0;
+  line-height: 0;
 }
-a.approve-btn .btn-text::before {
-  font-size: initial; /* Reset font size for pseudo-element */
-  line-height: initial; /* Reset line height */
-  display: inline-block; /* Ensure it behaves like text */
-  min-width: 87px; /* Fixed width to prevent size changes */
-  text-align: center; /* Center the text within the fixed width */
+
+.approve-btn .btn-text::before {
+  font-size: initial;
+  line-height: initial;
+  display: inline-block;
+  min-width: 87px;
+  text-align: center;
 }
-a.approve-btn.unapproved .btn-text::before {
-  content: "Unapproved";
-  color: var(--bs-secondary);
-}
-a.approve-btn.unapproved:hover .btn-text::before {
-  content: "Approve";
-  color: var(--bs-success);
-}
-a.approve-btn.unapproved:hover {
-  background-color: var(--bs-success);
-  border-color: var(--bs-success);
-  color: var(--bs-white); /* Ensure icon color changes */
-}
-a.approve-btn.unapproved:hover .btn-text::before {
-  color: var(--bs-white); /* Explicitly set text color on hover */
-}
-a.approve-btn.approved .btn-text::before {
+
+/* Approved button states */
+.approve-btn.approved .btn-text::before {
   content: "Approved";
   color: var(--bs-success);
 }
-a.approve-btn.approved:hover .btn-text::before {
+
+.approve-btn.approved:hover .btn-text::before {
   content: "Unapprove";
-  color: var(--bs-danger);
+  color: var(--bs-white);
 }
-a.approve-btn.approved:hover {
+
+.approve-btn.approved:hover {
   background-color: var(--bs-danger);
   border-color: var(--bs-danger);
-  color: var(--bs-white); /* Ensure icon color changes */
-}
-a.approve-btn.approved:hover .btn-text::before {
-  color: var(--bs-white); /* Explicitly set text color on hover */
+  color: var(--bs-white);
 }
 
-/* Modal styling overrides */
-.modal-backdrop.show {
-  background-color: rgba(0, 0, 0, 0.6) !important;
-  backdrop-filter: blur(41px);
-  -webkit-backdrop-filter: blur(41px);
+/* Unapproved button states (ready for approval) */
+.approve-btn.unapproved .btn-text::before {
+  content: "Unapproved";
+  color: var(--bs-secondary);
 }
 
-.modal-content {
-  background: #28293d;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 6px !important;
-  position: relative;
+.approve-btn.unapproved:hover .btn-text::before {
+  content: "Approve";
+  color: var(--bs-white);
 }
 
-/* Accent stripe at top of modal */
-.modal-content::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: var(--bs-primary);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+.approve-btn.unapproved:hover {
+  background-color: var(--bs-success);
+  border-color: var(--bs-success);
+  color: var(--bs-white);
 }
 
+/* Needs changes button states (not ready for approval) */
+.approve-btn.needs-changes .btn-text::before {
+  content: "Unapproved";
+  color: var(--bs-secondary);
+}
+
+.approve-btn.needs-changes:hover .btn-text::before {
+  content: "Needs Changes";
+  color: var(--bs-white);
+}
+
+.approve-btn.needs-changes:hover {
+  background-color: #fd7e14;
+  border-color: #fd7e14;
+  color: var(--bs-white);
+}
+
+/* ========================================
+   TRAINING TYPE CARDS
+======================================== */
 #training-type-card-group {
   padding: 1rem;
   display: flex;
@@ -278,12 +258,22 @@ a.approve-btn.approved:hover .btn-text::before {
   border-color: #2563eb !important;
 }
 
-/* Ensure equal height for expense boxes on the view page */
-.expense-row .card.border-primary {
-  min-height: 140px; /* Adjust as needed for your content */
+/* ========================================
+   CARDS AND LAYOUT
+======================================== */
+.card-header {
+  background-color: var(--bs-primary);
+  color: var(--bs-white);
+  border-bottom: none;
 }
 
-/* IDA Training Grant Information Box */
+.expense-row .card.border-primary {
+  min-height: 140px;
+}
+
+/* ========================================
+   IDA TRAINING GRANT INFO
+======================================== */
 .ida-info-box {
   padding: 1.5rem;
   border-radius: 12px;
@@ -318,4 +308,47 @@ a.approve-btn.approved:hover .btn-text::before {
 
 .ida-info-tip .bi {
   color: #c7b3ff;
+}
+
+/* ========================================
+   MODAL STYLING
+======================================== */
+.modal-backdrop.show {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(41px);
+  -webkit-backdrop-filter: blur(41px);
+}
+
+.modal-content {
+  background: #28293d;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 6px !important;
+  position: relative;
+}
+
+.modal-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--bs-primary);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+@media (max-width: 768px) {
+  .d-flex.justify-content-between {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+  }
 }

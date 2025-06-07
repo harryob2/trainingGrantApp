@@ -186,8 +186,11 @@ csrf_token=...
 - Enhanced attachment display with descriptions
 - Form-specific file organization
 - Approval status and admin controls
-- **NEW**: Delete/recover button functionality with permission checks
-- **NEW**: Visual indicators for deleted forms with red "DELETED" badges
+- Delete/recover button functionality with permission checks
+- Visual indicators for deleted forms with red "DELETED" badges
+- **Flagged Value Detection**: Automatic highlighting of fields containing placeholder or incomplete values
+- **Visual Quality Indicators**: Orange border styling and "Needs Review" tags for flagged fields
+- **Data Quality Assurance**: Clear identification of fields requiring reviewer attention
 
 ### Data Management Routes
 
@@ -286,7 +289,7 @@ remove_admin=admin@company.com&csrf_token=...
 **Response**: Redirect to admin management page with status message
 
 #### GET /approve/<int:form_id>
-**Purpose**: Approve training form submission with enhanced logging
+**Purpose**: Approve training form submission with comprehensive logging
 
 **Authentication**: Admin
 
@@ -295,10 +298,14 @@ remove_admin=admin@company.com&csrf_token=...
 
 **Response**: Redirect to form view with approval confirmation
 
-**Enhanced Features**:
+**Features**:
 - Comprehensive audit logging
 - Email notifications (future feature)
 - Approval timestamp tracking
+- Approve button UI with state indication:
+  - **Approved forms**: Show "Approved" text, hover shows "Unapprove" with red background
+  - **Ready for approval**: Show "Unapproved" text, hover shows "Approve" with green background  
+  - **Not ready for approval**: Show "Unapproved" text, hover shows "Needs Changes" with orange background
 
 #### POST /delete/<int:form_id>
 **Purpose**: **NEW**: Soft delete a training form submission (marks as deleted for 180 days)

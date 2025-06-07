@@ -1,5 +1,88 @@
 {% extends "base.html" %} {% from '_macros.html' import render_check_icon,
-render_x_icon %} {% block title %}View Training Form{% endblock %} {% block
+render_x_icon %} 
+
+{% macro render_field_value(value, default='Not specified') %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% if value and value|string|trim in flagged_values %}
+    <span class="flagged-value">{{ value }}</span>
+  {% else %}
+    {{ value or default }}
+  {% endif %}
+{% endmacro %}
+
+{% macro render_field_row(label, value, default='Not specified') %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set is_flagged = value and value|string|trim in flagged_values %}
+  {% if is_flagged %}
+    <dt class="col-sm-4 flagged-dt">
+      <span class="needs-review-tag">Needs Review</span>
+      {{ label }}
+    </dt>
+    <dd class="col-sm-8 flagged-dd">{{ value }}</dd>
+  {% else %}
+    <dt class="col-sm-4">{{ label }}</dt>
+    <dd class="col-sm-8">{{ value or default }}</dd>
+  {% endif %}
+{% endmacro %}
+
+{% block title %}View Training Form{% endblock %}
+
+{% block extra_head %}
+{{ super() }}
+<style>
+  .flagged-value {
+    background-color: #fd7e14 !important;
+    color: white !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    border: 1px solid #fd7e14 !important;
+    font-weight: bold !important;
+  }
+  .flagged-dt {
+    position: relative;
+    border: 2px solid #fd7e14;
+    border-right: 1px solid #fd7e14;
+    border-radius: 6px 0 0 6px;
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .flagged-dd {
+    border: 2px solid #fd7e14;
+    border-left: 1px solid #fd7e14;
+    border-radius: 0 6px 6px 0;
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .needs-review-tag {
+    position: absolute;
+    left: -120px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #fd7e14;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    border: 1px solid #fd7e14;
+    z-index: 10;
+  }
+  .training-form-container {
+    position: relative;
+  }
+  .flagged-section {
+    background-color: rgba(253, 126, 20, 0.1);
+    border-left: 4px solid #fd7e14;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+</style>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+{% endblock %}
+
+{% block
 content %}
 <div class="container py-4">
   <div class="training-form-container shadow-sm">
@@ -19,10 +102,15 @@ content %}
       <div class="card-body">
         <!-- Notes for Reviewer Section -->
         {% if form.notes %}
-        <div class="alert alert-light p-3 mb-4">
+        {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+        {% set is_notes_flagged = form.notes and form.notes|string|trim in flagged_values %}
+        <div class="alert alert-light p-3 mb-4 {% if is_notes_flagged %}flagged-section{% endif %}">
+          {% if is_notes_flagged %}
+          <span class="needs-review-tag" style="left: -100px; top: 20px;">Needs Review</span>
+          {% endif %}
           <i class="bi bi-chat-dots me-2 text-muted"></i>
           <strong>Notes for Reviewer:</strong><br>
-          <em>{{ form.notes }}</em>
+          <em>{{ render_field_value(form.notes, '') }}</em>
         </div>
         {% endif %}
         
@@ -33,8 +121,7 @@ content %}
             <div class="mb-4">
               <h4 class="fs-6 text-primary mb-3">Training Information</h4>
               <dl class="row">
-                <dt class="col-sm-4">Training Name</dt>
-                <dd class="col-sm-8">{{ form.training_name or 'Not specified' }}</dd>
+                {{ render_field_row('Training Name', form.training_name) }}
 
                 <dt class="col-sm-4">Start Date</dt>
                 <dd class="col-sm-8">{{ form.start_date }}</dd>
@@ -43,20 +130,14 @@ content %}
                 <dd class="col-sm-8">{{ form.end_date }}</dd>
 
                 <dt class="col-sm-4">Location</dt>
-                <dd class="col-sm-8">
-                  {{ form.location_type }} {% if form.location_type == 'Offsite'
-                  %}
-                  <div class="text-muted small">
-                    {{ form.location_details }}
-                  </div>
-                  {% endif %}
-                </dd>
+                <dd class="col-sm-8">{{ form.location_type }}</dd>
+                {% if form.location_type == 'Offsite' and form.location_details %}
+                {{ render_field_row('Location Details', form.location_details, 'Not provided') }}
+                {% endif %}
 
-                <dt class="col-sm-4">Description</dt>
-                <dd class="col-sm-8">{{ form.training_description }}</dd>
+                {{ render_field_row('Description', form.training_description, 'Not provided') }}
 
-                <dt class="col-sm-4">Training Class</dt>
-                <dd class="col-sm-8">{{ form.ida_class or 'Not specified' }}</dd>
+                {{ render_field_row('Training Class', form.ida_class) }}
               </dl>
             </div>
 
@@ -64,30 +145,22 @@ content %}
               <h4 class="fs-6 text-primary mb-3">Trainer Details</h4>
               <dl class="row">
                 {% if form.training_type == 'Internal Training' %}
-                <dt class="col-sm-4">Trainer</dt>
-                <dd class="col-sm-8">
-                  {{ form.trainer_name }}
-                  {% if form.trainer_email %}
-                  <div class="text-muted small">
-                    <i class="bi bi-envelope"></i> {{ form.trainer_email }}
-                  </div>
-                  {% endif %}
-                </dd>
+                {{ render_field_row('Trainer', form.trainer_name, 'Not provided') }}
+                {% if form.trainer_email %}
+                {{ render_field_row('Trainer Email', form.trainer_email, 'Not provided') }}
+                {% endif %}
 
                 <dt class="col-sm-4">Training Hours</dt>
                 <dd class="col-sm-8">{{ form.training_hours }}</dd>
                 {% else %}
-                <dt class="col-sm-4">Supplier</dt>
-                <dd class="col-sm-8">{{ form.supplier_name }}</dd>
+                {{ render_field_row('Supplier', form.supplier_name, 'Not provided') }}
 
                 <dt class="col-sm-4">Course Cost</dt>
                 <dd class="col-sm-8">€{{ "%.2f"|format(form.course_cost|default(0)) }}</dd>
 
-                <dt class="col-sm-4">Invoice Number</dt>
-                <dd class="col-sm-8">{{ form.invoice_number or 'Not provided' }}</dd>
+                {{ render_field_row('Invoice Number', form.invoice_number, 'Not provided') }}
 
-                <dt class="col-sm-4">Concur Claim</dt>
-                <dd class="col-sm-8">{{ form.concur_claim or 'Not provided' }}</dd>
+                {{ render_field_row('Concur Claim', form.concur_claim, 'Not provided') }}
 
                 <dt class="col-sm-4">Training Hours</dt>
                 <dd class="col-sm-8">{{ form.training_hours }}</dd>
@@ -100,18 +173,20 @@ content %}
           <div class="col-md-6">
             <h4 class="fs-6 text-primary mb-3">Trainees</h4>
             {% if trainees %}
-            <div class="list-group">
+            <div class="row g-2">
               {% for trainee in trainees %}
-              <div class="list-group-item">
-                <div class="d-flex align-items-center">
-                  <div class="flex-grow-1">
-                    {% if trainee.name %}
-                    <strong>{{ trainee.name }}</strong><br />
-                    {% endif %}
-                    <code>{{ trainee.email }}</code>
-                    {% if trainee.department %}
-                    <div class="text-muted small">{{ trainee.department }}</div>
-                    {% endif %}
+              <div class="col-md-6">
+                <div class="list-group-item h-100">
+                  <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                      {% if trainee.name %}
+                      <strong>{{ trainee.name }}</strong><br />
+                      {% endif %}
+                      <code>{{ trainee.email }}</code>
+                      {% if trainee.department %}
+                      <div class="text-muted small">{{ trainee.department }}</div>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -316,9 +391,4 @@ content %}
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_head %}
-{{ super() }}
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 {% endblock %}

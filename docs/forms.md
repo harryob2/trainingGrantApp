@@ -536,9 +536,55 @@ def prepare_form_data(self):
     return data
 ```
 
-## Enhanced File Upload System
+## User Interface Components
 
-### Enhanced Allowed File Types
+### Approve Button System
+
+The application features an approve button system with clear visual states and interactive feedback:
+
+#### Button States and Behavior
+- **Approved Forms**: 
+  - Shows "Approved" text with success styling
+  - Hover reveals "Unapprove" action with red background
+  - Only available to admin users
+
+- **Ready for Approval**: 
+  - Shows "Unapproved" text with secondary styling
+  - Hover reveals "Approve" action with green background
+  - Only available to admin users
+
+- **Not Ready for Approval**: 
+  - Shows "Unapproved" text with secondary styling
+  - Hover reveals "Needs Changes" with orange background
+  - Indicates form contains NA values requiring changes
+
+#### Technical Implementation
+The approve button system uses:
+- **CSS Classes**: `.approve-btn`, `.approved`, `.unapproved`, `.needs-changes`
+- **Icon Swapping**: Dynamic icons that change on hover using `.icon-default` and `.icon-hover`
+- **Pseudo-elements**: Text content managed via CSS `::before` pseudo-elements
+- **Color-coded Feedback**: Green for approve, red for unapprove, orange for needs changes
+- **HTMX Integration**: Asynchronous approval state changes without page refresh
+
+#### Flagged Value Styling System
+The form view system includes comprehensive styling for data quality indicators:
+- **Flagged Field Classes**: `.flagged-dt`, `.flagged-dd` for field row styling
+- **Review Indicators**: `.needs-review-tag` for positioned notification tags
+- **Validation Colors**: Consistent orange color scheme (`#fd7e14`) matching approval system
+- **Layout Preservation**: Border styling that maintains Bootstrap grid layout integrity
+- **Responsive Design**: Mobile-friendly positioning and sizing of indicator elements
+
+#### CSS Architecture
+The styling is organized in `static/css/custom.css`:
+- Modular CSS organization with logical sections
+- Responsive design considerations
+- Accessibility-compliant color contrasts
+- Consistent spacing and typography
+- Visual validation state management
+
+## File Upload System
+
+### Allowed File Types
 ```python
 ALLOWED_EXTENSIONS = {
     "pdf",      # Portable Document Format
@@ -554,7 +600,7 @@ ALLOWED_EXTENSIONS = {
 }
 ```
 
-### Enhanced File Validation
+### File Validation
 ```python
 def allowed_file(filename):
     """Enhanced check if a filename has an allowed extension"""
@@ -562,7 +608,7 @@ def allowed_file(filename):
             filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS)
 ```
 
-### Enhanced Secure File Saving with Form Organization
+### Secure File Saving with Form Organization
 ```python
 def save_file(file, form_id):
     """Enhanced file saving with form-specific organization"""
@@ -602,9 +648,9 @@ def get_form_upload_path(form_id):
     return upload_path
 ```
 
-### Enhanced File Upload Processing
+### File Upload Processing
 ```python
-# Enhanced file upload processing in form submission handler
+# File upload processing in form submission handler
 uploaded_files = []
 attachment_descriptions = []
 
@@ -641,9 +687,9 @@ for i, filename in enumerate(uploaded_files):
     session.add(attachment)
 ```
 
-## Enhanced SearchForm - Advanced Filtering Interface
+## SearchForm - Advanced Filtering Interface
 
-### Enhanced Form Structure
+### Form Structure
 ```python
 class SearchForm(FlaskForm):
     search = StringField("Search", validators=[Optional()], 
@@ -665,7 +711,7 @@ class SearchForm(FlaskForm):
     submit = SubmitField("Search")
 ```
 
-### Enhanced Date Range Validation
+### Date Range Validation
 ```python
 def validate_date_to(self, field):
     """Enhanced validation to ensure 'to' date is not before 'from' date"""
@@ -674,9 +720,9 @@ def validate_date_to(self, field):
             raise ValidationError("'To' date cannot be before 'From' date.")
 ```
 
-## Enhanced LoginForm - Authentication
+## LoginForm - Authentication
 
-### Enhanced Form Structure
+### Form Structure
 ```python
 class LoginForm(FlaskForm):
     username = StringField("Username (Email)", 
@@ -687,14 +733,14 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Login")
 ```
 
-### Enhanced Email Validation
-- Uses WTForms Email validator with enhanced error messages
+### Email Validation
+- Uses WTForms Email validator with comprehensive error messages
 - Ensures proper corporate email format
-- Enhanced field validation with user guidance
+- Field validation with user guidance
 
-## Enhanced InvoiceForm - Financial Tracking
+## InvoiceForm - Financial Tracking
 
-### Enhanced Form Structure
+### Form Structure
 ```python
 class InvoiceForm(FlaskForm):
     invoice_number = StringField("Invoice Number", validators=[Optional()],
@@ -711,9 +757,48 @@ class InvoiceForm(FlaskForm):
     submit = SubmitField("Add Invoice")
 ```
 
-## Enhanced Form Rendering and Templates
+## Form Rendering and Templates
 
-### Enhanced Template Integration
+### Template Integration
+
+#### Visual Validation and Flagged Value Display
+
+The form system includes comprehensive visual indicators for data quality and completeness:
+
+```html
+<!-- Flagged Value Rendering Macro -->
+{% macro render_field_value(value, default='Not specified') %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% if value and value|string|trim in flagged_values %}
+    <span class="flagged-value">{{ value }}</span>
+  {% else %}
+    {{ value or default }}
+  {% endif %}
+{% endmacro %}
+
+<!-- Field Row with Flagged Value Detection -->
+{% macro render_field_row(label, value, default='Not specified') %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set is_flagged = value and value|string|trim in flagged_values %}
+  {% if is_flagged %}
+    <dt class="col-sm-4 flagged-dt">
+      <span class="needs-review-tag">Needs Review</span>
+      {{ label }}
+    </dt>
+    <dd class="col-sm-8 flagged-dd">{{ value }}</dd>
+  {% else %}
+    <dt class="col-sm-4">{{ label }}</dt>
+    <dd class="col-sm-8">{{ value or default }}</dd>
+  {% endif %}
+{% endmacro %}
+```
+
+**Flagged Value Detection Features**:
+- **Automatic Detection**: Identifies common placeholder values requiring review
+- **Visual Highlighting**: Orange border styling around flagged field rows
+- **Review Indicators**: "Needs Review" tags positioned adjacent to flagged fields
+- **Layout Preservation**: Clean styling that maintains proper field alignment
+- **Accessibility Compliance**: Color contrast and visual indicators meet accessibility standards
 
 #### Progressive Form Disclosure with Training Catalog
 ```html
