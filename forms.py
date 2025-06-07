@@ -368,6 +368,10 @@ class TrainingForm(FlaskForm):
         """Check if form is ready for approval by looking for flagged values"""
         flagged_values = ['NA', 'N/A', 'na', '1111']
         
+        # Check for 'Not sure' ida_class specifically
+        if self.ida_class.data and str(self.ida_class.data).strip().lower() == 'not sure':
+            return False
+        
         # Check all string fields for flagged values
         fields_to_check = [
             self.training_name.data,

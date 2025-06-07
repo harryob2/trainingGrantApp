@@ -48,6 +48,11 @@ def upgrade() -> None:
     
     connection.execute(sa.text(update_query))
     
+    # Also update forms with 'Not sure' ida_class to not be ready for approval
+    connection.execute(sa.text(
+        "UPDATE training_forms SET ready_for_approval = 0 WHERE ida_class = 'Not sure'"
+    ))
+    
     # Now make the column NOT NULL (SQLite doesn't support this directly, so we'll leave it nullable)
     # In production with other databases, you could add: op.alter_column('training_forms', 'ready_for_approval', nullable=False)
 
