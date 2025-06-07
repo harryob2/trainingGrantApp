@@ -210,6 +210,7 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
         <th>Training Details</th>
         <th>Trainer Details</th>
         <th>Dates</th>
+        <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -234,6 +235,13 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
         <td>
           <strong>From:</strong> {{ form.start_date }}<br />
           <strong>To:</strong> {{ form.end_date }}<br />
+        </td>
+        <td>
+          {% if form.approved %}
+          <span class="badge bg-success">Approved</span>
+          {% else %}
+          <span class="badge bg-secondary">Not Approved</span>
+          {% endif %}
         </td>
         <td>
           <div class="btn-group">
