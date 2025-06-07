@@ -86,8 +86,8 @@ The Flask Survey Form System follows a traditional Model-View-Controller (MVC) a
 - Dynamic validation based on training type and location
 
 #### Data Services (`lookups.py`)
-- **Employee Lookup**: CSV-based employee directory integration
-- **Training Catalog**: Database-driven training course lookup with enhanced search
+- **Employee Lookup**: Database-driven employee directory integration with automated synchronization and CSV fallback
+- **Training Catalog**: Database-driven training course lookup with search capabilities
 - **Caching**: In-memory caching for performance optimization
 
 #### Utilities (`utils.py`)
@@ -102,13 +102,14 @@ The Flask Survey Form System follows a traditional Model-View-Controller (MVC) a
 **Purpose**: Handles data persistence, database operations, and ORM mapping
 
 #### Database Models
-- **TrainingForm**: Core training submission entity with enhanced fields
+- **TrainingForm**: Core training submission entity with comprehensive fields
 - **Trainee**: Individual trainee records with department tracking
 - **TravelExpense**: Travel expense tracking for training-related travel
 - **MaterialExpense**: Material cost tracking for training delivery
 - **Attachment**: File attachment metadata
 - **Admin**: Administrative user records
 - **TrainingCatalog**: Predefined training courses
+- **Employee**: Employee directory with automated synchronization
 
 **Enhanced Features**:
 - Comprehensive relationship mapping
@@ -208,6 +209,11 @@ LDAP Integration
 ├── ldap3 (Enhanced LDAP Client)
 └── Corporate LDAP Server
 
+Microsoft Graph API Integration
+├── requests (HTTP Client for API calls)
+├── Azure App Registration (Service Principal Authentication)
+└── Employee Directory Synchronization
+
 File System
 ├── Environment-Specific Storage Organization
 │   ├── Development: Local uploads/ folder
@@ -283,8 +289,9 @@ Frontend Enhancements
 - **Expense Tracking**: Separate models for travel and material expenses
 - **Enhanced Search**: Multi-field search with relationship traversal
 - **Analytics Dashboard**: Leaderboard with training statistics
-- **Soft Delete Management**: **NEW**: Forms can be soft deleted and recovered with 180-day retention
-- **Delete Status Filtering**: **NEW**: Filter forms by delete status (not deleted, deleted, all)
+- **Soft Delete Management**: Forms can be soft deleted and recovered with 180-day retention
+- **Delete Status Filtering**: Filter forms by delete status (not deleted, deleted, all)
+- **Employee Data Management**: Database-driven employee directory with automated nightly synchronization from Microsoft Graph API
 
 ### 4. Enhanced File Management
 - **Environment-Specific Storage**: Different upload folders per environment to prevent deployment conflicts

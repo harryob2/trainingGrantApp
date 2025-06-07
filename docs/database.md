@@ -270,9 +270,45 @@ CREATE TABLE admins (
 - Used for role-based access control throughout the application
 - Integrated with LDAP authentication for seamless login
 
-### 7. TrainingCatalog (training_catalog)
+### 7. Employee (employees)
 
-**Purpose**: Enhanced predefined training courses for autocomplete, standardization, and quick form population
+**Purpose**: Employee directory storage for autocomplete and form population with automated synchronization
+
+**Table Structure**:
+```sql
+CREATE TABLE employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    department VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Field Descriptions**:
+- `id`: Primary key, auto-incrementing unique identifier
+- `first_name`: Employee's first name
+- `last_name`: Employee's last name  
+- `email`: Employee's email address (unique identifier)
+- `department`: Employee's department
+- `created_at`: Record creation timestamp
+- `updated_at`: Record last update timestamp
+
+**Business Rules**:
+- Email must be unique across all employees
+- Employee data is synchronized nightly from Microsoft Graph API
+- Data is replaced completely during synchronization to ensure consistency
+- Used for employee lookup in forms and reporting
+
+**Relationships**:
+- Referenced by training forms through submitter email field
+- Referenced by trainee records through email field
+
+### 8. TrainingCatalog (training_catalog)
+
+**Purpose**: Predefined training courses for autocomplete, standardization, and quick form population
 
 **Table Structure**:
 ```sql
@@ -372,6 +408,46 @@ TrainingCatalog (Lookup data for forms)
    - Enhanced role-based access control
 
 ## Enhanced Database Operations
+
+### Employee Management Operations
+
+#### Employee CRUD Operations
+```python
+# Get all employees from database
+def get_all_employees() -> List[Dict[str, Any]]:
+    """Get all employees from the database."""
+    with db_session() as session:
+        employees = session.query(Employee).order_by(Employee.last_name, Employee.first_name).all()
+        return [employee.to_dict() for employee in employees]
+
+# Replace all employees (used for nightly synchronization)
+def replace_all_employees(employees_data: List[Dict[str, Any]]) -> bool:
+    """Replace all employees in the database with new data (truncate and insert)."""
+    with db_session() as session:
+        # Delete all existing employees
+        session.query(Employee).delete()
+        
+        # Insert new employees
+        for employee_data in employees_data:
+            employee = Employee(
+                first_name=employee_data["first_name"],
+                last_name=employee_data["last_name"],
+                email=employee_data["email"],
+                department=employee_data.get("department", "")
+            )
+            session.add(employee)
+        
+        return True
+
+# Get specific employee by email
+def get_employee_by_email(email: str) -> Optional[Dict[str, Any]]:
+    """Get a specific employee by email."""
+    with db_session() as session:
+        employee = session.query(Employee).filter_by(email=email).first()
+        if employee:
+            return employee.to_dict()
+        return None
+```
 
 ### Core CRUD Operations
 
@@ -733,6 +809,11 @@ CREATE INDEX idx_training_forms_approved ON training_forms(approved);
 CREATE INDEX idx_training_forms_training_name ON training_forms(training_name);
 CREATE INDEX idx_training_forms_training_type ON training_forms(training_type);
 CREATE INDEX idx_training_forms_trainer_email ON training_forms(trainer_email);
+
+-- Employee table indexes
+CREATE INDEX idx_employees_email ON employees(email);
+CREATE INDEX idx_employees_department ON employees(department);
+CREATE INDEX idx_employees_last_name ON employees(last_name);
 
 -- Indexes for related tables
 CREATE INDEX idx_trainees_form_id ON trainees(form_id);

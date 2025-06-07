@@ -292,6 +292,34 @@ class MaterialExpense(Base):
         }
 
 
+class Employee(Base):
+    __tablename__ = "employees"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False, unique=True)
+    department = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Employee to dictionary."""
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "department": self.department,
+            "displayName": f"{self.first_name} {self.last_name}",
+            "name": f"{self.first_name} {self.last_name}",  # For backwards compatibility
+            "firstName": self.first_name,
+            "lastName": self.last_name,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 def _apply_training_form_filters(query, search_term="", date_from=None, date_to=None, 
                                 training_type=None, approval_status=None, delete_status=""):
     """Apply common filters to TrainingForm queries."""
@@ -779,3 +807,52 @@ def delete_trainee(trainee_id: int) -> bool:
     except Exception as e:
         logging.error(f"Error deleting trainee: {str(e)}")
         return False
+
+
+# Employee management functions
+def get_all_employees() -> List[Dict[str, Any]]:
+    """Get all employees from the database."""
+    try:
+        with db_session() as session:
+            employees = session.query(Employee).order_by(Employee.last_name, Employee.first_name).all()
+            return [employee.to_dict() for employee in employees]
+    except Exception as e:
+        logging.error(f"Error getting employees: {e}")
+        return []
+
+
+def replace_all_employees(employees_data: List[Dict[str, Any]]) -> bool:
+    """Replace all employees in the database with new data (truncate and insert)."""
+    try:
+        with db_session() as session:
+            # Delete all existing employees
+            session.query(Employee).delete()
+            
+            # Insert new employees
+            for employee_data in employees_data:
+                employee = Employee(
+                    first_name=employee_data["first_name"],
+                    last_name=employee_data["last_name"],
+                    email=employee_data["email"],
+                    department=employee_data.get("department", "")
+                )
+                session.add(employee)
+            
+            logging.info(f"Successfully replaced all employees with {len(employees_data)} new records")
+            return True
+    except Exception as e:
+        logging.error(f"Error replacing employees: {e}")
+        return False
+
+
+def get_employee_by_email(email: str) -> Optional[Dict[str, Any]]:
+    """Get a specific employee by email."""
+    try:
+        with db_session() as session:
+            employee = session.query(Employee).filter_by(email=email).first()
+            if employee:
+                return employee.to_dict()
+            return None
+    except Exception as e:
+        logging.error(f"Error getting employee by email: {e}")
+        return None

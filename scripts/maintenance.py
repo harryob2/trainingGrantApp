@@ -10,8 +10,12 @@ import sys
 import shutil
 import subprocess
 import logging
+import csv
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
+import requests
+import json
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -60,7 +64,7 @@ def backup_database():
     log("Starting database backup...")
     
     # Create backup directory
-    backup_dir = "C:\TrainingAppData\Backups"
+    backup_dir = Path("C:/TrainingAppData/Backups")
     backup_dir.mkdir(exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -147,6 +151,180 @@ def permanent_delete_old_records():
         log(f"Permanent deletion failed: {e}")
         return False
 
+def update_employee_list():
+    """Update employee CSV file using Microsoft Graph API"""
+    log("Starting employee list update...")
+    
+    try:
+        # Get Azure credentials from environment
+        client_id = os.environ.get('AZURE_CLIENT_ID')
+        client_secret = os.environ.get('AZURE_CLIENT_SECRET')
+        tenant_id = os.environ.get('AZURE_TENANT_ID')
+        
+        if not all([client_id, client_secret, tenant_id]):
+            log("ERROR: Missing Azure credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)")
+            return False
+        
+        # Get access token using client credentials flow
+        token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+        token_data = {
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'scope': 'https://graph.microsoft.com/.default',
+            'grant_type': 'client_credentials'
+        }
+        
+        log("Acquiring access token...")
+        token_response = requests.post(token_url, data=token_data, timeout=30)
+        token_response.raise_for_status()
+        access_token = token_response.json()['access_token']
+        
+        # Set up Graph API headers
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Filter criteria
+        site = "Limerick, Limerick Raheen Business Park"
+        domain = "@stryker.com"
+        
+        # Get users from Graph API
+        log("Fetching users from Microsoft Graph...")
+        users_url = "https://graph.microsoft.com/v1.0/users"
+        params = {
+            '$select': 'givenName,surname,userPrincipalName,department,officeLocation',
+            '$top': 999  # Get maximum per request
+        }
+        
+        all_users = []
+        next_link = users_url
+        
+        while next_link:
+            if next_link == users_url:
+                response = requests.get(next_link, headers=headers, params=params, timeout=60)
+            else:
+                response = requests.get(next_link, headers=headers, timeout=60)
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            # Filter users by site and domain
+            filtered_users = [
+                user for user in data.get('value', [])
+                if (user.get('officeLocation') == site and 
+                    user.get('userPrincipalName', '').lower().endswith(domain.lower()))
+            ]
+            
+            all_users.extend(filtered_users)
+            next_link = data.get('@odata.nextLink')
+            
+            log(f"Fetched {len(data.get('value', []))} users, filtered to {len(filtered_users)} matching users")
+        
+        log(f"Total matching users found: {len(all_users)}")
+        
+        if not all_users:
+            log("WARNING: No users found matching criteria")
+            return False
+        
+        # Prepare employee data for database
+        employees_data = []
+        csv_data = []  # Keep CSV data for backup file
+        
+        for user in all_users:
+            employee_data = {
+                'first_name': user.get('givenName', ''),
+                'last_name': user.get('surname', ''),
+                'email': user.get('userPrincipalName', ''),
+                'department': user.get('department', '')
+            }
+            employees_data.append(employee_data)
+            
+            # Also prepare CSV format for backup file
+            csv_data.append({
+                'FirstName': user.get('givenName', ''),
+                'LastName': user.get('surname', ''),
+                'UserPrincipalName': user.get('userPrincipalName', ''),
+                'Department': user.get('department', '')
+            })
+        
+        # Sort by last name, then first name
+        employees_data.sort(key=lambda x: (x['last_name'].lower(), x['first_name'].lower()))
+        csv_data.sort(key=lambda x: (x['LastName'].lower(), x['FirstName'].lower()))
+        
+        # Update database first
+        try:
+            from models import replace_all_employees
+            
+            if replace_all_employees(employees_data):
+                log(f"Successfully updated employee database: {len(employees_data)} employees")
+            else:
+                log("ERROR: Failed to update employee database")
+                return False
+                
+        except Exception as e:
+            log(f"Error updating employee database: {e}")
+            return False
+        
+        # Write CSV file as backup
+        csv_path = project_root / "attached_assets" / "EmployeeListFirstLastDept.csv"
+        temp_file = None
+        
+        try:
+            # Create temporary file in same directory as target
+            with tempfile.NamedTemporaryFile(
+                mode='w', 
+                newline='', 
+                suffix='.csv', 
+                dir=csv_path.parent,
+                delete=False,
+                encoding='utf-8'
+            ) as temp_file:
+                writer = csv.DictWriter(
+                    temp_file, 
+                    fieldnames=['FirstName', 'LastName', 'UserPrincipalName', 'Department']
+                )
+                writer.writeheader()
+                writer.writerows(csv_data)
+                temp_file_path = temp_file.name
+            
+            # Test that file was written successfully
+            if not os.path.exists(temp_file_path):
+                log("ERROR: Temporary CSV file was not created")
+                return False
+            
+            # Check file size
+            temp_size = os.path.getsize(temp_file_path)
+            if temp_size < 1000:  # Less than 1KB suggests a problem
+                log(f"WARNING: Generated CSV file is very small ({temp_size} bytes)")
+                os.unlink(temp_file_path)
+                return False
+            
+            # Replace the original file
+            if csv_path.exists():
+                backup_path = csv_path.with_suffix('.csv.backup')
+                shutil.copy2(csv_path, backup_path)
+                log(f"Created CSV backup: {backup_path.name}")
+            
+            shutil.move(temp_file_path, csv_path)
+            log(f"Employee CSV backup updated: {len(csv_data)} employees")
+            log(f"CSV file size: {os.path.getsize(csv_path)} bytes")
+            
+            return True
+            
+        except Exception as e:
+            log(f"Error writing CSV file: {e}")
+            if temp_file and os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        log(f"Network error during employee list update: {e}")
+        return False
+    except Exception as e:
+        log(f"Employee list update failed: {e}")
+        return False
+
 def main():
     """Main maintenance function"""
     if not should_run():
@@ -160,7 +338,10 @@ def main():
     # Task 2: Permanent deletion
     delete_success = permanent_delete_old_records()
     
-    if backup_success and delete_success:
+    # Task 3: Employee list update
+    employee_success = update_employee_list()
+    
+    if backup_success and delete_success and employee_success:
         log("=== Maintenance completed successfully ===")
     else:
         log("=== Maintenance completed with errors ===")

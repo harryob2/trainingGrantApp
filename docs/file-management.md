@@ -13,6 +13,7 @@ The Flask Survey Form System implements a comprehensive file management system f
 3. **File Serving** (`app.py`): Secure file download and access control
 4. **File Metadata** (`models.py`): Database tracking of file information with descriptions
 5. **File Validation** (`utils.py`, `forms.py`): Security and type validation
+6. **Employee Data Management** (`attached_assets/`): Automated employee directory CSV file synchronization
 
 ### File Processing Flow
 
@@ -158,6 +159,11 @@ uploads/
 │   ├── 20240117_101525_course_outline.pdf
 │   └── 20240117_101530_completion_cert.pdf
 └── ...
+
+attached_assets/
+├── EmployeeListFirstLastDept.csv    # Employee directory (updated nightly)
+├── limerick IDA .xlsx               # Reference documents
+└── Claim-Form-5-Training new GBER Rules.xlsx
 ```
 
 ### File Organization
@@ -775,6 +781,10 @@ def backup_files_with_metadata():
     uploads_backup = os.path.join(backup_path, "uploads")
     shutil.copytree(UPLOAD_FOLDER, uploads_backup)
     
+    # Copy attached assets (including employee directory)
+    assets_backup = os.path.join(backup_path, "attached_assets")
+    shutil.copytree("attached_assets", assets_backup)
+    
     # Create comprehensive backup manifest
     manifest = {
         'backup_date': datetime.now().isoformat(),
@@ -782,6 +792,7 @@ def backup_files_with_metadata():
         'total_forms': 0,
         'total_files': 0,
         'total_size': 0,
+        'employee_data_included': True,
         'forms': []
     }
     

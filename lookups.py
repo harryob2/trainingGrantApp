@@ -33,48 +33,59 @@ def get_lookup_data(entity_type: str):
             logger.debug("Returning cached employee data.")
             return _employee_cache
 
-        employees = []
-        # Path to the CSV, assuming it's in 'attached_assets' relative to the project root
-        # This path might need adjustment if the script's CWD is different when run by Flask
-        csv_path = os.path.join(os.path.dirname(__file__), "..", "attached_assets", "EmployeeListFirstLastDept.csv") # Adjusted path
-
-        if not os.path.exists(csv_path):
-            # Fallback if running from a different context (e.g. tests or main app.py CWD)
-            alt_csv_path = os.path.join("attached_assets", "EmployeeListFirstLastDept.csv")
-            if os.path.exists(alt_csv_path):
-                csv_path = alt_csv_path
-            else:
-                logger.error(f"Employee list CSV not found at {csv_path} or {alt_csv_path}")
-                return []
-
-        logger.info(f"Loading employee data from {csv_path}")
+        logger.info("Loading employee data from database")
         try:
-            with open(csv_path, "r", encoding="utf-8-sig") as csvfile: # Use utf-8-sig for potential BOM
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    first_name = row.get("FirstName", "").strip()
-                    last_name = row.get("LastName", "").strip()
-                    email = row.get("UserPrincipalName", "").strip()
-                    department = row.get("Department", "").strip()
-
-                    if first_name and last_name and email:
-                        display_name = f"{first_name} {last_name}"
-                        employees.append(
-                            {
-                                "displayName": display_name,
-                                "email": email,
-                                "name": display_name, # 'name' is often used, keeping it for compatibility
-                                "department": department,
-                                "firstName": first_name,
-                                "lastName": last_name,
-                            }
-                        )
+            from models import get_all_employees
+            employees = get_all_employees()
+            
+            # Cache the results
             _employee_cache = employees
-            logger.info(f"Loaded and cached {len(employees)} employees.")
+            logger.info(f"Loaded and cached {len(employees)} employees from database.")
             return employees
         except Exception as e:
-            logger.error(f"Error loading employee data from {csv_path}: {str(e)}")
-            return []
+            logger.error(f"Error loading employee data from database: {str(e)}")
+            
+            # Fallback to CSV if database fails
+            logger.info("Attempting fallback to CSV file")
+            try:
+                employees = []
+                csv_path = os.path.join(os.path.dirname(__file__), "..", "attached_assets", "EmployeeListFirstLastDept.csv")
+
+                if not os.path.exists(csv_path):
+                    alt_csv_path = os.path.join("attached_assets", "EmployeeListFirstLastDept.csv")
+                    if os.path.exists(alt_csv_path):
+                        csv_path = alt_csv_path
+                    else:
+                        logger.error(f"Employee list CSV not found at {csv_path} or {alt_csv_path}")
+                        return []
+
+                logger.info(f"Loading employee data from CSV fallback: {csv_path}")
+                with open(csv_path, "r", encoding="utf-8-sig") as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    for row in reader:
+                        first_name = row.get("FirstName", "").strip()
+                        last_name = row.get("LastName", "").strip()
+                        email = row.get("UserPrincipalName", "").strip()
+                        department = row.get("Department", "").strip()
+
+                        if first_name and last_name and email:
+                            display_name = f"{first_name} {last_name}"
+                            employees.append(
+                                {
+                                    "displayName": display_name,
+                                    "email": email,
+                                    "name": display_name,
+                                    "department": department,
+                                    "firstName": first_name,
+                                    "lastName": last_name,
+                                }
+                            )
+                _employee_cache = employees
+                logger.info(f"Loaded and cached {len(employees)} employees from CSV fallback.")
+                return employees
+            except Exception as csv_error:
+                logger.error(f"Error loading employee data from CSV fallback: {str(csv_error)}")
+                return []
 
     elif entity_type == "trainings":
         if _training_catalog_cache is not None:
@@ -121,6 +132,12 @@ def clear_training_catalog_cache():
     global _training_catalog_cache
     _training_catalog_cache = None
     logger.info("Training catalog cache cleared.")
+
+def clear_employee_cache():
+    """Clear the employee cache to force reload of data."""
+    global _employee_cache
+    _employee_cache = None
+    logger.info("Employee cache cleared.")
 
 if __name__ == '__main__':
     # For testing the module directly

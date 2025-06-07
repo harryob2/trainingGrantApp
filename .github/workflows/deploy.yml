@@ -894,6 +894,9 @@ jobs:
         "UPLOAD_FOLDER=c:/TrainingAppData/Uploads" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "FLASK_ENV=production" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "SEQ_API_KEY=${{ secrets.SEQ_API_KEY }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
+        "AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" | Out-File -FilePath ".env" -Append -Encoding UTF8
         "SEQ_AUTH_REQUIRED=false" | Out-File -FilePath ".env" -Append -Encoding UTF8
         
         Write-Host "PASS: Environment configured"

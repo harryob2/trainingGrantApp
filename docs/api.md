@@ -373,7 +373,7 @@ csrf_token=...
 ### Data Lookup APIs
 
 #### GET /api/employees
-**Purpose**: Enhanced employee directory lookup for autocomplete
+**Purpose**: Employee directory lookup for autocomplete and form population
 
 **Authentication**: User
 
@@ -381,22 +381,28 @@ csrf_token=...
 ```json
 [
   {
+    "id": 1,
     "displayName": "John Doe",
     "email": "john.doe@company.com",
     "name": "John Doe",
     "department": "Engineering",
     "firstName": "John",
-    "lastName": "Doe"
+    "lastName": "Doe",
+    "first_name": "John",
+    "last_name": "Doe",
+    "created_at": "2024-01-15T10:30:00",
+    "updated_at": "2024-01-15T10:30:00"
   },
   ...
 ]
 ```
 
-**Enhanced Features**:
+**Features**:
+- Database-driven with automated synchronization
 - Cached for performance optimization
-- Comprehensive employee data
-- Department information included
-- Optimized search performance
+- Comprehensive employee data with department information
+- CSV fallback for reliability
+- Nightly updates from Microsoft Graph API
 
 #### GET /api/lookup/<string:entity_type>
 **Purpose**: Enhanced generic lookup service for various entity types

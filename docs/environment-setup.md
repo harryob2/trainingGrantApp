@@ -74,6 +74,11 @@ LDAP_BASE_DN=DC=strykercorp,DC=com
 LDAP_DOMAIN=strykercorp.com
 LDAP_USE_SSL=False
 
+# Azure Integration (for employee data synchronization)
+AZURE_CLIENT_ID=your-azure-app-client-id
+AZURE_CLIENT_SECRET=your-azure-app-client-secret
+AZURE_TENANT_ID=your-azure-tenant-id
+
 # Environment
 FLASK_ENV=development
 ```
@@ -104,6 +109,11 @@ LDAP_PORT=3268
 LDAP_BASE_DN=DC=strykercorp,DC=com
 LDAP_DOMAIN=strykercorp.com
 LDAP_USE_SSL=False
+
+# Azure Integration (for employee data synchronization)
+AZURE_CLIENT_ID=your-azure-app-client-id
+AZURE_CLIENT_SECRET=your-azure-app-client-secret
+AZURE_TENANT_ID=your-azure-tenant-id
 
 # Environment
 FLASK_ENV=production

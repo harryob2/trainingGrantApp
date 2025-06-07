@@ -290,6 +290,11 @@ Navigate to your repository settings → Secrets and variables → Actions, and 
 - `LDAP_BASE_DN` - LDAP base DN (e.g., `DC=strykercorp,DC=com`)
 - `LDAP_DOMAIN` - LDAP domain (e.g., `strykercorp.com`)
 
+#### Azure Integration Secrets
+- `AZURE_CLIENT_ID` - Azure App Registration client ID for Microsoft Graph API access
+- `AZURE_CLIENT_SECRET` - Azure App Registration client secret
+- `AZURE_TENANT_ID` - Azure tenant ID for authentication
+
 ### Database Setup for Staging and Production
 
 #### 1. Set up Staging Database
@@ -341,9 +346,16 @@ The deployment workflow (`.github/workflows/deploy.yml`) includes:
 
 #### Trigger Events
 - **Push to develop branch** → Development deployment (local)
-- **Push to main branch** → **Schema validation** → Staging deployment → Production deployment (if staging passes)
+- **Push to main branch** → Schema validation → Staging deployment → Production deployment (if staging passes)
 - **Pull requests to main** → Unit testing only
 - **Manual workflow dispatch** → Choose specific environment
+
+#### Maintenance System Integration
+The deployment pipeline ensures proper configuration for the automated maintenance system, which includes:
+- Database backup operations
+- Data cleanup processes
+- Employee data synchronization from Microsoft Graph API
+- All maintenance tasks run nightly at 3 AM in production environment
 
 #### Jobs Pipeline
 
