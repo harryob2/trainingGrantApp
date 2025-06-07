@@ -21,16 +21,12 @@
 </head>
 
 <body>
-  <header class="bg-dark py-3 mb-4">
+  <header class="bg-dark py-3">
     <div class="container">
       <div class="d-flex flex-column flex-md-row align-items-center">
         <a href="{{ url_for('index') }}" class="d-flex align-items-center text-decoration-none logo-container">
           <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Stryker Logo" />
         </a>
-        <h1 class="ms-md-4 my-3 my-md-0 text-white fs-4">
-          Limerick Training Form System
-        </h1>
-
         <nav class="ms-md-auto">
           <ul class="nav nav-pills">
             {% if current_user.is_authenticated %}
@@ -82,17 +78,18 @@
                   <path fill-rule="evenodd"
                     d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
                 </svg>
-                {{ user_info.display_name }} {% if user_info.is_admin %}<span
-                  class="badge bg-danger ms-1">Admin</span>{% endif %}
+                {% if user_info.first_name and user_info.last_name %}
+                  {{ user_info.first_name }} {{ user_info.last_name }}
+                {% else %}
+                  {{ user_info.display_name or user_info.username }}
+                {% endif %}
+                {% if user_info.is_admin %}<span class="badge bg-danger ms-1">Admin</span>{% endif %}
               </a>
               <ul class="dropdown-menu">
                 <li>
                   <span class="dropdown-item-text">{{ user_info.email }}</span>
                 </li>
                 {% if user_info.is_admin %}
-                <!-- <li>
-                  <span class="dropdown-item-text text-danger">Administrator Account</span>
-                </li> -->
                 <li>
                   <a class="dropdown-item" href="{{ url_for('manage_admins') }}">
                     <i class="fa fa-users-cog me-1"></i> Manage Admins
@@ -171,10 +168,8 @@
   
   <!-- Shared utilities -->
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-  
-  {# <script src="{{ url_for('static', filename='js/scripts.js') }}"></script> #} <!-- Commented out as it causes 404 -->
 
-  <!-- AutoNumeric for currency fields (Task 3) -->
+  <!-- AutoNumeric for currency fields -->
   <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.0/dist/autoNumeric.min.js"></script>
   <script src="{{ url_for('static', filename='js/currency.js') }}"></script>
 

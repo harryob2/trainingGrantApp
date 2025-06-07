@@ -10,7 +10,7 @@ The deployment pipeline follows a three-tier approach:
 
 1. **Development** (Local): SQLite-based development environment on your local machine with local `uploads/` folder
 2. **Staging** (Server): MariaDB-based staging environment that mirrors production for testing with local `uploads_staging/` folder using Waitress WSGI server
-3. **Production** (Server): MariaDB-based production environment for live application with dedicated `c:/TrainingAppFormUploads/` folder using Waitress WSGI server
+3. **Production** (Server): MariaDB-based production environment for live application with dedicated `c:/TrainingAppData/Uploads/` folder using Waitress WSGI server
 
 ### Upload Folder Strategy
 
@@ -18,7 +18,7 @@ The application uses environment-specific upload folders to prevent deployment i
 
 - **Development**: Uses local `uploads/` folder within the project directory
 - **Staging**: Uses local `uploads_staging/` folder for testing
-- **Production**: Uses dedicated `c:/TrainingAppFormUploads/` folder outside the project directory
+- **Production**: Uses dedicated `c:/TrainingAppData/Uploads/` folder outside the project directory
 
 **Key Benefits**:
 - Prevents production deployments from overwriting uploaded files
@@ -601,7 +601,7 @@ USE_SQLITE=False
 DB_HOST=azulimpbi01
 DB_NAME=training_tool
 DB_USER=training_app
-UPLOAD_FOLDER=c:/TrainingAppFormUploads
+UPLOAD_FOLDER=c:/TrainingAppData/Uploads
 FLASK_ENV=production
 ```
 

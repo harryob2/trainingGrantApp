@@ -38,35 +38,46 @@ class User(UserMixin):
     def __init__(
         self,
         username,
-        dn=None,
         display_name=None,
         email=None,
         first_name=None,
         last_name=None,
-        groups=None,
         is_admin=False,
     ):
         self.id = username  # For Flask-Login, id is required
         self.username = username
-        self.dn = dn
         self.display_name = display_name or username.split("@")[0]
         self.email = email or username
         self.first_name = first_name
         self.last_name = last_name
-        self.groups = groups or []
         self.is_admin = is_admin
 
     @staticmethod
     def get(username):
         """Get user by username."""
         is_admin = is_admin_email(username)
-        display_name = "Administrator" if is_admin else username.split("@")[0]
+        
+        # Try to get names from session first
+        from flask import session
+        first_name = session.get('user_first_name')
+        last_name = session.get('user_last_name')
+        if first_name and last_name:
+            return User(
+                username=username,
+                display_name=username.split("@")[0],
+                email=username,
+                first_name=first_name,
+                last_name=last_name,
+                is_admin=is_admin
+            )
+        
+        # Fallback for bypass users or when no session data
         return User(
             username=username,
-            display_name=display_name,
+            display_name=username.split("@")[0],
             email=username,
-            first_name="Admin" if is_admin else None,
-            last_name="User" if is_admin else None,
+            first_name=None,
+            last_name=None,
             is_admin=is_admin,
         )
 
@@ -205,10 +216,14 @@ def authenticate_user(username, password, app_config=None):
     user_data, error_msg = verify_ldap_user(username, password, app_config)
     
     if user_data:
-        # Create and return user object
+        # Store just the names in session for later retrieval
+        from flask import session
+        session['user_first_name'] = user_data['first_name']
+        session['user_last_name'] = user_data['last_name']
+        
+        # Create and return user object (dn not needed since we store names in session)
         user = User(
             username=user_data['username'],
-            dn=user_data['dn'],
             display_name=user_data['display_name'],
             email=user_data['email'],
             first_name=user_data['first_name'],

@@ -212,7 +212,7 @@ File System
 ├── Environment-Specific Storage Organization
 │   ├── Development: Local uploads/ folder
 │   ├── Staging: Local uploads_staging/ folder
-│   └── Production: Dedicated c:/TrainingAppFormUploads/ folder
+│   └── Production: Dedicated c:/TrainingAppData/Uploads/ folder
 └── Network Storage (Legacy)
 
 Frontend Enhancements

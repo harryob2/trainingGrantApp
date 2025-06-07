@@ -193,7 +193,7 @@ The application uses environment-specific upload folders to prevent deployment i
 FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
 if FLASK_ENV == 'production':
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppFormUploads")
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppData/Uploads")
 else:
     # Development and staging use local uploads folder
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))
@@ -202,7 +202,7 @@ else:
 **Environment-specific paths**:
 - **Development**: `uploads/` (local folder within project directory)
 - **Staging**: `uploads_staging/` (local folder for testing)
-- **Production**: `c:/TrainingAppFormUploads/` (dedicated folder outside project directory)
+- **Production**: `c:/TrainingAppData/Uploads/` (dedicated folder outside project directory)
 
 **Key Benefits**:
 1. **Deployment Safety**: Production deployments can't overwrite uploaded files
@@ -213,12 +213,12 @@ else:
 
 **Configuration Changes Made**:
 - **`config.py`**: Environment-specific upload folder logic
-- **`.github/workflows/deploy.yml`**: Production deployment sets `UPLOAD_FOLDER=c:/TrainingAppFormUploads` and creates directory if needed
+- **`.github/workflows/deploy.yml`**: Production deployment sets `UPLOAD_FOLDER=c:/TrainingAppData/Uploads` and creates directory if needed
 - **`env.example`**: Documentation of environment-specific behavior with examples
 - **`app.py`**: Enhanced upload folder creation and logging
 - **`utils.py`**: Improved upload folder handling
 
-**Migration Notes**: Existing production files should be moved to `c:/TrainingAppFormUploads/` before deployment. The production deployment will automatically create the new folder if it doesn't exist.
+**Migration Notes**: Existing production files should be moved to `c:/TrainingAppData/Uploads/` before deployment. The production deployment will automatically create the new folder if it doesn't exist.
 
 **Legacy Network Storage Configuration**:
 ```python
@@ -766,7 +766,7 @@ def export_form_with_attachments(form_id, export_path):
 def backup_files_with_metadata():
     """Create comprehensive backup of all uploaded files with metadata"""
     backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    backup_path = os.path.join("backups", backup_dir)
+    backup_path = os.path.join("C:/TrainingAppData/Backups", backup_dir)
     
     # Create backup directory structure
     os.makedirs(backup_path, exist_ok=True)

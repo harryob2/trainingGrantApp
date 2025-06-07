@@ -5,9 +5,9 @@
     <div class="text-center mb-5">
         <h1 class="display-4">Limerick Training Form System</h1>
     </div>
-
-    <div class="row justify-content-center">
-        <div class="col-md-4 mb-4">
+    <!-- First Row: Submit New Form Only -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-6">
             <a href="{{ url_for('new_form') }}" class="text-decoration-none">
                 <div class="card h-100 text-center hover-card">
                     <div class="card-body">
@@ -19,44 +19,74 @@
                 </div>
             </a>
         </div>
+    </div>
 
-        <div class="col-md-4 mb-4">
-            <a href="{{ url_for('my_submissions') }}" class="text-decoration-none">
-                <div class="card h-100 text-center hover-card">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <i class="fas fa-list-alt fa-4x text-primary"></i>
-                        </div>
-                        <h3 class="card-title">My Submissions</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-4 mb-4">
-            <a href="{{ url_for('leaderboard') }}" class="text-decoration-none">
-                <div class="card h-100 text-center hover-card">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <i class="fas fa-trophy fa-4x text-primary"></i>
-                        </div>
-                        <h3 class="card-title">Leaderboard</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
+    <!-- Second Row: Navigation Buttons -->
+    <div class="row justify-content-center">
         {% if is_admin %}
-        <div class="col-md-4 mb-4">
-            <a href="{{ url_for('list_forms') }}" class="text-decoration-none">
-                <div class="card h-100 text-center hover-card">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <i class="fas fa-clipboard-list fa-4x text-primary"></i>
+            <!-- Admin View: 3 buttons -->
+            <div class="col-md-4 mb-4">
+                <a href="{{ url_for('my_submissions') }}" class="text-decoration-none">
+                    <div class="card h-100 text-center hover-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-list-alt fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title">My Submissions</h3>
                         </div>
-                        <h3 class="card-title">All Submissions</h3>
                     </div>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
+            <div class="col-md-4 mb-4">
+                <a href="{{ url_for('leaderboard') }}" class="text-decoration-none">
+                    <div class="card h-100 text-center hover-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-trophy fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title">Leaderboard</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4 mb-4">
+                <a href="{{ url_for('list_forms') }}" class="text-decoration-none">
+                    <div class="card h-100 text-center hover-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-clipboard-list fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title">All Submissions</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% else %}
+            <!-- Regular User View: 2 buttons -->
+            <div class="col-md-6 mb-4">
+                <a href="{{ url_for('my_submissions') }}" class="text-decoration-none">
+                    <div class="card h-100 text-center hover-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-list-alt fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title">My Submissions</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 mb-4">
+                <a href="{{ url_for('leaderboard') }}" class="text-decoration-none">
+                    <div class="card h-100 text-center hover-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-trophy fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title">Leaderboard</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
         {% endif %}
     </div>
 </div>

@@ -40,7 +40,7 @@ FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
 # Set upload folder based on environment
 if FLASK_ENV == 'production':
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppFormUploads")
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppData/Uploads")
 else:
     # Development and staging use local uploads folder
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))

@@ -60,7 +60,7 @@ def backup_database():
     log("Starting database backup...")
     
     # Create backup directory
-    backup_dir = project_root / "backups"
+    backup_dir = "C:\TrainingAppData\Backups"
     backup_dir.mkdir(exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -68,16 +68,7 @@ def backup_database():
     # Check if using SQLite or MariaDB
     use_sqlite = os.environ.get('USE_SQLITE', 'False').lower() == 'true'
     
-    if use_sqlite:
-        # SQLite backup
-        db_file = project_root / "training_forms.db"
-        if db_file.exists():
-            backup_file = backup_dir / f"backup_{timestamp}.db"
-            shutil.copy2(db_file, backup_file)
-            log(f"SQLite backup created: {backup_file.name}")
-        else:
-            log("SQLite database file not found")
-    else:
+    if not use_sqlite:
         # MariaDB backup
         db_host = os.environ.get("DB_HOST")
         db_name = os.environ.get("DB_NAME")

@@ -731,11 +731,11 @@ class TravelExpensesManager {
                     <thead class="table-light">
                         <tr>
                             <th>Date</th>
-                            <th>Destination</th>
-                            <th>Concur Claim</th>
+                            <th>Destination</th>                            
                             <th>Travelers</th>
                             <th>Mode</th>
                             <th>Distance/Cost</th>
+                            <th>Concur Claim</th>
                             <th>Actions</th>
                         </tr>
                     </thead>

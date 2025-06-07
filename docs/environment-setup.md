@@ -42,7 +42,7 @@ cp env.example .env.production
 The application uses environment-specific upload folders to prevent deployment issues:
 
 - **Development**: Uses local `uploads/` folder within the project directory
-- **Production**: Uses dedicated `c:/TrainingAppFormUploads/` folder outside the project
+- **Production**: Uses dedicated `c:/TrainingAppData/Uploads/` folder outside the project
 
 This design prevents production deployments from overwriting uploaded files, as the local development `uploads/` folder is excluded from git (via `.gitignore`) and won't affect production storage.
 
@@ -95,7 +95,7 @@ DB_PASSWORD=your-secure-password
 
 # File upload settings (Environment-specific)
 # Production: Dedicated folder outside project directory
-UPLOAD_FOLDER=c:/TrainingAppFormUploads
+UPLOAD_FOLDER=c:/TrainingAppData/Uploads
 NETWORK_STORAGE_PATH=\\strykercorp.com\lim\Engineering_DOG\5. Automation & Controls\01. Projects\Training Form Invoices
 
 # LDAP Configuration
