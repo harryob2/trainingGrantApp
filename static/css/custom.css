@@ -182,6 +182,8 @@ a.approve-btn .btn-text::before {
   font-size: initial; /* Reset font size for pseudo-element */
   line-height: initial; /* Reset line height */
   display: inline-block; /* Ensure it behaves like text */
+  min-width: 87px; /* Fixed width to prevent size changes */
+  text-align: center; /* Center the text within the fixed width */
 }
 a.approve-btn.unapproved .btn-text::before {
   content: "Unapproved";

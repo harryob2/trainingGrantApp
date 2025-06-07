@@ -52,6 +52,15 @@ content %}
     <div class="card">
       <!-- Card Body -->
       <div class="card-body">
+        <!-- Notes for Reviewer Section -->
+        {% if form.notes %}
+        <div class="alert alert-light p-3 mb-4">
+          <i class="bi bi-chat-dots me-2 text-muted"></i>
+          <strong>Notes for Reviewer:</strong><br>
+          <em>{{ form.notes }}</em>
+        </div>
+        {% endif %}
+        
         <!-- Training Details Row -->
         <div class="row mb-4">
           <!-- Left Column -->
@@ -80,17 +89,6 @@ content %}
 
                 <dt class="col-sm-4">Description</dt>
                 <dd class="col-sm-8">{{ form.training_description }}</dd>
-
-                {% if form.notes %}
-                <dt class="col-sm-4">Notes</dt>
-                <dd class="col-sm-8">
-                  <div class="alert alert-light p-2 mb-0">
-                    <i class="bi bi-chat-dots me-2 text-muted"></i>
-                    <strong>Notes for Reviewer:</strong><br>
-                    <em>{{ form.notes }}</em>
-                  </div>
-                </dd>
-                {% endif %}
 
                 <dt class="col-sm-4">Training Class</dt>
                 <dd class="col-sm-8">{{ form.ida_class or 'Not specified' }}</dd>

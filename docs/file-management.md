@@ -182,7 +182,11 @@ unique_filename = f"{timestamp}_{secure_filename(original_filename)}"
 
 #### Upload Folder Configuration
 
-The application uses environment-specific upload folders to prevent deployment issues:
+The application uses environment-specific upload folders to prevent deployment issues where production deployments would overwrite uploaded files.
+
+**Problem Solved**: Previously, when deploying to production, the local development `uploads/` folder (which is empty in development) would overwrite the production uploads folder, causing all uploaded attachments to be lost.
+
+**Solution Implemented**: Environment-specific upload folders with dedicated production storage outside the project directory.
 
 ```python
 # Environment-specific configuration (config.py)
@@ -196,15 +200,25 @@ else:
 ```
 
 **Environment-specific paths**:
-- **Development**: `uploads/` (local folder within project)
+- **Development**: `uploads/` (local folder within project directory)
 - **Staging**: `uploads_staging/` (local folder for testing)
-- **Production**: `c:/TrainingAppFormUploads/` (dedicated folder outside project)
+- **Production**: `c:/TrainingAppFormUploads/` (dedicated folder outside project directory)
 
 **Key Benefits**:
-- Prevents production deployments from overwriting uploaded files
-- Development files stay local and don't interfere with deployments
-- Clean separation between environments
-- No risk of losing uploaded attachments during deployments
+1. **Deployment Safety**: Production deployments can't overwrite uploaded files
+2. **Environment Isolation**: Each environment has its own upload storage
+3. **Data Persistence**: Production files are preserved outside the project directory
+4. **Clean Development**: Local development files don't interfere with deployments
+5. **Git Compatibility**: `uploads/` folder remains in `.gitignore` as intended
+
+**Configuration Changes Made**:
+- **`config.py`**: Environment-specific upload folder logic
+- **`.github/workflows/deploy.yml`**: Production deployment sets `UPLOAD_FOLDER=c:/TrainingAppFormUploads` and creates directory if needed
+- **`env.example`**: Documentation of environment-specific behavior with examples
+- **`app.py`**: Enhanced upload folder creation and logging
+- **`utils.py`**: Improved upload folder handling
+
+**Migration Notes**: Existing production files should be moved to `c:/TrainingAppFormUploads/` before deployment. The production deployment will automatically create the new folder if it doesn't exist.
 
 **Legacy Network Storage Configuration**:
 ```python
