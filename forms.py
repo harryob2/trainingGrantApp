@@ -271,6 +271,7 @@ class TrainingForm(FlaskForm):
     trainees_data = HiddenField("Trainees Data")
     trainer_email = HiddenField("Trainer Email")  # New hidden field for trainer email
     trainer_department = HiddenField("Trainer Department")  # New hidden field for trainer department
+    ready_for_approval = HiddenField("Ready for Approval")
 
     # Attachment fields
     attachments = MultipleFileField(
@@ -363,6 +364,29 @@ class TrainingForm(FlaskForm):
         emails = re.split(r"[,\s]+", self.trainee_emails.data)
         return [email.strip() for email in emails if email.strip()]
 
+    def is_ready_for_approval(self):
+        """Check if form is ready for approval by looking for flagged values"""
+        flagged_values = ['NA', 'N/A', 'na', '1111']
+        
+        # Check all string fields for flagged values
+        fields_to_check = [
+            self.training_name.data,
+            self.trainer_name.data,
+            self.supplier_name.data,
+            self.location_details.data,
+            self.training_description.data,
+            self.notes.data,
+            self.invoice_number.data,
+            self.concur_claim.data,
+            self.ida_class.data,
+        ]
+        
+        for field_value in fields_to_check:
+            if field_value and str(field_value).strip() in flagged_values:
+                return False
+        
+        return True
+
     def prepare_form_data(self):
         """Prepare form data for database insertion"""
         is_internal = self.training_type.data == "Internal Training"
@@ -394,6 +418,7 @@ class TrainingForm(FlaskForm):
             "training_description": self.training_description.data or "",
             "notes": self.notes.data or "",
             "ida_class": self.ida_class.data,
+            "ready_for_approval": self.is_ready_for_approval(),
         }
 
         # Note: trainees are now handled separately via the new Trainee table

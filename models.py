@@ -93,6 +93,7 @@ class TrainingForm(Base):
     training_hours = Column(Float)
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
+    ready_for_approval = Column(Boolean, default=True, nullable=True)
     concur_claim = Column(String(255))
     course_cost = Column(Float, default=0)
     invoice_number = Column(String(255))
@@ -135,6 +136,7 @@ class TrainingForm(Base):
                 self.submission_date.isoformat() if self.submission_date else None
             ),
             "approved": bool(self.approved),
+            "ready_for_approval": bool(self.ready_for_approval),
             "submitter": self.submitter,
             "ida_class": self.ida_class,
             "training_description": self.training_description,
@@ -409,6 +411,10 @@ def create_tables():
 def insert_training_form(form_data: Dict[str, Any]) -> int:
     """Insert a new training form into the database."""
     with db_session() as session:
+        # Calculate ready_for_approval if not provided
+        if 'ready_for_approval' not in form_data:
+            form_data['ready_for_approval'] = calculate_ready_for_approval(form_data)
+        
         form = TrainingForm(
             training_type=form_data["training_type"],
             training_name=form_data["training_name"],
@@ -422,6 +428,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             start_date=parse_date(form_data["start_date"]),
             end_date=parse_date(form_data["end_date"]),
             approved=form_data.get("approved", False),
+            ready_for_approval=form_data.get("ready_for_approval", True),
             concur_claim=form_data.get("concur_claim"),
             course_cost=form_data.get("course_cost", 0),
             invoice_number=form_data.get("invoice_number"),
@@ -435,12 +442,35 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
         return form.id
 
 
+def calculate_ready_for_approval(form_data: Dict[str, Any]) -> bool:
+    """Calculate if a form is ready for approval based on its content."""
+    flagged_values = ['NA', 'N/A', 'na', '1111']
+    
+    # Check all string fields for flagged values
+    fields_to_check = [
+        'training_name', 'trainer_name', 'supplier_name', 'location_details',
+        'training_description', 'notes', 'invoice_number', 'concur_claim', 'ida_class'
+    ]
+    
+    for field_name in fields_to_check:
+        field_value = form_data.get(field_name)
+        if field_value and str(field_value).strip() in flagged_values:
+            return False
+    
+    return True
+
+
 def update_training_form(form_id: int, form_data: Dict[str, Any]) -> bool:
     """Update an existing training form in the database."""
     with db_session() as session:
         form = session.query(TrainingForm).filter_by(id=form_id).first()
         if not form:
             return False
+        
+        # Calculate ready_for_approval if not explicitly set
+        if 'ready_for_approval' not in form_data:
+            form_data['ready_for_approval'] = calculate_ready_for_approval(form_data)
+        
         form.update_from_dict(form_data)
         return True
 

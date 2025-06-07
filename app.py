@@ -485,19 +485,24 @@ def approve_training(form_id):
         form = session.query(TrainingForm).filter_by(id=form_id).first()
         if form:
             was_approved = bool(form.approved)
-            form.approved = not was_approved
-            session.flush()
             
-            # Log approval action
-            logger.info(
-                "Form approval status changed",
-                extra={
-                    "form_id": form_id,
-                    "admin": current_user.email,
-                    "action": "approved" if not was_approved else "unapproved",
-                    "new_status": not was_approved
-                }
-            )
+            # If trying to approve, check if form is ready for approval
+            if not was_approved and not form.ready_for_approval:
+                flash("Cannot approve form: Form contains placeholder values and needs changes before approval", "warning")
+            else:
+                form.approved = not was_approved
+                session.flush()
+                
+                # Log approval action
+                logger.info(
+                    "Form approval status changed",
+                    extra={
+                        "form_id": form_id,
+                        "admin": current_user.email,
+                        "action": "approved" if not was_approved else "unapproved",
+                        "new_status": not was_approved
+                    }
+                )
 
     # If htmx request for row update in list
     if request.args.get("row") == "1":

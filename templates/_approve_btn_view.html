@@ -1,14 +1,34 @@
 {% from '_macros.html' import render_check_icon, render_x_icon %}
 <div class="d-flex align-items-center gap-2">
     {% if is_admin %}
-    <a href="{{ url_for('approve_training', form_id=form.id) }}"
-        class="btn btn-sm approve-btn {% if form.approved %}approved btn-outline-success{% else %}unapproved btn-outline-secondary{% endif %}"
-        hx-get="{{ url_for('approve_training', form_id=form.id) }}?view=1"
-        hx-target="closest .d-flex.align-items-center.gap-2" hx-swap="outerHTML">
-        {% if form.approved %} {{ render_check_icon('icon-default') }} {{ render_x_icon('icon-hover') }} {% else %} {{
-        render_x_icon('icon-default') }} {{ render_check_icon('icon-hover') }} {% endif %}
-        <span class="btn-text">{{ 'Unapprove' if form.approved else 'Approve' }}</span>
-    </a>
+    {% if form.approved %}
+        <!-- Approved form - can be unapproved -->
+        <a href="{{ url_for('approve_training', form_id=form.id) }}"
+            class="btn btn-sm approve-btn approved btn-outline-success"
+            hx-get="{{ url_for('approve_training', form_id=form.id) }}?view=1"
+            hx-target="closest .d-flex.align-items-center.gap-2" hx-swap="outerHTML">
+            {{ render_check_icon('icon-default') }} {{ render_x_icon('icon-hover') }}
+            <span class="btn-text">Unapprove</span>
+        </a>
+    {% elif form.ready_for_approval %}
+        <!-- Ready for approval - can be approved -->
+        <a href="{{ url_for('approve_training', form_id=form.id) }}"
+            class="btn btn-sm approve-btn btn-outline-secondary"
+            data-hover-text="Approve"
+            hx-get="{{ url_for('approve_training', form_id=form.id) }}?view=1"
+            hx-target="closest .d-flex.align-items-center.gap-2" hx-swap="outerHTML">
+            {{ render_x_icon('icon-default') }} {{ render_check_icon('icon-hover') }}
+            <span class="btn-text">Unapproved</span>
+        </a>
+    {% else %}
+        <!-- Not ready for approval - shows "Needs Changes" on hover -->
+        <span class="btn btn-sm approve-btn btn-outline-secondary"
+              data-hover-text="Needs Changes"
+              title="Form contains NA values and needs changes before approval">
+            {{ render_x_icon('icon-default') }}
+            <span class="btn-text">Unapproved</span>
+        </span>
+    {% endif %}
     {% else %}
     <span
         class="btn btn-sm {% if form.approved %}btn-outline-success{% else %}btn-outline-secondary{% endif %} disabled">
@@ -33,3 +53,19 @@
       {% endif %}
     {% endif %}
 </div>
+
+<style>
+.approve-btn:hover .btn-text {
+    display: none;
+}
+
+.approve-btn:hover::after {
+    content: attr(data-hover-text);
+}
+
+.approve-btn[data-hover-text="Needs Changes"]:hover {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+    color: white !important;
+}
+</style>
