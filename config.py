@@ -10,15 +10,7 @@ from pathlib import Path
 
 # Load environment file based on FLASK_ENV
 def load_env_file():
-    """Load environment variables from .env file based on FLASK_ENV"""
-    flask_env = os.environ.get('FLASK_ENV', 'development')
-    env_file = f'.env.{flask_env}'
-    
-    if os.path.exists(env_file):
-        from dotenv import load_dotenv
-        load_dotenv(env_file)
-        print(f"Loaded environment from {env_file}")
-    elif os.path.exists('.env'):
+    if os.path.exists('.env'):
         from dotenv import load_dotenv
         load_dotenv('.env')
         print("Loaded environment from .env")

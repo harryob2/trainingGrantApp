@@ -72,24 +72,17 @@
             <li class="nav-item ms-2 dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                 aria-expanded="false">
-                {% if user_info.profile_picture %}
-                  <img src="{{ user_info.profile_picture }}" alt="Profile Picture" class="rounded-circle me-2" 
-                       width="24" height="24" style="object-fit: cover;" id="user-profile-pic"
-                       onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                    class="bi bi-person-circle me-2" viewBox="0 0 16 16" style="display: none;">
-                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-                    <path fill-rule="evenodd"
-                      d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
-                  </svg>
-                {% else %}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                    class="bi bi-person-circle me-2" viewBox="0 0 16 16">
-                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-                    <path fill-rule="evenodd"
-                      d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
-                  </svg>
-                {% endif %}
+                <!-- Profile picture loaded via JavaScript to avoid session size limits -->
+                <img src="" alt="Profile Picture" class="rounded-circle me-2" 
+                     width="36" height="36" style="object-fit: cover; display: none;" id="user-profile-pic"
+                     data-user-email="{{ user_info.email }}"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                  class="bi bi-person-circle me-2" viewBox="0 0 16 16" id="default-profile-icon">
+                  <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                  <path fill-rule="evenodd"
+                    d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" />
+                </svg>
                 {% if user_info.first_name and user_info.last_name %}
                   {{ user_info.first_name }} {{ user_info.last_name }}
                 {% else %}
@@ -188,40 +181,9 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Profile picture caching -->
+  <!-- Profile picture functionality -->
   {% if current_user.is_authenticated %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Profile picture caching
-      const profileImg = document.getElementById('user-profile-pic');
-      if (profileImg) {
-        // Store current profile picture in localStorage for future use
-        const userEmail = profileImg.getAttribute('data-user-email') || '{{ user_info.email }}';
-        const cacheKey = 'profile_pic_' + userEmail;
-        const cacheTimeKey = 'profile_pic_time_' + userEmail;
-        const now = Date.now();
-        
-        localStorage.setItem(cacheKey, profileImg.src);
-        localStorage.setItem(cacheTimeKey, now.toString());
-        
-        // Add error handling for profile picture loading
-        profileImg.addEventListener('error', function() {
-          console.log('Profile picture failed to load, falling back to default icon');
-        });
-      }
-      
-      // Clean up old cache entries (older than 7 days)
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('profile_pic_time_')) {
-          const cacheTime = localStorage.getItem(key);
-          if (cacheTime && (Date.now() - parseInt(cacheTime)) > (7 * 24 * 60 * 60 * 1000)) {
-            localStorage.removeItem(key);
-            localStorage.removeItem(key.replace('_time_', '_'));
-          }
-        }
-      });
-    });
-  </script>
+  <script src="{{ url_for('static', filename='js/profile-picture.js') }}"></script>
   {% endif %}
 
   {% block scripts %}{% endblock %}

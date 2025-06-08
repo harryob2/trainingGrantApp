@@ -1040,6 +1040,24 @@ def api_lookup(entity_type):
         return jsonify({"error": "Server error during lookup"}), 500
 
 
+@app.route("/api/profile-picture/<string:email>")
+@login_required
+def get_profile_picture(email):
+    """API endpoint to get user profile picture from Microsoft Graph"""
+    try:
+        from microsoft_graph import get_user_profile_picture
+        profile_picture = get_user_profile_picture(email)
+        
+        if profile_picture:
+            return jsonify({"profile_picture": profile_picture})
+        else:
+            return jsonify({"profile_picture": None}), 404
+            
+    except Exception as e:
+        logger.error(f"Error fetching profile picture for {email}: {e}")
+        return jsonify({"profile_picture": None}), 500
+
+
 @app.route("/api/export_claim5_options")
 @login_required
 def export_claim5_options():

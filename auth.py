@@ -61,7 +61,6 @@ class User(UserMixin):
         from flask import session
         first_name = session.get('user_first_name')
         last_name = session.get('user_last_name')
-        profile_picture = session.get('user_profile_picture')
         
         user = User(
             username=username,
@@ -72,8 +71,8 @@ class User(UserMixin):
             is_admin=is_admin
         )
         
-        # Add profile picture to user object (as an attribute for easy access)
-        user.profile_picture = profile_picture
+        # Profile pictures are handled client-side to avoid session size limits
+        user.profile_picture = None
         
         return user
 
@@ -203,18 +202,9 @@ def authenticate_user(username, password, app_config=None):
             session['user_first_name'] = "Test"
             session['user_last_name'] = "User"
             
-            # Try to fetch profile picture for bypass users too (if they exist in Microsoft Graph)
-            try:
-                from microsoft_graph import get_user_profile_picture
-                profile_picture = get_user_profile_picture(username)
-                if profile_picture:
-                    session['user_profile_picture'] = profile_picture
-                    logger.info(f"Profile picture retrieved for bypass user: {username}")
-                else:
-                    session.pop('user_profile_picture', None)
-            except Exception as e:
-                logger.info(f"No profile picture for bypass user {username}: {e}")
-                session.pop('user_profile_picture', None)
+            # Profile pictures are handled client-side to avoid session size limits
+            # (Flask sessions are stored in browser cookies with ~4KB limit)
+            session.pop('user_profile_picture', None)
             
             return User.get(username)
         else:
@@ -236,22 +226,9 @@ def authenticate_user(username, password, app_config=None):
         session['user_first_name'] = user_data['first_name']
         session['user_last_name'] = user_data['last_name']
         
-        # Fetch user profile picture from Microsoft Graph API
-        profile_picture = None
-        try:
-            from microsoft_graph import get_user_profile_picture
-            profile_picture = get_user_profile_picture(user_data['email'])
-            if profile_picture:
-                session['user_profile_picture'] = profile_picture
-                logger.info(f"Profile picture retrieved for user: {user_data['email']}")
-            else:
-                # Clear any existing profile picture from session
-                session.pop('user_profile_picture', None)
-                logger.info(f"No profile picture found for user: {user_data['email']}")
-        except Exception as e:
-            logger.warning(f"Failed to fetch profile picture for {user_data['email']}: {e}")
-            # Clear any existing profile picture from session
-            session.pop('user_profile_picture', None)
+        # Profile pictures are handled client-side to avoid session size limits
+        # (Flask sessions are stored in browser cookies with ~4KB limit)
+        session.pop('user_profile_picture', None)
         
         # Create and return user object
         user = User(
