@@ -472,7 +472,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
 
 def calculate_ready_for_approval(form_data: Dict[str, Any]) -> bool:
     """Calculate if a form is ready for approval based on its content."""
-    flagged_values = ['NA', 'N/A', 'na', '1111']
+    flagged_values = ['NA', 'N/A', 'na', '1111', '€1111.00', '€1111', '1111.00']
     
     # Check for 'Not sure' ida_class specifically
     ida_class = form_data.get('ida_class')
@@ -482,7 +482,7 @@ def calculate_ready_for_approval(form_data: Dict[str, Any]) -> bool:
     # Check all string fields for flagged values
     fields_to_check = [
         'training_name', 'trainer_name', 'supplier_name', 'location_details',
-        'training_description', 'notes', 'invoice_number', 'concur_claim', 'ida_class'
+        'training_description', 'notes', 'invoice_number', 'concur_claim', 'ida_class', 'course_cost'
     ]
     
     for field_name in fields_to_check:

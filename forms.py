@@ -366,7 +366,7 @@ class TrainingForm(FlaskForm):
 
     def is_ready_for_approval(self):
         """Check if form is ready for approval by looking for flagged values"""
-        flagged_values = ['NA', 'N/A', 'na', '1111']
+        flagged_values = ['NA', 'N/A', 'na', '1111', '€1111.00', '€1111', '1111.00', '1111.0']
         
         # Check for 'Not sure' ida_class specifically
         if self.ida_class.data and str(self.ida_class.data).strip().lower() == 'not sure':
@@ -383,6 +383,7 @@ class TrainingForm(FlaskForm):
             self.invoice_number.data,
             self.concur_claim.data,
             self.ida_class.data,
+            self.course_cost.data,
         ]
         
         for field_value in fields_to_check:

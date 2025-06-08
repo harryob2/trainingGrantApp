@@ -768,7 +768,7 @@ The form system includes comprehensive visual indicators for data quality and co
 ```html
 <!-- Flagged Value Rendering Macro -->
 {% macro render_field_value(value, default='Not specified') %}
-  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure', '€1111.00', '1111.00', '€1111'] %}
   {% if value and value|string|trim in flagged_values %}
     <span class="flagged-value">{{ value }}</span>
   {% else %}
@@ -778,7 +778,7 @@ The form system includes comprehensive visual indicators for data quality and co
 
 <!-- Field Row with Flagged Value Detection -->
 {% macro render_field_row(label, value, default='Not specified') %}
-  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure', '€1111.00', '1111.00', '€1111'] %}
   {% set is_flagged = value and value|string|trim in flagged_values %}
   {% if is_flagged %}
     <dt class="col-sm-4 flagged-dt">

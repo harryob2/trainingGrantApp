@@ -268,7 +268,7 @@ Frontend Enhancements
 - **Flagged Value Highlighting**: Automatic visual highlighting of fields containing placeholder or incomplete values
 - **Orange Border Styling**: Clean border indicators around flagged field rows maintaining layout integrity
 - **"Needs Review" Tags**: Positioned indicators that appear adjacent to flagged fields for immediate identification
-- **Smart Field Detection**: Automatic detection of common placeholder values ('1111', 'na', 'NA', 'N/A', 'Not sure')
+- **Smart Field Detection**: Automatic detection of common placeholder values ('1111', 'na', 'NA', 'N/A', 'Not sure', '€1111', '1111.00')
 - **Template Macro System**: Reusable rendering macros for consistent flagged value display across views
 
 #### CSS Architecture

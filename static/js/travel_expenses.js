@@ -769,10 +769,10 @@ class TravelExpensesManager {
             <tr>
                 <td>${formattedDate}</td>
                 <td>${expense.destination}</td>
-                <td>${expense.concur_claim_number || '-'}</td>
                 <td>${travelersList}</td>
                 <td>${modeDisplay}</td>
                 <td>${distanceDisplay}</td>
+                <td>${expense.concur_claim_number || '-'}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-primary me-1" 
                             onclick="travelExpensesManager.openModal(${index})" title="Edit">

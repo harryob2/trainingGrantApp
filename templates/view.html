@@ -2,7 +2,7 @@
 render_x_icon %} 
 
 {% macro render_field_value(value, default='Not specified') %}
-  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure', '€1111.00', '€1111', '1111.00', '1111.0'] %}
   {% if value and value|string|trim in flagged_values %}
     <span class="flagged-value">{{ value }}</span>
   {% else %}
@@ -11,7 +11,7 @@ render_x_icon %}
 {% endmacro %}
 
 {% macro render_field_row(label, value, default='Not specified') %}
-  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure'] %}
+  {% set flagged_values = ['1111', 'na', 'NA', 'N/A', 'Not sure', '€1111.00', '€1111', '1111.00', '1111.0'] %}
   {% set is_flagged = value and value|string|trim in flagged_values %}
   {% if is_flagged %}
     <dt class="col-sm-4 flagged-dt">
@@ -155,8 +155,7 @@ content %}
                 {% else %}
                 {{ render_field_row('Supplier', form.supplier_name, 'Not provided') }}
 
-                <dt class="col-sm-4">Course Cost</dt>
-                <dd class="col-sm-8">€{{ "%.2f"|format(form.course_cost|default(0)) }}</dd>
+                {{ render_field_row('Course Cost', '€%.2f'|format(form.course_cost|default(0))) }}
 
                 {{ render_field_row('Invoice Number', form.invoice_number, 'Not provided') }}
 
