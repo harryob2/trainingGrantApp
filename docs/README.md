@@ -132,7 +132,7 @@ FlaskSurveyForm/
 ├── docs/                    # Documentation files
 ├── static/                  # Static web assets
 │   ├── css/                # Stylesheets
-│   ├── js/                 # JavaScript files
+│   ├── js/                 # JavaScript modules and utilities
 │   ├── images/             # Image assets
 │   └── data/               # Static data files
 ├── templates/              # Jinja2 HTML templates

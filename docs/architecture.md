@@ -15,7 +15,7 @@ The Flask Survey Form System follows a traditional Model-View-Controller (MVC) a
 **Components**:
 - **HTML Templates** (`templates/`): Jinja2 templates for dynamic content rendering with enhanced UI components
 - **CSS Stylesheets** (`static/css/`): Bootstrap-based responsive styling with modular custom components and approve button system
-- **JavaScript** (`static/js/`): Enhanced client-side interactivity and AJAX calls
+- **JavaScript** (`static/js/`): Modular client-side functionality including profile picture management, form interactions, and AJAX calls
 - **Images & Assets** (`static/images/`, `static/data/`): Static resources
 
 **Key Templates**:
@@ -226,7 +226,8 @@ Frontend Enhancements
 ├── Bootstrap 5 (UI Framework)
 ├── Bootstrap Icons (Icon Library)
 ├── Flatpickr (Date Picker)
-└── Custom CSS/JS Components
+├── Custom CSS/JS Components
+└── Profile Picture Management (profile-picture.js)
 ```
 
 ## Design Patterns
