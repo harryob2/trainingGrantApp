@@ -308,25 +308,31 @@ def update_employee_list():
         csv_data = []  # Keep CSV data for backup file
         
         for user in all_users:
+            # Handle None values from Microsoft Graph API by converting to empty strings
+            first_name = user.get('givenName') or ''
+            last_name = user.get('surname') or ''
+            email = user.get('userPrincipalName') or ''
+            department = user.get('department') or ''
+            
             employee_data = {
-                'first_name': user.get('givenName', ''),
-                'last_name': user.get('surname', ''),
-                'email': user.get('userPrincipalName', ''),
-                'department': user.get('department', '')
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email,
+                'department': department
             }
             employees_data.append(employee_data)
             
             # Also prepare CSV format for backup file
             csv_data.append({
-                'FirstName': user.get('givenName', ''),
-                'LastName': user.get('surname', ''),
-                'UserPrincipalName': user.get('userPrincipalName', ''),
-                'Department': user.get('department', '')
+                'FirstName': first_name,
+                'LastName': last_name,
+                'UserPrincipalName': email,
+                'Department': department
             })
         
-        # Sort by last name, then first name
-        employees_data.sort(key=lambda x: (x['last_name'].lower(), x['first_name'].lower()))
-        csv_data.sort(key=lambda x: (x['LastName'].lower(), x['FirstName'].lower()))
+        # Sort by last name, then first name (with safe null handling)
+        employees_data.sort(key=lambda x: ((x['last_name'] or '').lower(), (x['first_name'] or '').lower()))
+        csv_data.sort(key=lambda x: ((x['LastName'] or '').lower(), (x['FirstName'] or '').lower()))
         
         # Update database first
         try:
