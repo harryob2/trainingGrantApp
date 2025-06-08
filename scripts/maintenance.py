@@ -86,8 +86,23 @@ def backup_database():
         
         backup_file = backup_dir / f"backup_{timestamp}.sql"
         
+        # Use the specific mysqldump path
+        mysqldump_exe = 'C:/Program Files/MySQL/MySQL Workbench 8.0 CE/mysqldump.exe'
+        
+        # Verify the command exists
+        try:
+            result = subprocess.run([mysqldump_exe, '--version'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                log(f"ERROR: mysqldump at {mysqldump_exe} is not working properly")
+                return False
+            log(f"Using mysqldump at: {mysqldump_exe}")
+        except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+            log(f"ERROR: Cannot access mysqldump at {mysqldump_exe}: {e}")
+            return False
+        
         cmd = [
-            'mysqldump',
+            mysqldump_exe,
             f'--host={db_host}',
             f'--port={os.environ.get("DB_PORT", "3306")}',
             f'--user={db_user}',
@@ -100,6 +115,14 @@ def backup_database():
             with open(backup_file, 'w') as f:
                 subprocess.run(cmd, stdout=f, check=True, timeout=300)
             log(f"MariaDB backup created: {backup_file.name}")
+        except subprocess.TimeoutExpired:
+            log("Backup failed: Command timed out after 5 minutes")
+            return False
+        except subprocess.CalledProcessError as e:
+            log(f"Backup failed: mysqldump returned error code {e.returncode}")
+            if e.stderr:
+                log(f"Error output: {e.stderr}")
+            return False
         except Exception as e:
             log(f"Backup failed: {e}")
             return False
@@ -165,6 +188,11 @@ def update_employee_list():
             log("ERROR: Missing Azure credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)")
             return False
         
+        # Log credentials (masked for security)
+        log(f"Using tenant_id: {tenant_id}")
+        log(f"Using client_id: {client_id[:8]}...")
+        log(f"Client secret length: {len(client_secret) if client_secret else 0}")
+        
         # Get access token using client credentials flow
         token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
         token_data = {
@@ -175,9 +203,43 @@ def update_employee_list():
         }
         
         log("Acquiring access token...")
-        token_response = requests.post(token_url, data=token_data, timeout=30)
-        token_response.raise_for_status()
-        access_token = token_response.json()['access_token']
+        log(f"Token URL: {token_url}")
+        
+        try:
+            token_response = requests.post(token_url, data=token_data, timeout=30)
+            
+            # Log response details for debugging
+            log(f"Token response status: {token_response.status_code}")
+            
+            if token_response.status_code != 200:
+                log(f"Token request failed with status {token_response.status_code}")
+                try:
+                    error_details = token_response.json()
+                    log(f"Error details: {error_details}")
+                except:
+                    log(f"Raw error response: {token_response.text}")
+                return False
+            
+            token_response.raise_for_status()
+            token_json = token_response.json()
+            
+            if 'access_token' not in token_json:
+                log("ERROR: No access token in response")
+                log(f"Response keys: {list(token_json.keys())}")
+                return False
+                
+            access_token = token_json['access_token']
+            log("Successfully acquired access token")
+            
+        except requests.exceptions.RequestException as e:
+            log(f"Network error during token acquisition: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    log(f"Detailed error: {error_details}")
+                except:
+                    log(f"Raw error response: {e.response.text}")
+            return False
         
         # Set up Graph API headers
         headers = {
@@ -201,25 +263,39 @@ def update_employee_list():
         next_link = users_url
         
         while next_link:
-            if next_link == users_url:
-                response = requests.get(next_link, headers=headers, params=params, timeout=60)
-            else:
-                response = requests.get(next_link, headers=headers, timeout=60)
-            
-            response.raise_for_status()
-            data = response.json()
-            
-            # Filter users by site and domain
-            filtered_users = [
-                user for user in data.get('value', [])
-                if (user.get('officeLocation') == site and 
-                    user.get('userPrincipalName', '').lower().endswith(domain.lower()))
-            ]
-            
-            all_users.extend(filtered_users)
-            next_link = data.get('@odata.nextLink')
-            
-            log(f"Fetched {len(data.get('value', []))} users, filtered to {len(filtered_users)} matching users")
+            try:
+                if next_link == users_url:
+                    response = requests.get(next_link, headers=headers, params=params, timeout=60)
+                else:
+                    response = requests.get(next_link, headers=headers, timeout=60)
+                
+                if response.status_code != 200:
+                    log(f"Graph API request failed with status {response.status_code}")
+                    try:
+                        error_details = response.json()
+                        log(f"Graph API error details: {error_details}")
+                    except:
+                        log(f"Raw Graph API error response: {response.text}")
+                    return False
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                # Filter users by site and domain
+                filtered_users = [
+                    user for user in data.get('value', [])
+                    if (user.get('officeLocation') == site and 
+                        user.get('userPrincipalName', '').lower().endswith(domain.lower()))
+                ]
+                
+                all_users.extend(filtered_users)
+                next_link = data.get('@odata.nextLink')
+                
+                log(f"Fetched {len(data.get('value', []))} users, filtered to {len(filtered_users)} matching users")
+                
+            except requests.exceptions.RequestException as e:
+                log(f"Error fetching users from Graph API: {e}")
+                return False
         
         log(f"Total matching users found: {len(all_users)}")
         
