@@ -21,7 +21,7 @@ def init_mail(app):
 
 def send_form_submission_notification(form_id, form_data, submitter_email):
     """
-    Send email notification when a new training form is submitted.
+    Send email notification when a training form is submitted.
     
     Args:
         form_id (int): The ID of the submitted form
@@ -29,6 +29,11 @@ def send_form_submission_notification(form_id, form_data, submitter_email):
         submitter_email (str): Email of the person who submitted the form
     """
     try:
+        # Skip sending emails for test user to prevent spam during automated testing
+        if submitter_email == 'harry@test.com':
+            logging.info(f"Skipping email notification for test user: {submitter_email}")
+            return
+        
         # Determine notification emails based on environment
         flask_env = current_app.config.get('FLASK_ENV', 'development')
         

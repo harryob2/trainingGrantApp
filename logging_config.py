@@ -122,7 +122,7 @@ def setup_logging(app=None):
                 seqlog.log_to_seq(
                     server_url=seq_server_url,
                     api_key=seq_api_key,
-                    level=logging.DEBUG,  # Changed to DEBUG for more verbose logging
+                    level=logging.INFO,  # Back to INFO level to reduce noise
                     batch_size=1,  # Send immediately, don't batch
                     auto_flush_timeout=1,  # Flush every second
                     override_root_logger=True  # Changed to True to ensure logs go to Seq
@@ -131,9 +131,7 @@ def setup_logging(app=None):
                 print("DEBUG: seqlog.log_to_seq() completed successfully")
                 
                 # Test logging immediately after configuration
-                logging.info("SEQ_TEST: This is a test message sent immediately after Seq configuration")
-                logging.warning("SEQ_TEST: This is a warning level test message")
-                logging.error("SEQ_TEST: This is an error level test message")
+                logging.info("SEQ_TEST: Seq logging initialized successfully")
                 
                 # Force flush any pending logs
                 try:
@@ -141,10 +139,6 @@ def setup_logging(app=None):
                     print("DEBUG: Forced flush of seqlog completed")
                 except Exception as flush_error:
                     print(f"DEBUG: Error during seqlog flush: {flush_error}")
-                
-                # Wait a moment and send another test
-                time.sleep(2)
-                logging.info("SEQ_TEST: This is a delayed test message after 2 second wait")
                 
                 logging.info("Seq logging configured successfully with API key")
                 print("DEBUG: Seq logging setup completed")
@@ -176,61 +170,13 @@ def setup_logging(app=None):
     if SEQLOG_AVAILABLE and is_production:
         logging.info("Seq logging enabled - View logs at http://localhost:5341")
         logging.info(f"Seq configuration: API key present={bool(os.environ.get('SEQ_API_KEY'))}")
-        logging.info("If logs don't appear in Seq, check the debug output above for connection issues")
     
     logging.info("=" * 50)
     
-    # Send additional test messages after full setup
-    if is_production and SEQLOG_AVAILABLE and os.environ.get('SEQ_API_KEY'):
-        print("DEBUG: Sending final test messages...")
-        logging.debug("SEQ_TEST: Debug level message - should appear if Seq is working")
-        logging.info("SEQ_TEST: Info level message - main application logging level")
-        logging.warning("SEQ_TEST: Warning level message - higher priority")
-        logging.error("SEQ_TEST: Error level message - highest priority")
-        
-        # Try manual flush again
-        try:
-            seqlog.flush()
-            print("DEBUG: Final flush completed")
-        except Exception as e:
-            print(f"DEBUG: Final flush error: {e}")
-    
-    # Configure Flask app logging if provided
+    # Configure Flask app logging if provided (but remove verbose request/response logging)
     if app:
         app.logger.handlers = root_logger.handlers
         app.logger.setLevel(root_logger.level)
-        
-        # Log Flask requests
-        @app.before_request
-        def log_request_info():
-            """Log incoming request details"""
-            if not request.path.startswith('/static'):  # Skip static files
-                logger = get_logger('flask.request')
-                logger.info(
-                    "Request received",
-                    extra={
-                        'method': request.method,
-                        'path': request.path,
-                        'remote_addr': request.remote_addr,
-                        'user_agent': str(request.user_agent)
-                    }
-                )
-        
-        @app.after_request
-        def log_response_info(response):
-            """Log response details"""
-            if not request.path.startswith('/static'):
-                logger = get_logger('flask.response')
-                logger.info(
-                    "Response sent",
-                    extra={
-                        'method': request.method,
-                        'path': request.path,
-                        'status': response.status_code,
-                        'content_length': response.content_length
-                    }
-                )
-            return response
 
 
 def get_logger(name):
@@ -243,25 +189,7 @@ def get_logger(name):
     Returns:
         Logger instance configured for structured logging
     """
-    logger = logging.getLogger(name)
-    
-    # Add structured logging capability
-    original_log = logger._log
-    
-    def structured_log(level, msg, args, exc_info=None, extra=None, stack_info=False, **kwargs):
-        """Enhanced logging with structured data support"""
-        # Merge kwargs into extra for structured logging
-        if extra is None:
-            extra = {}
-        extra.update(kwargs)
-        
-        # Call original log method
-        original_log(level, msg, args, exc_info=exc_info, extra=extra, stack_info=stack_info)
-    
-    # Replace _log method
-    logger._log = structured_log
-    
-    return logger
+    return logging.getLogger(name)
 
 
 # Import Flask request for request logging

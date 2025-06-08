@@ -59,6 +59,23 @@ async function gotoHome(page) {
 }
 
 /**
+ * Click the "Add Training Manually" button to show the form details
+ * @param {import('@playwright/test').Page} page - Playwright page
+ */
+async function clickAddTrainingManually(page) {
+  console.log("--- Clicking Add Training Manually button ---");
+  
+  const addManuallyBtn = page.locator("#add-manually-btn");
+  await expect(addManuallyBtn).toBeVisible();
+  await addManuallyBtn.click();
+  
+  // Wait for the form details to become visible
+  await expect(page.locator("#training-form-details")).toBeVisible();
+  
+  console.log("--- Form details now visible ---");
+}
+
+/**
  * Add a trainee to the form by searching and selecting the first match
  * @param {import('@playwright/test').Page} page - Playwright page
  * @param {string} searchTerm - Search term for trainee (default 'gre')
@@ -124,6 +141,15 @@ async function setTrainerName(page, trainerName) {
       hiddenInput.value = name;
     }
   }, trainerName);
+
+  // Wait for the dropdown to potentially appear and then dismiss it by clicking elsewhere
+  await page.waitForTimeout(500);
+  
+  // Click somewhere else to dismiss any open dropdowns
+  await page.locator("h3").first().click();
+  
+  // Wait for UI to stabilize
+  await page.waitForTimeout(300);
 }
 
 /**
@@ -133,21 +159,28 @@ async function setTrainerName(page, trainerName) {
  */
 async function fillBasicInternalTrainingForm(page, options = {}) {
   const defaults = {
+    trainingName: "Test Training Course",
     trainerName: "Test Trainer",
     trainerHours: "1",
     traineeHours: "1",
     startDate: "2024-01-01",
     endDate: "2024-01-01",
     description: "Test training description",
+    idaClass: "Class A - QQI Certified L1-10",
     includeTrainer: true,
     includeTrainee: true,
-    addExpenses: false,
     locationType: "Onsite", // Allow setting location type
     locationDetails: null, // Optional location details for Offsite
     skipBaseSetup: false // Allow skipping basic setup
   };
 
   const settings = { ...defaults, ...options };
+
+  // First, show the form by clicking "Add Training Manually"
+  await clickAddTrainingManually(page);
+
+  // Set training name
+  await page.locator('input[name="training_name"]').fill(settings.trainingName);
 
   // Select training type and location
   await page
@@ -160,7 +193,7 @@ async function fillBasicInternalTrainingForm(page, options = {}) {
     await page
       .locator("label")
       .filter({ hasText: settings.locationType })
-      .click();
+      .click({ force: true });
 
     // Fill location details if Offsite
     if (settings.locationType === "Offsite") {
@@ -173,17 +206,22 @@ async function fillBasicInternalTrainingForm(page, options = {}) {
     }
   }
 
-  // Set dates
-  await page.locator('input[name="start_date"]').fill(settings.startDate);
-  await page.locator('input[name="end_date"]').fill(settings.endDate);
-
   // Set trainer info if included
   if (settings.includeTrainer) {
     await setTrainerName(page, settings.trainerName);
-    await page
-      .locator('input[name="training_hours"]')
-      .fill(settings.trainerHours);
   }
+
+  // Set training hours (always required)
+  await page
+    .locator('input[name="training_hours"]')
+    .fill(settings.trainerHours);
+
+  // Set IDA class (always required)
+  await page.locator('select[name="ida_class"]').selectOption(settings.idaClass);
+
+  // Set dates
+  await page.locator('input[name="start_date"]').fill(settings.startDate);
+  await page.locator('input[name="end_date"]').fill(settings.endDate);
 
   // Set description
   await page
@@ -193,11 +231,6 @@ async function fillBasicInternalTrainingForm(page, options = {}) {
   // Add trainee if included
   if (settings.includeTrainee) {
     await addTrainee(page);
-  }
-
-  // Add expenses if needed
-  if (settings.addExpenses) {
-    await addExpenses(page, settings.expenseOptions);
   }
 }
 
@@ -208,15 +241,26 @@ async function fillBasicInternalTrainingForm(page, options = {}) {
  */
 async function fillBasicExternalTrainingForm(page, options = {}) {
   const defaults = {
+    trainingName: "External Test Training Course",
     supplierName: "External Test Supplier",
+    courseCost: "1000.00",
+    invoiceNumber: "INV-2024-001",
+    concurClaim: "CONCUR-2024-001",
     traineeHours: "1",
     startDate: "2024-07-01",
     endDate: "2024-07-01",
     description: "External training description",
+    idaClass: "Class B - Nat/International Industry Cert",
     includeTrainee: true
   };
 
   const settings = { ...defaults, ...options };
+
+  // First, show the form by clicking "Add Training Manually"
+  await clickAddTrainingManually(page);
+
+  // Set training name
+  await page.locator('input[name="training_name"]').fill(settings.trainingName);
 
   // Select external training type
   await page
@@ -225,11 +269,31 @@ async function fillBasicExternalTrainingForm(page, options = {}) {
     .click();
   await expect(page.locator("#external-supplier-container")).toBeVisible();
 
+  // Wait for the external training specific containers to become visible
+  await expect(page.locator("#course-cost-container")).toBeVisible();
+  await expect(page.locator("#invoice-number-container")).toBeVisible();
+
   // Set supplier
   await page.locator('input[name="supplier_name"]').fill(settings.supplierName);
 
   // Set location (default: Onsite)
-  await page.locator("label").filter({ hasText: "Onsite" }).click();
+  await page.locator("label").filter({ hasText: "Onsite" }).click({ force: true });
+
+  // Set training hours (always required)
+  await page.locator('input[name="training_hours"]').fill(settings.traineeHours);
+
+  // Fill external training specific fields (they should now be visible)
+  await page.locator('input[name="course_cost"]').clear();
+  await page.locator('input[name="course_cost"]').fill(settings.courseCost);
+
+  await page.locator('input[name="invoice_number"]').clear();
+  await page.locator('input[name="invoice_number"]').fill(settings.invoiceNumber);
+
+  await page.locator('input[name="concur_claim"]').clear();
+  await page.locator('input[name="concur_claim"]').fill(settings.concurClaim);
+
+  // Set IDA class (always required)
+  await page.locator('select[name="ida_class"]').selectOption(settings.idaClass);
 
   // Set dates
   await page.locator('input[name="start_date"]').fill(settings.startDate);
@@ -243,33 +307,6 @@ async function fillBasicExternalTrainingForm(page, options = {}) {
   // Add trainee if included
   if (settings.includeTrainee) {
     await addTrainee(page);
-  }
-}
-
-/**
- * Add expenses to the form
- * @param {import('@playwright/test').Page} page - Playwright page
- * @param {Object} options - Optional expense values and settings
- */
-async function addExpenses(page, options = {}) {
-  const defaults = {
-    travelCost: "5",
-    concurClaim: "ABC123"
-  };
-
-  const settings = { ...defaults, ...options };
-
-  // Add expense values
-  if (settings.travelCost) {
-    await page.locator('input[name="travel_cost"]').fill(settings.travelCost);
-  }
-
-  // Add concur claim if any expenses are added and a claim number is provided
-  const hasExpenses = settings.travelCost;
-
-  if (hasExpenses && settings.concurClaim) {
-    // No need to wait for the message, just fill the field
-    await page.locator('input[name="concur_claim"]').fill(settings.concurClaim);
   }
 }
 
@@ -286,8 +323,32 @@ async function submitForm(page) {
  * @param {import('@playwright/test').Page} page - Playwright page
  */
 async function expectSuccessfulSubmission(page) {
-  await page.waitForURL("**/success");
-  await expect(page).toHaveURL(BASE_URL + "/success");
+  try {
+    await page.waitForURL("**/success", { timeout: 10000 });
+    await expect(page).toHaveURL(BASE_URL + "/success");
+  } catch (error) {
+    // If we didn't get to success page, let's see what happened
+    const currentUrl = page.url();
+    console.log(`Expected success page but got: ${currentUrl}`);
+    
+    // Check for validation errors or other issues on the page
+    const pageContent = await page.textContent('body');
+    if (pageContent.includes('required') || pageContent.includes('error') || pageContent.includes('invalid')) {
+      console.log('Page content suggests validation errors');
+      
+      // Look for visible error messages
+      const errorElements = await page.locator('.text-danger, .alert-danger, .is-invalid').all();
+      for (let i = 0; i < errorElements.length; i++) {
+        const errorText = await errorElements[i].textContent();
+        if (errorText && errorText.trim()) {
+          console.log(`Error ${i + 1}: ${errorText.trim()}`);
+        }
+      }
+    }
+    
+    // Re-throw the original error
+    throw error;
+  }
 }
 
 /**
@@ -303,6 +364,7 @@ async function expectSuccessfulUpdate(page) {
   const successMessage = await successFlash.textContent();
   expect(successMessage).toContain("updated successfully");
 }
+
 /**
  * Verify a validation error for the specified field
  * @param {import('@playwright/test').Page} page - Playwright page
@@ -313,23 +375,52 @@ async function expectValidationError(page, selector, expectedMessage) {
   // First, verify we're still on the form page (not redirected to success)
   await expect(page).not.toHaveURL(BASE_URL + "/success");
 
-  // Check the validation message
-  const element = page.locator(selector);
-  const validationMessage = await element.evaluate(
-    (el) => el.validationMessage
-  );
-  expect(validationMessage).toContain(expectedMessage);
+  // Check for server-side validation messages in the page content
+  // Look for flash messages, error containers, or general page content
+  const pageContent = await page.textContent('body');
+  
+  // First try to find the error in common error containers
+  const errorContainers = [
+    '.alert-danger',
+    '.alert-error', 
+    '.text-danger',
+    '.invalid-feedback',
+    '.error-message',
+    '.flash-error'
+  ];
+  
+  let foundError = false;
+  
+  for (const container of errorContainers) {
+    try {
+      const errorElement = page.locator(container);
+      if (await errorElement.isVisible()) {
+        const errorText = await errorElement.textContent();
+        if (errorText && errorText.includes(expectedMessage)) {
+          foundError = true;
+          break;
+        }
+      }
+    } catch {
+      // Continue to next container
+    }
+  }
+  
+  // If not found in containers, check if it's in the general page content
+  if (!foundError) {
+    expect(pageContent).toContain(expectedMessage);
+  }
 }
 
 module.exports = {
   BASE_URL,
   loginAsAdmin,
   gotoHome,
+  clickAddTrainingManually,
   addTrainee,
   setTrainerName,
   fillBasicInternalTrainingForm,
   fillBasicExternalTrainingForm,
-  addExpenses,
   submitForm,
   expectSuccessfulSubmission,
   expectValidationError,
