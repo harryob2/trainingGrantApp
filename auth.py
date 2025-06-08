@@ -57,29 +57,25 @@ class User(UserMixin):
         """Get user by username."""
         is_admin = is_admin_email(username)
         
-        # Try to get names from session first
+        # Try to get user data from session first
         from flask import session
         first_name = session.get('user_first_name')
         last_name = session.get('user_last_name')
-        if first_name and last_name:
-            return User(
-                username=username,
-                display_name=username.split("@")[0],
-                email=username,
-                first_name=first_name,
-                last_name=last_name,
-                is_admin=is_admin
-            )
+        profile_picture = session.get('user_profile_picture')
         
-        # Fallback for bypass users or when no session data
-        return User(
+        user = User(
             username=username,
             display_name=username.split("@")[0],
             email=username,
-            first_name=None,
-            last_name=None,
-            is_admin=is_admin,
+            first_name=first_name,
+            last_name=last_name,
+            is_admin=is_admin
         )
+        
+        # Add profile picture to user object (as an attribute for easy access)
+        user.profile_picture = profile_picture
+        
+        return user
 
 
 def init_auth(app):
@@ -201,6 +197,25 @@ def authenticate_user(username, password, app_config=None):
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         if password_hash == ADMIN_BYPASS_USERS[username_lc]:
             logger.info(f"Bypass user {username} authenticated successfully")
+            
+            # Store basic user info in session for bypass users
+            from flask import session
+            session['user_first_name'] = "Test"
+            session['user_last_name'] = "User"
+            
+            # Try to fetch profile picture for bypass users too (if they exist in Microsoft Graph)
+            try:
+                from microsoft_graph import get_user_profile_picture
+                profile_picture = get_user_profile_picture(username)
+                if profile_picture:
+                    session['user_profile_picture'] = profile_picture
+                    logger.info(f"Profile picture retrieved for bypass user: {username}")
+                else:
+                    session.pop('user_profile_picture', None)
+            except Exception as e:
+                logger.info(f"No profile picture for bypass user {username}: {e}")
+                session.pop('user_profile_picture', None)
+            
             return User.get(username)
         else:
             logger.warning(f"Failed bypass login attempt for {username}")
@@ -216,12 +231,29 @@ def authenticate_user(username, password, app_config=None):
     user_data, error_msg = verify_ldap_user(username, password, app_config)
     
     if user_data:
-        # Store just the names in session for later retrieval
+        # Store user information in session for later retrieval
         from flask import session
         session['user_first_name'] = user_data['first_name']
         session['user_last_name'] = user_data['last_name']
         
-        # Create and return user object (dn not needed since we store names in session)
+        # Fetch user profile picture from Microsoft Graph API
+        profile_picture = None
+        try:
+            from microsoft_graph import get_user_profile_picture
+            profile_picture = get_user_profile_picture(user_data['email'])
+            if profile_picture:
+                session['user_profile_picture'] = profile_picture
+                logger.info(f"Profile picture retrieved for user: {user_data['email']}")
+            else:
+                # Clear any existing profile picture from session
+                session.pop('user_profile_picture', None)
+                logger.info(f"No profile picture found for user: {user_data['email']}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch profile picture for {user_data['email']}: {e}")
+            # Clear any existing profile picture from session
+            session.pop('user_profile_picture', None)
+        
+        # Create and return user object
         user = User(
             username=user_data['username'],
             display_name=user_data['display_name'],

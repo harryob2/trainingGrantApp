@@ -402,7 +402,7 @@ csrf_token=...
 - Cached for performance optimization
 - Comprehensive employee data with department information
 - CSV fallback for reliability
-- Nightly updates from Microsoft Graph API
+- Nightly updates from Microsoft Graph API using the `microsoft_graph.py` module
 
 #### GET /api/lookup/<string:entity_type>
 **Purpose**: Enhanced generic lookup service for various entity types

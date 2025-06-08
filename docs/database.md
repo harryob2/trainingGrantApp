@@ -298,7 +298,7 @@ CREATE TABLE employees (
 
 **Business Rules**:
 - Email must be unique across all employees
-- Employee data is synchronized nightly from Microsoft Graph API
+- Employee data is synchronized nightly from Microsoft Graph API via the `microsoft_graph.py` module
 - Data is replaced completely during synchronization to ensure consistency
 - Used for employee lookup in forms and reporting
 

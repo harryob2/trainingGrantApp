@@ -354,7 +354,7 @@ The deployment workflow (`.github/workflows/deploy.yml`) includes:
 The deployment pipeline ensures proper configuration for the automated maintenance system, which includes:
 - Database backup operations
 - Data cleanup processes
-- Employee data synchronization from Microsoft Graph API
+- Employee data synchronization from Microsoft Graph API using the `microsoft_graph.py` module
 - All maintenance tasks run nightly at 3 AM in production environment
 
 #### Jobs Pipeline

@@ -210,6 +210,7 @@ LDAP Integration
 └── Corporate LDAP Server
 
 Microsoft Graph API Integration
+├── microsoft_graph.py (Centralized Graph API client module)
 ├── requests (HTTP Client for API calls)
 ├── Azure App Registration (Service Principal Authentication)
 └── Employee Directory Synchronization
@@ -291,7 +292,7 @@ Frontend Enhancements
 - **Analytics Dashboard**: Leaderboard with training statistics
 - **Soft Delete Management**: Forms can be soft deleted and recovered with 180-day retention
 - **Delete Status Filtering**: Filter forms by delete status (not deleted, deleted, all)
-- **Employee Data Management**: Database-driven employee directory with automated nightly synchronization from Microsoft Graph API
+- **Employee Data Management**: Database-driven employee directory with automated nightly synchronization from Microsoft Graph API using the `microsoft_graph.py` module
 
 ### 4. Enhanced File Management
 - **Environment-Specific Storage**: Different upload folders per environment to prevent deployment conflicts

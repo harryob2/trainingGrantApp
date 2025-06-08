@@ -179,160 +179,27 @@ def update_employee_list():
     log("Starting employee list update...")
     
     try:
-        # Get Azure credentials from environment
-        client_id = os.environ.get('AZURE_CLIENT_ID')
-        client_secret = os.environ.get('AZURE_CLIENT_SECRET')
-        tenant_id = os.environ.get('AZURE_TENANT_ID')
+        # Import the new Microsoft Graph module
+        from microsoft_graph import get_all_employees
         
-        if not all([client_id, client_secret, tenant_id]):
-            log("ERROR: Missing Azure credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)")
+        # Get employee data from Microsoft Graph API
+        employees_data = get_all_employees()
+        
+        if not employees_data:
+            log("WARNING: No employees found from Microsoft Graph API")
             return False
         
-        # Log credentials (masked for security)
-        log(f"Using tenant_id: {tenant_id}")
-        log(f"Using client_id: {client_id[:8]}...")
-        log(f"Client secret length: {len(client_secret) if client_secret else 0}")
+        log(f"Total employees found: {len(employees_data)}")
         
-        # Get access token using client credentials flow
-        token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-        token_data = {
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'scope': 'https://graph.microsoft.com/.default',
-            'grant_type': 'client_credentials'
-        }
-        
-        log("Acquiring access token...")
-        log(f"Token URL: {token_url}")
-        
-        try:
-            token_response = requests.post(token_url, data=token_data, timeout=30)
-            
-            # Log response details for debugging
-            log(f"Token response status: {token_response.status_code}")
-            
-            if token_response.status_code != 200:
-                log(f"Token request failed with status {token_response.status_code}")
-                try:
-                    error_details = token_response.json()
-                    log(f"Error details: {error_details}")
-                except:
-                    log(f"Raw error response: {token_response.text}")
-                return False
-            
-            token_response.raise_for_status()
-            token_json = token_response.json()
-            
-            if 'access_token' not in token_json:
-                log("ERROR: No access token in response")
-                log(f"Response keys: {list(token_json.keys())}")
-                return False
-                
-            access_token = token_json['access_token']
-            log("Successfully acquired access token")
-            
-        except requests.exceptions.RequestException as e:
-            log(f"Network error during token acquisition: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    log(f"Detailed error: {error_details}")
-                except:
-                    log(f"Raw error response: {e.response.text}")
-            return False
-        
-        # Set up Graph API headers
-        headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Content-Type': 'application/json'
-        }
-        
-        # Filter criteria
-        site = "Limerick, Limerick Raheen Business Park"
-        domain = "@stryker.com"
-        
-        # Get users from Graph API
-        log("Fetching users from Microsoft Graph...")
-        users_url = "https://graph.microsoft.com/v1.0/users"
-        params = {
-            '$select': 'givenName,surname,userPrincipalName,department,officeLocation',
-            '$top': 999  # Get maximum per request
-        }
-        
-        all_users = []
-        next_link = users_url
-        
-        while next_link:
-            try:
-                if next_link == users_url:
-                    response = requests.get(next_link, headers=headers, params=params, timeout=60)
-                else:
-                    response = requests.get(next_link, headers=headers, timeout=60)
-                
-                if response.status_code != 200:
-                    log(f"Graph API request failed with status {response.status_code}")
-                    try:
-                        error_details = response.json()
-                        log(f"Graph API error details: {error_details}")
-                    except:
-                        log(f"Raw Graph API error response: {response.text}")
-                    return False
-                
-                response.raise_for_status()
-                data = response.json()
-                
-                # Filter users by site and domain
-                filtered_users = [
-                    user for user in data.get('value', [])
-                    if (user.get('officeLocation') == site and 
-                        user.get('userPrincipalName', '').lower().endswith(domain.lower()))
-                ]
-                
-                all_users.extend(filtered_users)
-                next_link = data.get('@odata.nextLink')
-                
-                log(f"Fetched {len(data.get('value', []))} users, filtered to {len(filtered_users)} matching users")
-                
-            except requests.exceptions.RequestException as e:
-                log(f"Error fetching users from Graph API: {e}")
-                return False
-        
-        log(f"Total matching users found: {len(all_users)}")
-        
-        if not all_users:
-            log("WARNING: No users found matching criteria")
-            return False
-        
-        # Prepare employee data for database
-        employees_data = []
-        csv_data = []  # Keep CSV data for backup file
-        
-        for user in all_users:
-            # Handle None values from Microsoft Graph API by converting to empty strings
-            first_name = user.get('givenName') or ''
-            last_name = user.get('surname') or ''
-            email = user.get('userPrincipalName') or ''
-            department = user.get('department') or ''
-            
-            employee_data = {
-                'first_name': first_name,
-                'last_name': last_name,
-                'email': email,
-                'department': department
-            }
-            employees_data.append(employee_data)
-            
-            # Also prepare CSV format for backup file
+        # Prepare CSV data for backup file
+        csv_data = []
+        for employee in employees_data:
             csv_data.append({
-                'FirstName': first_name,
-                'LastName': last_name,
-                'UserPrincipalName': email,
-                'Department': department
+                'FirstName': employee['first_name'],
+                'LastName': employee['last_name'],
+                'UserPrincipalName': employee['email'],
+                'Department': employee['department']
             })
-        
-        # Sort by last name, then first name (with safe null handling)
-        employees_data.sort(key=lambda x: ((x['last_name'] or '').lower(), (x['first_name'] or '').lower()))
-        csv_data.sort(key=lambda x: ((x['LastName'] or '').lower(), (x['FirstName'] or '').lower()))
         
         # Update database first
         try:
