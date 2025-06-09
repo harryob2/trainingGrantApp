@@ -64,9 +64,14 @@ def setup_logging(app=None):
     print(f"DEBUG: Environment detected as: {'production' if is_production else 'development'}")
     print(f"DEBUG: SEQLOG_AVAILABLE = {SEQLOG_AVAILABLE}")
     
-    # Create logs directory
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    # Create logs directory - use production path in production, local path in development
+    if is_production:
+        log_dir = Path("C:/TrainingAppData/Logs")
+    else:
+        log_dir = Path("logs")
+    
+    log_dir.mkdir(parents=True, exist_ok=True)
+    print(f"DEBUG: Using log directory: {log_dir}")
     
     # Configure root logger
     root_logger = logging.getLogger()
@@ -125,7 +130,8 @@ def setup_logging(app=None):
                     level=logging.INFO,  # Back to INFO level to reduce noise
                     batch_size=1,  # Send immediately, don't batch
                     auto_flush_timeout=1,  # Flush every second
-                    override_root_logger=True  # Changed to True to ensure logs go to Seq
+                    override_root_logger=True,
+                    support_extra_properties=True
                 )
                 
                 print("DEBUG: seqlog.log_to_seq() completed successfully")

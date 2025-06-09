@@ -10,12 +10,9 @@ import sys
 import shutil
 import subprocess
 import logging
-import csv
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 import requests
-import json
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -31,24 +28,17 @@ except ImportError:
     # dotenv not available, continue without it
     pass
 
-# Configure file logging
-log_dir = project_root / "logs"
-log_dir.mkdir(exist_ok=True)
-log_file = log_dir / "maintenance.log"
+# Import and configure centralized logging
+from logging_config import setup_logging, get_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler(sys.stdout)  # Also log to console for manual runs
-    ]
-)
+# Setup centralized logging configuration
+setup_logging()
 
-logger = logging.getLogger(__name__)
+# Get logger for this module
+logger = get_logger(__name__)
 
 def log(message):
-    """Log message both to file and console"""
+    """Log message using centralized logging configuration"""
     logger.info(message)
 
 def should_run():
@@ -191,16 +181,6 @@ def update_employee_list():
         
         log(f"Total employees found: {len(employees_data)}")
         
-        # Prepare CSV data for backup file
-        csv_data = []
-        for employee in employees_data:
-            csv_data.append({
-                'FirstName': employee['first_name'],
-                'LastName': employee['last_name'],
-                'UserPrincipalName': employee['email'],
-                'Department': employee['department']
-            })
-        
         # Update database first
         try:
             from models import replace_all_employees
@@ -213,58 +193,6 @@ def update_employee_list():
                 
         except Exception as e:
             log(f"Error updating employee database: {e}")
-            return False
-        
-        # Write CSV file as backup
-        csv_path = project_root / "attached_assets" / "EmployeeListFirstLastDept.csv"
-        temp_file = None
-        
-        try:
-            # Create temporary file in same directory as target
-            with tempfile.NamedTemporaryFile(
-                mode='w', 
-                newline='', 
-                suffix='.csv', 
-                dir=csv_path.parent,
-                delete=False,
-                encoding='utf-8'
-            ) as temp_file:
-                writer = csv.DictWriter(
-                    temp_file, 
-                    fieldnames=['FirstName', 'LastName', 'UserPrincipalName', 'Department']
-                )
-                writer.writeheader()
-                writer.writerows(csv_data)
-                temp_file_path = temp_file.name
-            
-            # Test that file was written successfully
-            if not os.path.exists(temp_file_path):
-                log("ERROR: Temporary CSV file was not created")
-                return False
-            
-            # Check file size
-            temp_size = os.path.getsize(temp_file_path)
-            if temp_size < 1000:  # Less than 1KB suggests a problem
-                log(f"WARNING: Generated CSV file is very small ({temp_size} bytes)")
-                os.unlink(temp_file_path)
-                return False
-            
-            # Replace the original file
-            if csv_path.exists():
-                backup_path = csv_path.with_suffix('.csv.backup')
-                shutil.copy2(csv_path, backup_path)
-                log(f"Created CSV backup: {backup_path.name}")
-            
-            shutil.move(temp_file_path, csv_path)
-            log(f"Employee CSV backup updated: {len(csv_data)} employees")
-            log(f"CSV file size: {os.path.getsize(csv_path)} bytes")
-            
-            return True
-            
-        except Exception as e:
-            log(f"Error writing CSV file: {e}")
-            if temp_file and os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
             return False
             
     except requests.exceptions.RequestException as e:
