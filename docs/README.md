@@ -23,6 +23,7 @@ The Flask Survey Form System is a comprehensive web application designed for man
 5. **Configuration** (`config.py`) - Application settings and environment variables
 6. **Utilities** (`utils.py`) - Helper functions for file handling and data processing
 7. **Lookups** (`lookups.py`) - Data lookup services for employees and training catalog
+8. **Maintenance** (`maintenance.py`) - Script run nightly in production to create backups and update employee list
 
 ## Key Features
 
@@ -77,13 +78,14 @@ Filter Approved Forms → Generate Excel → Apply Formatting → Download/Save
 ## Database Schema
 
 ### Core Tables
-- **training_forms**: Main training submission data
+- **training_forms**: Main training submission data with approval workflow
 - **trainees**: Individual trainee information per form
 - **travel_expenses**: Travel expense tracking with Concur integration
 - **material_expenses**: Material expense tracking with Concur integration
 - **attachments**: File attachments linked to forms
-- **admins**: Administrative users
-- **training_catalog**: Predefined training courses
+- **admins**: Administrative users with email notification preferences
+- **training_catalog**: Predefined training courses and metadata
+- **employees**: Corporate employee directory with departmental information
 
 ### Relationships
 - One-to-Many: TrainingForm → Trainees

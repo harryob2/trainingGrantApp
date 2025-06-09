@@ -4,6 +4,8 @@
 
 This guide provides solutions for common issues encountered when using, deploying, or maintaining the Flask Survey Form System. Issues are organized by category with step-by-step resolution procedures.
 
+Logs are stored in production in C:TrainingAppData\Logs, you can also view them in the logs portal at azulimpbi01:5341. 
+
 ## Authentication Issues
 
 ### LDAP Connection Problems

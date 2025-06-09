@@ -187,6 +187,7 @@ def update_employee_list():
             
             if replace_all_employees(employees_data):
                 log(f"Successfully updated employee database: {len(employees_data)} employees")
+                return True
             else:
                 log("ERROR: Failed to update employee database")
                 return False

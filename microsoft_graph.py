@@ -112,6 +112,8 @@ class MicrosoftGraphClient:
         
         all_users = []
         next_link = users_url
+        total_users_scanned = 0
+        logger.info(f"Fetching employees from Microsoft Graph API...")
         
         while next_link:
             try:
@@ -144,14 +146,13 @@ class MicrosoftGraphClient:
                 
                 all_users.extend(filtered_users)
                 next_link = data.get('@odata.nextLink')
-                
-                logger.info(f"Fetched {len(users_batch)} users, filtered to {len(filtered_users)} matching users")
-                
+                total_users_scanned += len(users_batch)
+                                
             except requests.exceptions.RequestException as e:
                 logger.error(f"Error fetching users from Graph API: {e}")
                 raise Exception(f"Network error fetching employees: {e}")
         
-        logger.info(f"Total matching users found: {len(all_users)}")
+        logger.info(f"All employees fetched. Total users scanned: {total_users_scanned}, matching users found: {len(all_users)}")
         
         # Convert to standardized format
         employees_data = []
