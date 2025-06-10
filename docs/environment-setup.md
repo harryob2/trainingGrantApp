@@ -65,7 +65,7 @@ DB_PATH=training_forms.db
 
 # File upload settings (Environment-specific)
 # Development: Local uploads folder within project
-UPLOAD_FOLDER=uploads
+UPLOAD_FOLDER=TrainingAppData/Uploads
 
 # LDAP Configuration
 LDAP_HOST=limdc02.strykercorp.com

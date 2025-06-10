@@ -81,7 +81,7 @@ app.jinja_env.globals["json"] = json
 setup_database(force_recreate=False)
 
 # Ensure upload folder exists
-upload_folder = app.config["UPLOAD_FOLDER"]
+upload_folder = app.config["DATA_FOLDER"] + "/Uploads"
 try:
     os.makedirs(upload_folder, exist_ok=True)
     logger.info(f"Upload folder configured: {upload_folder}")
@@ -310,7 +310,7 @@ def submit_form():
             )
 
             # Create a unique folder for attachments
-            unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
+            unique_folder = os.path.join(upload_folder, f"form_{form_id}")
             os.makedirs(unique_folder, exist_ok=True)
 
             # Process attachments using SQLAlchemy ORM
@@ -454,6 +454,7 @@ def uploaded_file(filename):
     directory = os.path.dirname(filename)
     filename = os.path.basename(filename)
 
+
     # Get the file extension
     file_ext = os.path.splitext(filename)[1].lower()
 
@@ -463,13 +464,13 @@ def uploaded_file(filename):
     # Determine if file should be viewed or downloaded
     if file_ext in viewable_types:
         return send_from_directory(
-            os.path.join(app.config["UPLOAD_FOLDER"], directory),
+            os.path.join(upload_folder, directory),
             filename,
             as_attachment=False,
         )
     else:
         return send_from_directory(
-            os.path.join(app.config["UPLOAD_FOLDER"], directory),
+            os.path.join(upload_folder, directory),
             filename,
             as_attachment=True,
         )
@@ -851,7 +852,7 @@ def edit_form(form_id):
             update_training_form(form_id, form_data)
 
             # Handle Attachments
-            unique_folder = os.path.join(app.config["UPLOAD_FOLDER"], f"form_{form_id}")
+            unique_folder = os.path.join(upload_folder, f"form_{form_id}")
             os.makedirs(unique_folder, exist_ok=True)
 
             # Process NEW attachments using SQLAlchemy ORM

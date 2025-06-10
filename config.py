@@ -30,12 +30,15 @@ SECRET_KEY = os.environ.get("SECRET_KEY", os.environ.get("SESSION_SECRET", "dev-
 # File upload settings
 FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
+# Set folder to save data to (currently only used for attachments, logs, backups)
+DATA_FOLDER = os.environ.get("DATA_FOLDER", "C:/TrainingAppData") if FLASK_ENV == 'production' else os.path.abspath(os.path.join(os.path.dirname(__file__), "TrainingAppData"))
+
 # Set upload folder based on environment
-if FLASK_ENV == 'production':
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppData/Uploads")
-else:
-    # Development and staging use local uploads folder
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))
+# if FLASK_ENV == 'production':
+#     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppData/Uploads")
+# else:
+#     # Development and staging use local uploads folder
+#     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))
 
 MAX_CONTENT_LENGTH = 32 * 1024 * 1024  # 32MB max upload size
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "csv", "txt"}

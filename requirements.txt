@@ -1,8 +1,8 @@
 Flask==3.0.0
 Flask-WTF==1.2.1
 Flask-Login==0.6.3
-PyMySQL==1.1.0
-cryptography==41.0.7
+PyMySQL>=1.1.1
+cryptography>=43.0.1
 ldap3==2.9.1
 python-dotenv==1.0.0
 alembic==1.13.1
@@ -27,7 +27,7 @@ psycopg2-binary==2.9.10
 pyasn1==0.6.1
 python-dateutil==2.9.0.post0
 pytz==2025.2
-requests==2.32.3
+requests>=2.32.4
 six==1.17.0
 sqlalchemy==2.0.40
 typing-extensions==4.13.0

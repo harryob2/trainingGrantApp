@@ -2,18 +2,20 @@
 
 ## Overview
 
-The Flask Survey Form System implements a comprehensive file management system for handling training-related attachments. The system provides secure file upload, storage, retrieval, and management capabilities with proper access controls and validation. Files are organized by form ID for better organization and security.
+The Flask Survey Form System implements a comprehensive file management system for handling training-related attachments, application logs, and database backups. The system provides secure file upload, storage, retrieval, and management capabilities with proper access controls and validation. All data is centrally organized using a configurable `DATA_FOLDER` structure with files organized by form ID for better organization and security.
 
 ## File Management Architecture
 
 ### Components
 
 1. **File Upload** (`utils.py`, `forms.py`): Secure file upload handling with form-specific organization
-2. **File Storage** (`uploads/` directory): Form-organized file storage system
+2. **Data Storage** (`DATA_FOLDER` structure): Centralized data storage including uploads, logs, and backups
 3. **File Serving** (`app.py`): Secure file download and access control
 4. **File Metadata** (`models.py`): Database tracking of file information with descriptions
 5. **File Validation** (`utils.py`, `forms.py`): Security and type validation
-6. **Employee Data Management** (`attached_assets/`): Automated employee directory CSV file synchronization
+6. **Logging System** (`logging_config.py`): Centralized application logging with environment-specific paths
+7. **Backup System** (`scripts/maintenance.py`): Automated database backup with organized storage
+8. **Employee Data Management** (`attached_assets/`): Automated employee directory CSV file synchronization
 
 ### File Processing Flow
 
@@ -147,20 +149,32 @@ for i, filename in enumerate(uploaded_files):
 ### Directory Structure
 
 ```
-uploads/
-├── form_10/           # Files for training form ID 10
-│   ├── 20240115_143022_certificate.pdf
-│   └── 20240115_143025_agenda.docx
-├── form_11/           # Files for training form ID 11
-│   ├── 20240116_091234_invoice.pdf
-│   └── 20240116_091240_receipt.jpg
-├── form_12/           # Files for training form ID 12
-│   ├── 20240117_101520_training_materials.zip
-│   ├── 20240117_101525_course_outline.pdf
-│   └── 20240117_101530_completion_cert.pdf
-└── ...
+# Production: C:/TrainingAppData/
+# Development: project_root/TrainingAppData/
 
-attached_assets/
+DATA_FOLDER/
+├── Uploads/                         # File attachments organized by form
+│   ├── form_10/                     # Files for training form ID 10
+│   │   ├── 20240115_143022_certificate.pdf
+│   │   └── 20240115_143025_agenda.docx
+│   ├── form_11/                     # Files for training form ID 11
+│   │   ├── 20240116_091234_invoice.pdf
+│   │   └── 20240116_091240_receipt.jpg
+│   ├── form_12/                     # Files for training form ID 12
+│   │   ├── 20240117_101520_training_materials.zip
+│   │   ├── 20240117_101525_course_outline.pdf
+│   │   └── 20240117_101530_completion_cert.pdf
+│   └── ...
+├── Logs/                           # Application logs
+│   ├── app.log                     # Current log file
+│   ├── app.log.1                   # Rotated log files
+│   └── app.log.2
+└── Backups/                        # Database backups
+    ├── backup_20240115_143022.sql
+    ├── backup_20240116_091234.sql
+    └── ...
+
+attached_assets/                     # Static reference files (project directory)
 ├── EmployeeListFirstLastDept.csv    # Employee directory (updated nightly)
 ├── limerick IDA .xlsx               # Reference documents
 └── Claim-Form-5-Training new GBER Rules.xlsx
@@ -186,45 +200,61 @@ unique_filename = f"{timestamp}_{secure_filename(original_filename)}"
 
 ### File Path Management
 
-#### Upload Folder Configuration
+#### Centralized Data Folder Configuration
 
-The application uses environment-specific upload folders to prevent deployment issues where production deployments would overwrite uploaded files.
+The application uses a centralized `DATA_FOLDER` configuration to manage all data storage including uploads, logs, and backups. This approach prevents deployment issues and provides consistent data organization.
 
-**Problem Solved**: Previously, when deploying to production, the local development `uploads/` folder (which is empty in development) would overwrite the production uploads folder, causing all uploaded attachments to be lost.
+**Problem Solved**: Previously, when deploying to production, the local development folders would overwrite production data folders, causing uploaded attachments and logs to be lost.
 
-**Solution Implemented**: Environment-specific upload folders with dedicated production storage outside the project directory.
+**Solution Implemented**: Centralized data folder configuration with environment-specific storage outside the project directory.
 
 ```python
-# Environment-specific configuration (config.py)
+# Centralized data folder configuration (config.py)
 FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
-if FLASK_ENV == 'production':
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "c:/TrainingAppData/Uploads")
-else:
-    # Development and staging use local uploads folder
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads")))
+# Set folder to save data to (currently only used for attachments, logs, backups)
+DATA_FOLDER = os.environ.get("DATA_FOLDER", "C:/TrainingAppData") if FLASK_ENV == 'production' else os.path.abspath(os.path.join(os.path.dirname(__file__), "TrainingAppData"))
+
+# Usage in app.py
+upload_folder = app.config["DATA_FOLDER"] + "/Uploads"
 ```
 
-**Environment-specific paths**:
-- **Development**: `uploads/` (local folder within project directory)
-- **Staging**: `uploads_staging/` (local folder for testing)
-- **Production**: `c:/TrainingAppData/Uploads/` (dedicated folder outside project directory)
+**Environment-specific data organization**:
+```
+# Production (C:/TrainingAppData/)
+C:/TrainingAppData/
+├── Uploads/          # File attachments
+│   ├── form_10/
+│   ├── form_11/
+│   └── ...
+├── Logs/            # Application logs
+│   ├── app.log
+│   └── app.log.1
+└── Backups/         # Database backups
+    ├── backup_20240115_143022.sql
+    └── ...
+
+# Development (project/TrainingAppData/)
+TrainingAppData/
+├── Uploads/
+├── Logs/
+└── Backups/
+```
 
 **Key Benefits**:
-1. **Deployment Safety**: Production deployments can't overwrite uploaded files
-2. **Environment Isolation**: Each environment has its own upload storage
-3. **Data Persistence**: Production files are preserved outside the project directory
-4. **Clean Development**: Local development files don't interfere with deployments
-5. **Git Compatibility**: `uploads/` folder remains in `.gitignore` as intended
+1. **Deployment Safety**: Production deployments can't overwrite data folders
+2. **Environment Isolation**: Each environment has its own data storage
+3. **Data Persistence**: Production data is preserved outside the project directory
+4. **Centralized Management**: All data types (uploads, logs, backups) in one location
+5. **Git Compatibility**: Local `TrainingAppData/` folder can be gitignored
+6. **Simplified Configuration**: Single `DATA_FOLDER` variable controls all data storage
 
-**Configuration Changes Made**:
-- **`config.py`**: Environment-specific upload folder logic
-- **`.github/workflows/deploy.yml`**: Production deployment sets `UPLOAD_FOLDER=c:/TrainingAppData/Uploads` and creates directory if needed
-- **`env.example`**: Documentation of environment-specific behavior with examples
-- **`app.py`**: Enhanced upload folder creation and logging
-- **`utils.py`**: Improved upload folder handling
+**Configuration Variables**:
+- **`DATA_FOLDER`**: Root directory for all application data
+  - **Production**: `C:/TrainingAppData` (default) or custom path via environment variable
+  - **Development**: `project_root/TrainingAppData` (local folder)
 
-**Migration Notes**: Existing production files should be moved to `c:/TrainingAppData/Uploads/` before deployment. The production deployment will automatically create the new folder if it doesn't exist.
+**Migration Notes**: Existing production files should be moved to `C:/TrainingAppData/` structure before deployment. The production deployment will automatically create the new folder structure if it doesn't exist.
 
 **Legacy Network Storage Configuration**:
 ```python
@@ -236,8 +266,10 @@ NETWORK_STORAGE_PATH = "\\\\strykercorp.com\\lim\\Engineering_DOG\\5. Automation
 ```python
 def get_form_upload_path(form_id):
     """Get the upload path for a specific form"""
+    from config import DATA_FOLDER
     form_folder = f"form_{form_id}"
-    upload_path = os.path.join(UPLOAD_FOLDER, form_folder)
+    upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+    upload_path = os.path.join(upload_folder, form_folder)
     
     # Create directory if it doesn't exist
     os.makedirs(upload_path, exist_ok=True)
@@ -283,7 +315,9 @@ class Attachment(Base):
     def get_file_size(self):
         """Get file size in human-readable format"""
         try:
-            file_path = os.path.join(UPLOAD_FOLDER, f"form_{self.form_id}", self.filename)
+            from config import DATA_FOLDER
+            upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+            file_path = os.path.join(upload_folder, f"form_{self.form_id}", self.filename)
             if os.path.exists(file_path):
                 size = os.path.getsize(file_path)
                 return format_file_size(size)
@@ -336,7 +370,9 @@ def delete_attachment(attachment_id):
         attachment = session.query(Attachment).filter_by(id=attachment_id).first()
         if attachment:
             # Delete file from filesystem
-            file_path = os.path.join(UPLOAD_FOLDER, f"form_{attachment.form_id}", attachment.filename)
+            from config import DATA_FOLDER
+            upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+            file_path = os.path.join(upload_folder, f"form_{attachment.form_id}", attachment.filename)
             if os.path.exists(file_path):
                 os.remove(file_path)
             
@@ -372,7 +408,9 @@ def uploaded_file(filename):
                 abort(403)
         
         # Serve the file
-        upload_path = os.path.join(UPLOAD_FOLDER, f"form_{form_id}") if form_id else UPLOAD_FOLDER
+        from config import DATA_FOLDER
+        base_upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+        upload_path = os.path.join(base_upload_folder, f"form_{form_id}") if form_id else base_upload_folder
         return send_from_directory(upload_path, actual_filename)
         
     except (ValueError, FileNotFoundError):
@@ -660,6 +698,9 @@ function getFileIcon(filename) {
 ```python
 def cleanup_orphaned_files():
     """Remove files that no longer have database records"""
+    from config import DATA_FOLDER
+    upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+    
     with db_session() as session:
         # Get all attachment filenames from database
         db_files = set()
@@ -669,9 +710,9 @@ def cleanup_orphaned_files():
         
         # Scan filesystem for files
         orphaned_count = 0
-        for form_dir in os.listdir(UPLOAD_FOLDER):
+        for form_dir in os.listdir(upload_folder):
             if form_dir.startswith("form_"):
-                form_path = os.path.join(UPLOAD_FOLDER, form_dir)
+                form_path = os.path.join(upload_folder, form_dir)
                 if os.path.isdir(form_path):
                     for filename in os.listdir(form_path):
                         file_key = f"{form_dir}/{filename}"
@@ -694,8 +735,10 @@ def cleanup_orphaned_files():
 ```python
 def cleanup_form_files(form_id):
     """Remove all files associated with a deleted form"""
+    from config import DATA_FOLDER
+    upload_folder = os.path.join(DATA_FOLDER, "Uploads")
     form_folder = f"form_{form_id}"
-    form_path = os.path.join(UPLOAD_FOLDER, form_folder)
+    form_path = os.path.join(upload_folder, form_folder)
     
     if os.path.exists(form_path):
         try:
@@ -724,6 +767,9 @@ def cleanup_form_files(form_id):
 ```python
 def export_form_with_attachments(form_id, export_path):
     """Export a form with all its attachments"""
+    from config import DATA_FOLDER
+    upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+    
     form = get_training_form(form_id)
     attachments = get_form_attachments(form_id)
     
@@ -734,7 +780,7 @@ def export_form_with_attachments(form_id, export_path):
     # Copy form attachments
     copied_files = []
     for attachment in attachments:
-        source_path = os.path.join(UPLOAD_FOLDER, f"form_{form_id}", attachment['filename'])
+        source_path = os.path.join(upload_folder, f"form_{form_id}", attachment['filename'])
         dest_filename = attachment['display_name']
         dest_path = os.path.join(export_dir, dest_filename)
         
@@ -772,14 +818,17 @@ def export_form_with_attachments(form_id, export_path):
 def backup_files_with_metadata():
     """Create comprehensive backup of all uploaded files with metadata"""
     backup_dir = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    backup_path = os.path.join("C:/TrainingAppData/Backups", backup_dir)
+    # Use DATA_FOLDER configuration for consistent backup location
+    from config import DATA_FOLDER
+    backup_path = os.path.join(DATA_FOLDER, "Backups", backup_dir)
     
     # Create backup directory structure
     os.makedirs(backup_path, exist_ok=True)
     
     # Copy entire uploads directory
     uploads_backup = os.path.join(backup_path, "uploads")
-    shutil.copytree(UPLOAD_FOLDER, uploads_backup)
+    upload_folder = os.path.join(DATA_FOLDER, "Uploads")
+    shutil.copytree(upload_folder, uploads_backup)
     
     # Copy attached assets (including employee directory)
     assets_backup = os.path.join(backup_path, "attached_assets")

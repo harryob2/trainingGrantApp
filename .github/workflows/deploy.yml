@@ -241,7 +241,7 @@ jobs:
         "SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "USE_SQLITE=True" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "DB_PATH=training_forms.db" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
-        "UPLOAD_FOLDER=uploads" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=TrainingAppData/Uploads" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
         "LDAP_BASE_DN=${{ secrets.LDAP_BASE_DN }}" | Out-File -FilePath ".env.development" -Append -Encoding UTF8
@@ -400,7 +400,7 @@ jobs:
         "DB_NAME=${{ secrets.STAGING_DB_NAME }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "DB_USER=${{ secrets.STAGING_DB_USER }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
-        "UPLOAD_FOLDER=uploads_staging" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
+        "UPLOAD_FOLDER=TrainingAppData/Uploads_staging" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "NETWORK_STORAGE_PATH=${{ secrets.STAGING_NETWORK_STORAGE_PATH }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "LDAP_HOST=${{ secrets.LDAP_HOST }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8
         "LDAP_PORT=${{ secrets.LDAP_PORT }}" | Out-File -FilePath ".env.staging" -Append -Encoding UTF8

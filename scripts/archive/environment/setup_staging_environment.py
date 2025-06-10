@@ -27,7 +27,7 @@ DB_USER=training_staging
 DB_PASSWORD=your-staging-password-here
 
 # File upload settings
-UPLOAD_FOLDER=uploads_staging
+UPLOAD_FOLDER=TrainingAppData/Uploads_staging
 NETWORK_STORAGE_PATH=\\\\strykercorp.com\\lim\\Engineering_DOG\\5. Automation & Controls\\01. Projects\\Training Form Invoices\\staging
 
 # LDAP Configuration

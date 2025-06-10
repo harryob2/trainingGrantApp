@@ -123,8 +123,8 @@ npx playwright test tests/test_home_page.spec.ts
 ├── setup_db.py        # Database setup script
 ├── static/            # Static files (CSS, JS, images)
 ├── templates/         # HTML templates
-├── tests/            # Test files
-└── uploads/          # Upload directory for attachments
+├── tests/             # Test files
+└── TrainingAppData/   # Uploads, logs, and backups
 ```
 
 ## Features

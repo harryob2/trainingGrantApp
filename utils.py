@@ -18,7 +18,7 @@ try:
 except ImportError:
     # Fallback if config is not available
     ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "txt"}
-    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "./uploads")
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "./TrainingAppData/Uploads")
 
 # Ensure upload folder exists
 try:

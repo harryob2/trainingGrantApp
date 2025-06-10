@@ -55,7 +55,11 @@ def backup_database():
     
     # Create backup directory
     backup_dir = Path("C:/TrainingAppData/Backups")
-    backup_dir.mkdir(exist_ok=True)
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        log(f"Could not create backup directory: {e}")
+        return True  # Return True to continue with other tasks
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -116,13 +120,18 @@ def backup_database():
         except Exception as e:
             log(f"Backup failed: {e}")
             return False
+    else:
+        log("SQLite backup skipped in development environment")
     
     # Clean up old backups (keep last 180 days)
-    cutoff = datetime.now() - timedelta(days=180)
-    for old_backup in backup_dir.glob("backup_*"):
-        if datetime.fromtimestamp(old_backup.stat().st_mtime) < cutoff:
-            old_backup.unlink()
-            log(f"Removed old backup: {old_backup.name}")
+    try:
+        cutoff = datetime.now() - timedelta(days=180)
+        for old_backup in backup_dir.glob("backup_*"):
+            if datetime.fromtimestamp(old_backup.stat().st_mtime) < cutoff:
+                old_backup.unlink()
+                log(f"Removed old backup: {old_backup.name}")
+    except Exception as e:
+        log(f"Could not clean old backups: {e}")
     
     return True
 

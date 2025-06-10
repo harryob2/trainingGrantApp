@@ -21,7 +21,15 @@ from sqlalchemy.sql import func
 from contextlib import contextmanager
 from datetime import datetime, date
 from typing import Optional, Dict, Any, List, Tuple
-import logging
+
+# Import centralized logging
+try:
+    from logging_config import get_logger
+    logger = get_logger(__name__)
+except ImportError:
+    # Fallback to standard logging if centralized logging isn't available
+    import logging
+    logger = logging.getLogger(__name__)
 
 # Import database configuration from config
 try:
@@ -415,7 +423,7 @@ def update_admin_email_preference(email: str, receive_emails: bool) -> bool:
                 return True
             return False
     except Exception as e:
-        logging.error(f"Error updating admin email preference: {e}")
+        logger.error(f"Error updating admin email preference: {e}")
         return False
 
 
@@ -519,7 +527,7 @@ def soft_delete_training_form(form_id: int) -> bool:
             form.deleted_datetimestamp = datetime.now()
             return True
     except Exception as e:
-        logging.error(f"Error soft deleting training form {form_id}: {e}")
+        logger.error(f"Error soft deleting training form {form_id}: {e}")
         return False
 
 
@@ -534,7 +542,7 @@ def recover_training_form(form_id: int) -> bool:
             form.deleted_datetimestamp = None
             return True
     except Exception as e:
-        logging.error(f"Error recovering training form {form_id}: {e}")
+        logger.error(f"Error recovering training form {form_id}: {e}")
         return False
 
 
@@ -626,7 +634,7 @@ def insert_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, An
                 session.add(expense)
         return True
     except Exception as e:
-        logging.error(f"Error inserting travel expenses: {str(e)}")
+        logger.error(f"Error inserting travel expenses: {str(e)}")
         return False
 
 
@@ -654,7 +662,7 @@ def update_travel_expenses(form_id: int, travel_expenses_data: List[Dict[str, An
                 session.add(expense)
         return True
     except Exception as e:
-        logging.error(f"Error updating travel expenses: {str(e)}")
+        logger.error(f"Error updating travel expenses: {str(e)}")
         return False
 
 
@@ -675,7 +683,7 @@ def delete_travel_expense(expense_id: int) -> bool:
                 return True
             return False
     except Exception as e:
-        logging.error(f"Error deleting travel expense: {str(e)}")
+        logger.error(f"Error deleting travel expense: {str(e)}")
         return False
 
 
@@ -697,7 +705,7 @@ def insert_material_expenses(form_id: int, material_expenses_data: List[Dict[str
                 session.add(expense)
         return True
     except Exception as e:
-        logging.error(f"Error inserting material expenses: {str(e)}")
+        logger.error(f"Error inserting material expenses: {str(e)}")
         return False
 
 
@@ -721,7 +729,7 @@ def update_material_expenses(form_id: int, material_expenses_data: List[Dict[str
                 session.add(expense)
         return True
     except Exception as e:
-        logging.error(f"Error updating material expenses: {str(e)}")
+        logger.error(f"Error updating material expenses: {str(e)}")
         return False
 
 
@@ -742,7 +750,7 @@ def delete_material_expense(expense_id: int) -> bool:
                 return True
             return False
     except Exception as e:
-        logging.error(f"Error deleting material expense: {str(e)}")
+        logger.error(f"Error deleting material expense: {str(e)}")
         return False
 
 
@@ -762,7 +770,7 @@ def insert_trainees(form_id: int, trainees_data: List[Dict[str, Any]]) -> bool:
                 session.add(trainee)
         return True
     except Exception as e:
-        logging.error(f"Error inserting trainees: {str(e)}")
+        logger.error(f"Error inserting trainees: {str(e)}")
         return False
 
 
@@ -784,7 +792,7 @@ def update_trainees(form_id: int, trainees_data: List[Dict[str, Any]]) -> bool:
                 session.add(trainee)
         return True
     except Exception as e:
-        logging.error(f"Error updating trainees: {str(e)}")
+        logger.error(f"Error updating trainees: {str(e)}")
         return False
 
 
@@ -805,7 +813,7 @@ def delete_trainee(trainee_id: int) -> bool:
                 return True
             return False
     except Exception as e:
-        logging.error(f"Error deleting trainee: {str(e)}")
+        logger.error(f"Error deleting trainee: {str(e)}")
         return False
 
 
@@ -817,7 +825,7 @@ def get_all_employees() -> List[Dict[str, Any]]:
             employees = session.query(Employee).order_by(Employee.last_name, Employee.first_name).all()
             return [employee.to_dict() for employee in employees]
     except Exception as e:
-        logging.error(f"Error getting employees: {e}")
+        logger.error(f"Error getting employees: {e}")
         return []
 
 
@@ -826,22 +834,37 @@ def replace_all_employees(employees_data: List[Dict[str, Any]]) -> bool:
     try:
         with db_session() as session:
             # Delete all existing employees
+            deleted_count = session.query(Employee).count()
             session.query(Employee).delete()
             
             # Insert new employees
+            new_employees = []
             for employee_data in employees_data:
+                # Skip entries with missing email (they won't work with unique constraint)
+                email = employee_data.get("email", "").strip()
+                if not email:
+                    logger.warning(f"Skipping employee with missing email: {employee_data}")
+                    continue
+                    
                 employee = Employee(
-                    first_name=employee_data["first_name"],
-                    last_name=employee_data["last_name"],
-                    email=employee_data["email"],
-                    department=employee_data.get("department", "")
+                    first_name=employee_data.get("first_name", "").strip(),
+                    last_name=employee_data.get("last_name", "").strip(),
+                    email=email,
+                    department=employee_data.get("department", "").strip()
                 )
-                session.add(employee)
+                new_employees.append(employee)
             
-            logging.info(f"Successfully replaced all employees with {len(employees_data)} new records")
-            return True
+            # Add all new employees
+            session.add_all(new_employees)
+            
+            # Session will commit here when context manager exits
+        
+        # Log success after transaction is committed
+        logger.info(f"Successfully replaced all employees with {len(new_employees)} new records (deleted {deleted_count} old records)")
+        return True
+        
     except Exception as e:
-        logging.error(f"Error replacing employees: {e}")
+        logger.error(f"Error replacing employees: {e}")
         return False
 
 
@@ -854,5 +877,5 @@ def get_employee_by_email(email: str) -> Optional[Dict[str, Any]]:
                 return employee.to_dict()
             return None
     except Exception as e:
-        logging.error(f"Error getting employee by email: {e}")
+        logger.error(f"Error getting employee by email: {e}")
         return None

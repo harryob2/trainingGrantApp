@@ -140,7 +140,7 @@ FlaskSurveyForm/
 ├── templates/              # Jinja2 HTML templates
 ├── tests/                  # Test files
 │   └── e2e/               # End-to-end tests
-├── uploads/               # File upload storage
+├── TrainingAppData/        # Uploads, logs, and backups
 ├── scripts/               # Active deployment scripts
 │   ├── start_production.py        # Production startup
 │   ├── start_staging.py          # Staging startup

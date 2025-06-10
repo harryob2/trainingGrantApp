@@ -591,7 +591,7 @@ python main.py
 DEBUG=True
 USE_SQLITE=True
 DB_PATH=training_forms.db
-UPLOAD_FOLDER=uploads
+UPLOAD_FOLDER=TrainingAppData/Uploads
 FLASK_ENV=development
 ```
 
@@ -602,7 +602,7 @@ USE_SQLITE=False
 DB_HOST=azulimpbi01
 DB_NAME=training_tool_staging
 DB_USER=training_staging
-UPLOAD_FOLDER=uploads_staging
+UPLOAD_FOLDER=TrainingAppData/uploads_staging
 FLASK_ENV=staging
 ```
 
