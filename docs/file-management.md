@@ -15,8 +15,7 @@ The Flask Survey Form System implements a comprehensive file management system f
 5. **File Validation** (`utils.py`, `forms.py`): Security and type validation
 6. **Logging System** (`logging_config.py`): Centralized application logging with environment-specific paths
 7. **Backup System** (`scripts/maintenance.py`): Automated database backup with organized storage
-8. **Employee Data Management** (`attached_assets/`): Automated employee directory CSV file synchronization
-
+8. **Asset Management** (`attached_assets/`): Contains claim form 5 excel file used for grant application & images
 ### File Processing Flow
 
 ```

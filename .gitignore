@@ -56,3 +56,6 @@ backup/
 
 # cursor
 .cursor/
+
+# TrainingAppData - data for dev env not for production
+TrainingAppData/
