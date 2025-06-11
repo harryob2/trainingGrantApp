@@ -12,6 +12,7 @@ from datetime import datetime
 from io import BytesIO
 import functools
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from openpyxl import load_workbook
 from flask import (
     Flask,
@@ -68,6 +69,9 @@ setup_logging(app)
 # Get logger for this module
 logger = get_logger(__name__)
 
+# Initialize background processing
+background_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="form_processor")
+
 # Initialize authentication
 init_auth(app)
 
@@ -88,6 +92,54 @@ try:
 except Exception as e:
     logger.error(f"Failed to create upload folder {upload_folder}: {e}")
     raise
+
+
+def process_form_background(form_id, submitter_email, form_data_dict, files_data, expenses_data):
+    """Process non-essential form operations in background for instant user response"""
+    try:
+        # Create attachment folder
+        unique_folder = os.path.join(upload_folder, f"form_{form_id}")
+        os.makedirs(unique_folder, exist_ok=True)
+        
+        # Process attachments
+        if files_data:
+            with db_session() as session:
+                for filename, file_content, description in files_data:
+                    file_path = os.path.join(unique_folder, filename)
+                    with open(file_path, 'wb') as f:
+                        f.write(file_content)
+                    session.add(Attachment(form_id=form_id, filename=filename, description=description))
+        
+        # Process expenses and trainees
+        for data_type, data_value in expenses_data.items():
+            if data_value:
+                try:
+                    parsed_data = json.loads(data_value)
+                    if parsed_data and isinstance(parsed_data, list):
+                        if data_type == 'travel_expenses':
+                            from models import insert_travel_expenses
+                            insert_travel_expenses(form_id, parsed_data)
+                        elif data_type == 'material_expenses':
+                            from models import insert_material_expenses
+                            insert_material_expenses(form_id, parsed_data)
+                        elif data_type == 'trainees':
+                            from models import insert_trainees
+                            insert_trainees(form_id, parsed_data)
+                        logger.info(f"Background processed {len(parsed_data)} {data_type} for form {form_id}")
+                except Exception as e:
+                    logger.error(f"Background error processing {data_type} for form {form_id}: {e}")
+        
+        # Send email notification (slowest operation last)
+        try:
+            send_form_submission_notification(form_id, form_data_dict, submitter_email)
+        except Exception as e:
+            logger.error(f"Background email notification failed for form {form_id}: {e}")
+            
+        logger.info(f"Background processing completed for form {form_id}")
+        
+    except Exception as e:
+        logger.error(f"Critical background processing error for form {form_id}: {e}", exc_info=True)
+
 
 # Function to get a training form by ID - make available to templates
 def get_form_by_id(form_id):
@@ -272,11 +324,13 @@ def logout():
 @app.route("/submit", methods=["GET", "POST"])
 @login_required
 def submit_form():
-    """Process the form submission"""
+    """Process the form submission with optimized background processing"""
     form = TrainingForm()
 
     if form.validate_on_submit():
         try:
+            # === CRITICAL PATH: Essential operations only ===
+            
             # Get trainees data from form
             trainees_data = request.form.get("trainees_data")
             if trainees_data:
@@ -284,8 +338,6 @@ def submit_form():
 
             # Prepare form data using the form's method
             form_data = form.prepare_form_data()
-
-            # Add submitter information
             form_data["submitter"] = current_user.email
 
             # Validate required fields
@@ -293,147 +345,52 @@ def submit_form():
                 flash("Training Description is required", "error")
                 return render_template("index.html", form=form)
 
-            # Insert the form data into the database
+            # Insert the main form data (ESSENTIAL - we need the form_id)
             form_id = insert_training_form(form_data)
             
             # Log form submission
-            logger.info(
-                "Training form submitted",
-                extra={
-                    "form_id": form_id,
-                    "submitter": current_user.email,
-                    "training_type": form_data.get("training_type"),
-                    "training_name": form_data.get("training_name"),
-                    "start_date": str(form_data.get("start_date")),
-                    "end_date": str(form_data.get("end_date"))
-                }
-            )
+            logger.info(f"Form {form_id} submitted by {current_user.email} - processing in background")
 
-            # Create a unique folder for attachments
-            unique_folder = os.path.join(upload_folder, f"form_{form_id}")
-            os.makedirs(unique_folder, exist_ok=True)
-
-            # Process attachments using SQLAlchemy ORM
+            # === BACKGROUND PROCESSING: Everything else ===
+            
+            # Prepare file data for background processing
+            files_data = []
             if "attachments" in request.files:
                 new_files = request.files.getlist("attachments")
                 descriptions = request.form.getlist("attachment_descriptions[]")
-
                 if len(descriptions) < len(new_files):
                     descriptions.extend([""] * (len(new_files) - len(descriptions)))
+                
+                for i, file in enumerate(new_files):
+                    if file and file.filename:
+                        filename = secure_filename(file.filename)
+                        description = descriptions[i] if i < len(descriptions) else ""
+                        files_data.append((filename, file.read(), description))
+            
+            # Prepare expense data for background processing
+            expenses_data = {
+                'travel_expenses': request.form.get("travel_expenses_data"),
+                'material_expenses': request.form.get("material_expenses_data"),
+                'trainees': request.form.get("trainees_data")
+            }
+            
+            # Queue background processing
+            background_executor.submit(
+                process_form_background,
+                form_id,
+                current_user.email,
+                form_data,
+                files_data,
+                expenses_data
+            )
 
-                with db_session() as session:
-                    for i, file in enumerate(new_files):
-                        if file and file.filename:
-                            filename = secure_filename(file.filename)
-                            file_path = os.path.join(unique_folder, filename)
-                            file.save(file_path)
-                            description = (
-                                descriptions[i] if i < len(descriptions) else ""
-                            )
-                            session.add(
-                                Attachment(
-                                    form_id=form_id,
-                                    filename=filename,
-                                    description=description,
-                                )
-                            )
-
-            # Process travel expenses
-            travel_expenses_data = request.form.get("travel_expenses_data")
-            if travel_expenses_data:
-                try:
-                    from models import insert_travel_expenses
-                    travel_expenses = json.loads(travel_expenses_data)
-                    if travel_expenses and isinstance(travel_expenses, list):
-                        insert_travel_expenses(form_id, travel_expenses)
-                        logger.info(f"Inserted {len(travel_expenses)} travel expenses for form {form_id}")
-                except (json.JSONDecodeError, Exception) as e:
-                    logger.error(
-                        "Error processing travel expenses",
-                        extra={
-                            "form_id": form_id,
-                            "error": str(e),
-                            "submitter": current_user.email
-                        },
-                        exc_info=True
-                    )
-                    # Don't fail the form submission for travel expense errors
-                    flash("Warning: There was an issue processing travel expenses, but the form was submitted successfully.", "warning")
-
-            # Process material expenses
-            material_expenses_data = request.form.get("material_expenses_data")
-            if material_expenses_data:
-                try:
-                    from models import insert_material_expenses
-                    material_expenses = json.loads(material_expenses_data)
-                    if material_expenses and isinstance(material_expenses, list):
-                        insert_material_expenses(form_id, material_expenses)
-                        logger.info(f"Inserted {len(material_expenses)} material expenses for form {form_id}")
-                except (json.JSONDecodeError, Exception) as e:
-                    logger.error(
-                        "Error processing material expenses",
-                        extra={
-                            "form_id": form_id,
-                            "error": str(e),
-                            "submitter": current_user.email
-                        },
-                        exc_info=True
-                    )
-                    # Don't fail the form submission for material expense errors
-                    flash("Warning: There was an issue processing material expenses, but the form was submitted successfully.", "warning")
-
-            # Process trainees using the new table structure
-            trainees_data = request.form.get("trainees_data")
-            if trainees_data:
-                try:
-                    from models import insert_trainees
-                    trainees = json.loads(trainees_data)
-                    if trainees and isinstance(trainees, list):
-                        insert_trainees(form_id, trainees)
-                        logger.info(f"Inserted {len(trainees)} trainees for form {form_id}")
-                except (json.JSONDecodeError, Exception) as e:
-                    logger.error(
-                        "Error processing trainees",
-                        extra={
-                            "form_id": form_id,
-                            "error": str(e),
-                            "submitter": current_user.email
-                        },
-                        exc_info=True
-                    )
-                    # Don't fail the form submission for trainee errors
-                    flash("Warning: There was an issue processing trainees, but the form was submitted successfully.", "warning")
-
-            # Send email notification
-            try:
-                send_form_submission_notification(form_id, form_data, current_user.email)
-            except Exception as e:
-                logger.error(
-                    "Failed to send email notification",
-                    extra={
-                        "form_id": form_id,
-                        "error": str(e),
-                        "submitter": current_user.email
-                    },
-                    exc_info=True
-                )
-                # Don't fail the form submission if email fails
-
+            # === INSTANT SUCCESS RESPONSE ===
             flash("Form submitted successfully!", "success")
             return redirect(url_for("success"))
+            
         except Exception as e:
-            logger.error(
-                "Error processing form submission",
-                extra={
-                    "submitter": current_user.email,
-                    "error": str(e)
-                },
-                exc_info=True
-            )
-            flash(
-                "An error occurred while submitting the form. Please try again.",
-                "danger",
-            )
+            logger.error(f"Critical form submission error: {e}", exc_info=True)
+            flash("An error occurred while submitting the form. Please try again.", "danger")
             return render_template("index.html", form=form, now=datetime.now())
     else:
         # Flash form validation errors
@@ -1543,5 +1500,17 @@ def leaderboard():
     return render_template("leaderboard.html", names=names, hours=hours)
 
 
+@app.teardown_appcontext
+def cleanup_background_tasks(error):
+    """Clean up background tasks on application shutdown"""
+    pass  # ThreadPoolExecutor will clean up automatically
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=app.config["DEBUG"])
+    try:
+        logger.info("Starting Flask application with background processing")
+        app.run(host="0.0.0.0", port=5000, debug=app.config["DEBUG"])
+    finally:
+        # Ensure proper cleanup of background executor
+        background_executor.shutdown(wait=True)
+        logger.info("Background executor shut down cleanly")

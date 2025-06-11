@@ -759,7 +759,7 @@
                         <div class="col-md-6" id="cost-group" style="display: none;">
                             <label for="cost" class="form-label">Cost<span class="text-danger">*</span></label>
                             <input type="text" class="form-control money" id="cost" placeholder="e.g., 125.50">
-                            <div class="form-text">Total cost of travel expense</div>
+                            <div class="form-text">Per person cost of travel expense</div>
                         </div>
                     </div>
                 </form>
@@ -844,57 +844,114 @@
     // Simple error clearing for better UX with server-side validation
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("training-form");
+        const submitButton = document.getElementById("submit-training-form-btn");
         
         if (!form) {
             console.error("Form not found for error clearing initialization.");
             return;
         }
 
-        // Function to clear error messages for a specific field
-        function clearFieldErrors(field) {
-            // Find the container that might have error messages
+        if (!submitButton) {
+            console.error("Submit button not found for state management.");
+            return;
+        }
+
+        // Store original button text and state
+        const originalButtonText = submitButton.innerHTML;
+        const originalButtonClasses = submitButton.className;
+        let isSubmitting = false;
+
+        // Function to disable submit button with visual feedback
+        function disableSubmitButton() {
+            if (isSubmitting) return; // Prevent multiple calls
+            
+            isSubmitting = true;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+            
+            // Change button appearance to indicate processing
+            submitButton.className = submitButton.className.replace('btn-primary', 'btn-secondary').replace('btn-success', 'btn-secondary');
+            
+            console.log("Submit button disabled - processing form submission");
+        }
+
+        // Function to re-enable submit button (for validation errors)
+        function enableSubmitButton() {
+            if (!isSubmitting) return; // Only re-enable if we disabled it
+            
+            isSubmitting = false;
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+            submitButton.className = originalButtonClasses;
+            
+            console.log("Submit button re-enabled - validation errors detected");
+        }
+
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            // Disable the button immediately when form is submitted
+            disableSubmitButton();
+            
+            // If there are immediate client-side validation errors, re-enable the button
+            setTimeout(function() {
+                // Check if form submission was prevented (validation errors)
+                const hasErrors = form.querySelector('.text-danger, .is-invalid');
+                if (hasErrors) {
+                    enableSubmitButton();
+                }
+            }, 100);
+        });
+
+        // Re-enable button if there are server-side validation errors
+        // (This handles the case where the form is re-rendered with errors)
+        const hasServerErrors = form.querySelector('.text-danger');
+        if (hasServerErrors) {
+            // If we load the page with errors, ensure button is enabled
+            enableSubmitButton();
+        }
+
+        // Use the ValidationManager from form_validation.js for consistent error handling
+        // Note: The form_validation.js file already sets up comprehensive error clearing
+        // This template script only handles submit button state and server-side error detection
+        
+        // Additional server-side error clearing for fields not handled by ValidationManager
+        function clearServerSideErrors(field) {
             const container = field.closest('.mb-3, .form-group, .trainee-search-container, .form-floating');
             if (container) {
-                // Remove Flask validation errors (text-danger)
+                // Only remove Flask server-side validation errors (text-danger)
                 const errorDivs = container.querySelectorAll('.text-danger');
                 errorDivs.forEach(div => {
-                    // Only remove if it contains validation error text
+                    // Only remove if it contains server validation error text
                     if (div.querySelector('small') || div.textContent.includes('required') || 
                         div.textContent.includes('cannot') || div.textContent.includes('must')) {
                         div.remove();
                     }
                 });
-                
-                // Remove any client-side validation messages too
-                const validationMessages = container.querySelectorAll('.validation-message');
-                validationMessages.forEach(msg => msg.remove());
             }
         }
 
-        // Clear errors when users start typing/selecting
+        // Light-touch server-side error clearing (ValidationManager handles client-side)
         document.querySelectorAll('input, textarea, select').forEach(field => {
             field.addEventListener('input', function() {
-                clearFieldErrors(this);
+                clearServerSideErrors(this);
             });
             field.addEventListener('change', function() {
-                clearFieldErrors(this);
+                clearServerSideErrors(this);
             });
         });
 
-        // Special handling for radio buttons (training type and location type)
+        // Special handling for radio buttons
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
             radio.addEventListener('change', function() {
-                // Only clear errors if a valid option is actually selected
                 if (this.checked && this.value) {
-                    // Clear errors for all radio buttons with the same name
                     document.querySelectorAll(`input[name="${this.name}"]`).forEach(r => {
-                        clearFieldErrors(r);
+                        clearServerSideErrors(r);
                     });
                 }
             });
         });
 
-        console.log("Simple error clearing initialized.");
+        console.log("Simple error clearing and submit button state management initialized.");
     });
 </script>
 {% endblock %}

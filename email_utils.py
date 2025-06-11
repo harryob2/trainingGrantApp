@@ -41,6 +41,7 @@ def send_form_submission_notification(form_id, form_data, submitter_email):
             # Production: send to admins who want to receive emails
             from models import get_admin_notification_emails
             notification_emails = get_admin_notification_emails()
+
             if not notification_emails:
                 logging.warning("No admins configured to receive email notifications in production")
                 return

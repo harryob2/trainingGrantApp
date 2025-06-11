@@ -2,6 +2,7 @@ from datetime import date
 import re
 import json
 import logging
+import time
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
@@ -395,6 +396,15 @@ class TrainingForm(FlaskForm):
     def prepare_form_data(self):
         """Prepare form data for database insertion"""
         is_internal = self.training_type.data == "Internal Training"
+        
+        # Date processing
+        start_date_str = self.start_date.data.strftime("%Y-%m-%d")
+        end_date_str = self.end_date.data.strftime("%Y-%m-%d")
+        
+        # Approval check
+        ready_for_approval = self.is_ready_for_approval()
+        
+        # Data structure building
         data = {
             "training_type": self.training_type.data,
             "training_name": self.training_name.data,
@@ -408,8 +418,8 @@ class TrainingForm(FlaskForm):
                 if self.location_type.data == "Offsite"
                 else None
             ),
-            "start_date": self.start_date.data.strftime("%Y-%m-%d"),
-            "end_date": self.end_date.data.strftime("%Y-%m-%d"),
+            "start_date": start_date_str,
+            "end_date": end_date_str,
             "training_hours": float(str(self.training_hours.data)),
             "course_cost": (
                 float(self.course_cost.data)
@@ -423,7 +433,7 @@ class TrainingForm(FlaskForm):
             "training_description": self.training_description.data or "",
             "notes": self.notes.data or "",
             "ida_class": self.ida_class.data,
-            "ready_for_approval": self.is_ready_for_approval(),
+            "ready_for_approval": ready_for_approval,
         }
 
         # Note: trainees are now handled separately via the new Trainee table

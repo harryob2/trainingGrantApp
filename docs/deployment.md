@@ -363,7 +363,7 @@ The deployment pipeline ensures proper configuration for the automated maintenan
    - Runs on all triggers
    - Sets up Python environment with SQLite for testing
    - Installs dependencies and runs unit tests
-   - Validates basic application functionality
+   - Validates basic application functionality including background processing
 
 2. **Deploy Development Job** (develop branch)
    - Triggers on develop branch pushes

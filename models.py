@@ -451,6 +451,11 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
         if 'ready_for_approval' not in form_data:
             form_data['ready_for_approval'] = calculate_ready_for_approval(form_data)
         
+        # Date parsing
+        start_date_parsed = parse_date(form_data["start_date"])
+        end_date_parsed = parse_date(form_data["end_date"])
+        
+        # Object creation
         form = TrainingForm(
             training_type=form_data["training_type"],
             training_name=form_data["training_name"],
@@ -461,8 +466,8 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             supplier_name=form_data.get("supplier_name"),
             location_type=form_data["location_type"],
             location_details=form_data.get("location_details"),
-            start_date=parse_date(form_data["start_date"]),
-            end_date=parse_date(form_data["end_date"]),
+            start_date=start_date_parsed,
+            end_date=end_date_parsed,
             approved=form_data.get("approved", False),
             ready_for_approval=form_data.get("ready_for_approval", True),
             concur_claim=form_data.get("concur_claim"),
@@ -473,6 +478,8 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             submitter=form_data.get("submitter"),
             ida_class=form_data.get("ida_class"),
         )
+        
+        # Database operations
         session.add(form)
         session.flush()
         return form.id
@@ -525,6 +532,7 @@ def soft_delete_training_form(form_id: int) -> bool:
                 return False
             form.deleted = True
             form.deleted_datetimestamp = datetime.now()
+            form.approved = False
             return True
     except Exception as e:
         logger.error(f"Error soft deleting training form {form_id}: {e}")
