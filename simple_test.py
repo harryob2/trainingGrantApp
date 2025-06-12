@@ -77,7 +77,7 @@ def run_tests():
         print("The deployment pipeline can proceed successfully.")
         print("Add real tests to this file when ready.")
     else:
-        print(s"Unexpected failures in placeholder tests.")
+        print("Unexpected failures in placeholder tests.")
         print("This should not happen - check your Python environment.")
     
     return result.wasSuccessful()
