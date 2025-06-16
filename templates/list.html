@@ -1,6 +1,5 @@
 {% extends "base.html" %} {% from '_macros.html' import render_check_icon,
-render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
-%}Training Form Submissions{% endif %}{% endblock %} {% block extra_head %}
+render_x_icon %} {% block title %}Training Form Submissions{% endblock %} {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
 <style>
   .search-panel {
@@ -36,11 +35,10 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
 {% endblock %} {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="fs-4">
-    {% if my_submissions %}My Submissions{% else %}Training Form Submissions{%
-    endif %}
+    Training Form Submissions
   </h2>
   <div class="btn-group-header">
-    {% if not my_submissions %}
+    {% if is_admin %}
     <button type="button" class="btn btn-success" id="export-claim5-btn">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
         class="bi bi-file-earmark-spreadsheet" viewBox="0 0 16 16">

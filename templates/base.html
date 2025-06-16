@@ -45,7 +45,7 @@
             </li>
             {% endif %}
 
-            {% if user_info.is_admin %}
+            {% if current_user.is_authenticated %}
             <li class="nav-item ms-2">
               <a class="nav-link {% if request.path == url_for('list_forms') %}active{% endif %}"
                 href="{{ url_for('list_forms') }}">
@@ -54,18 +54,7 @@
                   <path fill-rule="evenodd"
                     d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
                 </svg>
-                View Submissions
-              </a>
-            </li>
-            {% elif current_user.is_authenticated %}
-            <li class="nav-item ms-2">
-              <a class="nav-link {% if request.path == url_for('my_submissions') %}active{% endif %}"
-                href="{{ url_for('my_submissions') }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                  class="bi bi-person-lines-fill" viewBox="0 0 16 16">
-                  <path d="M1 14s-1 0-1-1 1-4 7-4 7 3 7 4-1 1-1 1H1zm7-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-                </svg>
-                My Submissions
+                Submissions
               </a>
             </li>
             {% endif %} {% if current_user.is_authenticated %}

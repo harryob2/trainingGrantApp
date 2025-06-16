@@ -29,11 +29,10 @@
 
     <div class="d-grid gap-2 col-md-6 mx-auto">
       <a
-        href="{% if user_info.is_admin %}{{ url_for('list_forms') }}{% else %}{{ url_for('my_submissions') }}{% endif %}"
+        href="{{ url_for('list_forms') }}"
         class="btn btn-outline-secondary"
       >
-        {% if user_info.is_admin %}View All Submissions{% else %}My
-        Submissions{% endif %}
+        View Submissions
       </a>
       <a href="{{ url_for('index') }}" class="btn btn-primary mb-2"
         >Submit Another Form</a
