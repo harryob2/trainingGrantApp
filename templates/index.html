@@ -576,13 +576,23 @@
                             <div class="d-flex justify-content-between">
                                 {% if edit_mode %}
                                 <a href="{{ url_for('view_form', form_id=form_id) }}" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" id="submit-training-form-btn" class="btn btn-success">
-                                    Save Changes
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="action" value="save_draft" id="save-draft-btn" class="btn btn-outline-secondary">
+                                        <i class="bi bi-file-earmark-text me-1"></i> Save as Draft
+                                    </button>
+                                    <button type="submit" name="action" value="submit" id="submit-training-form-btn" class="btn btn-success">
+                                        Save Changes
+                                    </button>
+                                </div>
                                 {% else %}
-                                <button type="submit" id="submit-training-form-btn" class="btn btn-primary">
-                                    Submit Form
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="action" value="save_draft" id="save-draft-btn" class="btn btn-outline-secondary">
+                                        <i class="bi bi-file-earmark-text me-1"></i> Save as Draft
+                                    </button>
+                                    <button type="submit" name="action" value="submit" id="submit-training-form-btn" class="btn btn-primary">
+                                        Submit Form
+                                    </button>
+                                </div>
                                 {% endif %}
                             </div>
                         </div>
@@ -845,6 +855,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("training-form");
         const submitButton = document.getElementById("submit-training-form-btn");
+        const draftButton = document.getElementById("save-draft-btn");
         
         if (!form) {
             console.error("Form not found for error clearing initialization.");
@@ -856,58 +867,101 @@
             return;
         }
 
-        // Store original button text and state
-        const originalButtonText = submitButton.innerHTML;
-        const originalButtonClasses = submitButton.className;
+        // Store original button text and state for both buttons
+        const originalSubmitButtonText = submitButton.innerHTML;
+        const originalSubmitButtonClasses = submitButton.className;
+        const originalDraftButtonText = draftButton ? draftButton.innerHTML : '';
+        const originalDraftButtonClasses = draftButton ? draftButton.className : '';
         let isSubmitting = false;
 
-        // Function to disable submit button with visual feedback
-        function disableSubmitButton() {
+        // Function to disable buttons with visual feedback
+        function disableButtons(isDraft = false) {
             if (isSubmitting) return; // Prevent multiple calls
             
             isSubmitting = true;
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
             
-            // Change button appearance to indicate processing
-            submitButton.className = submitButton.className.replace('btn-primary', 'btn-secondary').replace('btn-success', 'btn-secondary');
-            
-            console.log("Submit button disabled - processing form submission");
+            if (isDraft && draftButton) {
+                // Disable draft button with saving feedback
+                draftButton.disabled = true;
+                draftButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving Draft...';
+                draftButton.className = draftButton.className.replace('btn-outline-secondary', 'btn-secondary');
+                
+                // Also disable submit button
+                submitButton.disabled = true;
+                
+                console.log("Draft button disabled - saving draft");
+            } else {
+                // Disable submit button with processing feedback
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+                submitButton.className = submitButton.className.replace('btn-primary', 'btn-secondary').replace('btn-success', 'btn-secondary');
+                
+                // Also disable draft button if it exists
+                if (draftButton) {
+                    draftButton.disabled = true;
+                }
+                
+                console.log("Submit button disabled - processing form submission");
+            }
         }
 
-        // Function to re-enable submit button (for validation errors)
-        function enableSubmitButton() {
-            if (!isSubmitting) return; // Only re-enable if we disabled it
+        // Function to re-enable buttons (for validation errors)
+        function enableButtons() {
+            if (!isSubmitting) return; // Only re-enable if we disabled them
             
             isSubmitting = false;
             submitButton.disabled = false;
-            submitButton.innerHTML = originalButtonText;
-            submitButton.className = originalButtonClasses;
+            submitButton.innerHTML = originalSubmitButtonText;
+            submitButton.className = originalSubmitButtonClasses;
             
-            console.log("Submit button re-enabled - validation errors detected");
+            if (draftButton) {
+                draftButton.disabled = false;
+                draftButton.innerHTML = originalDraftButtonText;
+                draftButton.className = originalDraftButtonClasses;
+            }
+            
+            console.log("Buttons re-enabled - validation errors detected");
         }
 
         // Handle form submission
         form.addEventListener('submit', function(e) {
-            // Disable the button immediately when form is submitted
-            disableSubmitButton();
+            // Check which button was clicked
+            const activeElement = document.activeElement;
+            const isDraft = activeElement && activeElement.id === 'save-draft-btn';
             
-            // If there are immediate client-side validation errors, re-enable the button
+            // Disable the buttons immediately when form is submitted
+            disableButtons(isDraft);
+            
+            // If there are immediate client-side validation errors, re-enable the buttons
             setTimeout(function() {
-                // Check if form submission was prevented (validation errors)
-                const hasErrors = form.querySelector('.text-danger, .is-invalid');
-                if (hasErrors) {
-                    enableSubmitButton();
+                // For drafts, don't check for validation errors since they bypass validation
+                if (!isDraft) {
+                    const hasErrors = form.querySelector('.text-danger, .is-invalid');
+                    if (hasErrors) {
+                        enableButtons();
+                    }
                 }
             }, 100);
         });
 
-        // Re-enable button if there are server-side validation errors
+        // Handle draft button click specifically
+        if (draftButton) {
+            draftButton.addEventListener('click', function(e) {
+                // Set a flag to indicate this is a draft submission
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'save_draft';
+                form.appendChild(actionInput);
+            });
+        }
+
+        // Re-enable buttons if there are server-side validation errors
         // (This handles the case where the form is re-rendered with errors)
         const hasServerErrors = form.querySelector('.text-danger');
         if (hasServerErrors) {
-            // If we load the page with errors, ensure button is enabled
-            enableSubmitButton();
+            // If we load the page with errors, ensure buttons are enabled
+            enableButtons();
         }
 
         // Use the ValidationManager from form_validation.js for consistent error handling
@@ -952,6 +1006,15 @@
         });
 
         console.log("Simple error clearing and submit button state management initialized.");
+        
+        // Sync trainer name search field with hidden field on page load
+        // This ensures the visible search field shows the value when re-rendering after validation errors or in edit mode
+        const trainerNameHidden = document.getElementById('trainer_name_hidden');
+        const trainerNameSearch = document.getElementById('trainer_name_search');
+        if (trainerNameHidden && trainerNameSearch && trainerNameHidden.value && !trainerNameSearch.value) {
+            trainerNameSearch.value = trainerNameHidden.value;
+            console.log('Synchronized trainer name search field with hidden field value:', trainerNameHidden.value);
+        }
     });
 </script>
 {% endblock %}

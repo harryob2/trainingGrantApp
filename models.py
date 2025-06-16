@@ -102,6 +102,7 @@ class TrainingForm(Base):
     submission_date = Column(DateTime, default=func.now())
     approved = Column(Boolean, default=False)
     ready_for_approval = Column(Boolean, default=True, nullable=True)
+    is_draft = Column(Boolean, default=False, nullable=False)
     concur_claim = Column(String(255))
     course_cost = Column(Float, default=0)
     invoice_number = Column(String(255))
@@ -145,6 +146,7 @@ class TrainingForm(Base):
             ),
             "approved": bool(self.approved),
             "ready_for_approval": bool(self.ready_for_approval),
+            "is_draft": bool(self.is_draft),
             "submitter": self.submitter,
             "ida_class": self.ida_class,
             "training_description": self.training_description,
@@ -334,11 +336,17 @@ def _apply_training_form_filters(query, search_term="", date_from=None, date_to=
     # Apply delete status filter
     if delete_status == "deleted":
         query = query.filter(TrainingForm.deleted == True)
+    elif delete_status == "approved":
+        query = query.filter(TrainingForm.deleted == False, TrainingForm.approved == True)
+    elif delete_status == "unapproved":
+        query = query.filter(TrainingForm.deleted == False, TrainingForm.approved == False, TrainingForm.is_draft == False)
+    elif delete_status == "draft":
+        query = query.filter(TrainingForm.deleted == False, TrainingForm.is_draft == True)
     elif delete_status == "all":
-        # Show all forms regardless of delete status
+        # Show all forms regardless of status
         pass
     else:
-        # Default: only show non-deleted forms
+        # Default: only show non-deleted forms (not_deleted or empty)
         query = query.filter(TrainingForm.deleted == False)
     
     if search_term:
@@ -470,6 +478,7 @@ def insert_training_form(form_data: Dict[str, Any]) -> int:
             end_date=end_date_parsed,
             approved=form_data.get("approved", False),
             ready_for_approval=form_data.get("ready_for_approval", True),
+            is_draft=form_data.get("is_draft", False),
             concur_claim=form_data.get("concur_claim"),
             course_cost=form_data.get("course_cost", 0),
             invoice_number=form_data.get("invoice_number"),

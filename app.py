@@ -321,13 +321,71 @@ def logout():
     return redirect(url_for("login"))
 
 
+def prepare_draft_data(form, request):
+    """Prepare form data for draft submissions - handles missing/empty fields gracefully"""
+    from datetime import date
+    
+    # Get data from request with defaults for missing fields
+    draft_data = {
+        "training_type": request.form.get("training_type") or "Internal Training",
+        "training_name": request.form.get("training_name") or "",
+        "trainer_name": request.form.get("trainer_name"),
+        "trainer_email": request.form.get("trainer_email"),
+        "trainer_department": request.form.get("trainer_department"),
+        "supplier_name": request.form.get("supplier_name"),
+        "location_type": request.form.get("location_type") or "Onsite",
+        "location_details": request.form.get("location_details"),
+        "training_description": request.form.get("training_description") or "",
+        "notes": request.form.get("notes") or "",
+        "ida_class": request.form.get("ida_class") or "Class D - Not Certified",
+        "concur_claim": request.form.get("concur_claim"),
+        "invoice_number": request.form.get("invoice_number"),
+    }
+    
+    # Handle dates with defaults
+    try:
+        start_date = request.form.get("start_date")
+        draft_data["start_date"] = start_date if start_date else date.today().strftime("%Y-%m-%d")
+    except:
+        draft_data["start_date"] = date.today().strftime("%Y-%m-%d")
+    
+    try:
+        end_date = request.form.get("end_date")
+        draft_data["end_date"] = end_date if end_date else date.today().strftime("%Y-%m-%d")
+    except:
+        draft_data["end_date"] = date.today().strftime("%Y-%m-%d")
+    
+    # Handle numeric fields
+    try:
+        training_hours = request.form.get("training_hours")
+        draft_data["training_hours"] = float(training_hours) if training_hours else 1.0
+    except:
+        draft_data["training_hours"] = 1.0
+        
+    try:
+        course_cost = request.form.get("course_cost")
+        draft_data["course_cost"] = float(course_cost) if course_cost else 0.0
+    except:
+        draft_data["course_cost"] = 0.0
+    
+    # Set draft-specific flags
+    draft_data["ready_for_approval"] = False  # Drafts are never ready for approval
+    
+    return draft_data
+
+
 @app.route("/submit", methods=["GET", "POST"])
 @login_required
 def submit_form():
     """Process the form submission with optimized background processing"""
     form = TrainingForm()
+    
+    # Check if this is a draft submission
+    action = request.form.get("action", "submit")
+    is_draft = action == "save_draft"
 
-    if form.validate_on_submit():
+    # For drafts, bypass form validation
+    if is_draft or form.validate_on_submit():
         try:
             # === CRITICAL PATH: Essential operations only ===
             
@@ -336,20 +394,27 @@ def submit_form():
             if trainees_data:
                 form.trainees_data.data = trainees_data
 
-            # Prepare form data using the form's method
-            form_data = form.prepare_form_data()
+            # Prepare form data - for drafts, handle missing data gracefully
+            if is_draft:
+                form_data = prepare_draft_data(form, request)
+            else:
+                form_data = form.prepare_form_data()
+                
             form_data["submitter"] = current_user.email
+            form_data["is_draft"] = is_draft
 
-            # Validate required fields
-            if not form_data.get("training_description"):
-                flash("Training Description is required", "error")
-                return render_template("index.html", form=form)
+            # For regular submissions, validate required fields
+            if not is_draft:
+                if not form_data.get("training_description"):
+                    flash("Training Description is required", "error")
+                    return render_template("index.html", form=form)
 
             # Insert the main form data (ESSENTIAL - we need the form_id)
             form_id = insert_training_form(form_data)
             
             # Log form submission
-            logger.info(f"Form {form_id} submitted by {current_user.email} - processing in background")
+            action_text = "draft saved" if is_draft else "submitted"
+            logger.info(f"Form {form_id} {action_text} by {current_user.email} - processing in background")
 
             # === BACKGROUND PROCESSING: Everything else ===
             
@@ -385,15 +450,20 @@ def submit_form():
             )
 
             # === INSTANT SUCCESS RESPONSE ===
-            flash("Form submitted successfully!", "success")
-            return redirect(url_for("success"))
+            if is_draft:
+                flash("Draft saved successfully!", "success")
+                return redirect(url_for("my_submissions"))
+            else:
+                flash("Form submitted successfully!", "success")
+                return redirect(url_for("success"))
             
         except Exception as e:
             logger.error(f"Critical form submission error: {e}", exc_info=True)
-            flash("An error occurred while submitting the form. Please try again.", "danger")
+            error_msg = "An error occurred while saving the draft. Please try again." if is_draft else "An error occurred while submitting the form. Please try again."
+            flash(error_msg, "danger")
             return render_template("index.html", form=form, now=datetime.now())
     else:
-        # Flash form validation errors
+        # Flash form validation errors (only for regular submissions)
         for field, errors in form.errors.items():
             field_obj = getattr(form, field, None)
             field_label = field_obj.label.text if field_obj and hasattr(field_obj, 'label') else field
@@ -781,29 +851,41 @@ def edit_form(form_id):
                 logging.error(f"Error loading trainees for form {form_id}: {e}")
                 form.trainees_data.data = "[]"
 
-    if form.validate_on_submit():
+    # Check if this is a draft submission
+    action = request.form.get("action", "submit")
+    is_draft = action == "save_draft"
+
+    # For drafts, bypass form validation
+    if is_draft or form.validate_on_submit():
         try:
             # Get trainees data from form
             trainees_data = request.form.get("trainees_data")
             if trainees_data:
                 form.trainees_data.data = trainees_data
 
-            # Get form data
-            form_data = form.prepare_form_data()
+            # Prepare form data - for drafts, handle missing data gracefully
+            if is_draft:
+                form_data = prepare_draft_data(form, request)
+            else:
+                form_data = form.prepare_form_data()
 
-            # Get the existing form to preserve the submitter
+            # Get the existing form to preserve the submitter and current draft status
             existing_form = get_training_form(form_id)
             if existing_form and existing_form.get("submitter"):
                 form_data["submitter"] = existing_form["submitter"]
             else:
                 form_data["submitter"] = current_user.email
+            
+            # Set the draft status
+            form_data["is_draft"] = is_draft
 
-            # Validate required fields
-            if not form_data.get("training_description"):
-                flash("Training Description is required", "error")
-                return render_template(
-                    "index.html", form=form, edit_mode=True, form_id=form_id
-                )
+            # For regular submissions, validate required fields
+            if not is_draft:
+                if not form_data.get("training_description"):
+                    flash("Training Description is required", "error")
+                    return render_template(
+                        "index.html", form=form, edit_mode=True, form_id=form_id
+                    )
 
             # Update form data in database
             update_training_form(form_id, form_data)
@@ -919,14 +1001,17 @@ def edit_form(form_id):
                     # Don't fail the form update for trainee errors
                     flash("Warning: There was an issue processing trainees, but the form was updated successfully.", "warning")
 
-            flash("Form updated successfully!", "success")
-            return redirect(url_for("view_form", form_id=form_id))
+            if is_draft:
+                flash("Draft updated successfully!", "success")
+                return redirect(url_for("my_submissions"))
+            else:
+                flash("Form updated successfully!", "success")
+                return redirect(url_for("view_form", form_id=form_id))
 
         except Exception as e:
             logging.error(f"Error updating form: {str(e)}")
-            flash(
-                "An error occurred while updating the form. Please try again.", "danger"
-            )
+            error_msg = "An error occurred while updating the draft. Please try again." if is_draft else "An error occurred while updating the form. Please try again."
+            flash(error_msg, "danger")
 
     # Load existing attachments to display in form using SQLAlchemy ORM
     with db_session() as session:

@@ -411,14 +411,6 @@ def validate_end_date(self, field):
             raise ValidationError("End date cannot be before start date.")
 ```
 
-### Enhanced Location Type Validation
-```python
-def validate_location_type(self, field):
-    """Enhanced validation for location type based on training type"""
-    if field.data == "Virtual" and self.training_type.data == "Internal Training":
-        # Allow virtual internal training with informational guidance
-        pass
-```
 
 ### Enhanced Concur Claim Validation
 ```python

@@ -219,10 +219,7 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
       <tr>
         <td>{{ form.id }}</td>
         <td>
-          <strong>Type:</strong> {{ form.training_type }}
-          {% if form.deleted %}
-          <span class="badge bg-danger ms-2">DELETED</span>
-          {% endif %}<br />
+          <strong>Type:</strong> {{ form.training_type }}<br />
           <strong>Location:</strong> {{ form.location_type }}{% if
           form.location_details %}<br />{{ form.location_details }}{% endif %}
         </td>
@@ -237,10 +234,14 @@ render_x_icon %} {% block title %}{% if my_submissions %}My Submissions{% else
           <strong>To:</strong> {{ form.end_date }}<br />
         </td>
         <td>
-          {% if form.approved %}
-          <span class="badge bg-success">Approved</span>
+          {% if form.deleted %}
+          <span class="badge bg-danger fs-6">DELETED</span>
+          {% elif form.is_draft %}
+          <span class="badge bg-warning text-dark fs-6">Draft</span>
+          {% elif form.approved %}
+          <span class="badge bg-success fs-6">Approved</span>
           {% else %}
-          <span class="badge bg-secondary">Not Approved</span>
+          <span class="badge bg-secondary fs-6">Not Approved</span>
           {% endif %}
         </td>
         <td>
