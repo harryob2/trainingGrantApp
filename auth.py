@@ -198,12 +198,15 @@ def authenticate_user(username, password, app_config=None):
             logger.info(f"Bypass user {username} authenticated successfully")
             
             # Store basic user info in session for bypass users
+            # Session data is persisted across requests and used to populate user objects
             from flask import session
             session['user_first_name'] = "Test"
             session['user_last_name'] = "User"
             
             # Profile pictures are handled client-side to avoid session size limits
-            # (Flask sessions are stored in browser cookies with ~4KB limit)
+            # Flask sessions are stored in browser cookies with ~4KB limit, and profile
+            # pictures (even base64 encoded) would quickly exceed this limit causing auth failures
+            # Instead, profile pictures are fetched/cached on the client side as needed
             session.pop('user_profile_picture', None)
             
             return User.get(username)
@@ -222,12 +225,15 @@ def authenticate_user(username, password, app_config=None):
     
     if user_data:
         # Store user information in session for later retrieval
+        # This data is used by User.get() to populate user objects on subsequent requests
         from flask import session
         session['user_first_name'] = user_data['first_name']
         session['user_last_name'] = user_data['last_name']
         
         # Profile pictures are handled client-side to avoid session size limits
-        # (Flask sessions are stored in browser cookies with ~4KB limit)
+        # Flask sessions are stored in browser cookies with ~4KB limit, and profile
+        # pictures (even base64 encoded) would quickly exceed this limit causing auth failures
+        # Instead, profile pictures are fetched/cached on the client side as needed
         session.pop('user_profile_picture', None)
         
         # Create and return user object
