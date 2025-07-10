@@ -26,6 +26,7 @@ from flask import (
     abort,
     send_file,
     render_template_string,
+    current_app,
 )
 from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user, current_user, login_required
@@ -94,7 +95,7 @@ except Exception as e:
     raise
 
 
-def process_form_background(form_id, submitter_email, form_data_dict, files_data, expenses_data):
+def process_form_background(form_id, submitter_email, form_data_dict, files_data, expenses_data, app):
     """Process non-essential form operations in background for instant user response"""
     try:
         # Create attachment folder
@@ -131,7 +132,7 @@ def process_form_background(form_id, submitter_email, form_data_dict, files_data
         
         # Send email notification (slowest operation last)
         try:
-            send_form_submission_notification(form_id, form_data_dict, submitter_email)
+            send_form_submission_notification(form_id, form_data_dict, submitter_email, app)
         except Exception as e:
             logger.error(f"Background email notification failed for form {form_id}: {e}")
             
@@ -446,7 +447,8 @@ def submit_form():
                 current_user.email,
                 form_data,
                 files_data,
-                expenses_data
+                expenses_data,
+                current_app._get_current_object()
             )
 
             # === INSTANT SUCCESS RESPONSE ===
@@ -975,7 +977,7 @@ def edit_form(form_id):
                     travel_expenses = json.loads(travel_expenses_data)
                     if isinstance(travel_expenses, list):
                         update_travel_expenses(form_id, travel_expenses)
-                        logging.info(f"Updated travel expenses for form {form_id}")
+                        logging.info(f"Updated travel expenses for form {form_id}", extra={"performed_by": current_user.email})
                 except (json.JSONDecodeError, Exception) as e:
                     logging.error(f"Error processing travel expenses: {e}")
                     # Don't fail the form update for travel expense errors
@@ -989,7 +991,7 @@ def edit_form(form_id):
                     material_expenses = json.loads(material_expenses_data)
                     if isinstance(material_expenses, list):
                         update_material_expenses(form_id, material_expenses)
-                        logging.info(f"Updated material expenses for form {form_id}")
+                        logging.info(f"Updated material expenses for form {form_id}", extra={"performed_by": current_user.email})
                 except (json.JSONDecodeError, Exception) as e:
                     logging.error(f"Error processing material expenses: {e}")
                     # Don't fail the form update for material expense errors
@@ -1003,7 +1005,7 @@ def edit_form(form_id):
                     trainees = json.loads(trainees_data)
                     if isinstance(trainees, list):
                         update_trainees(form_id, trainees)
-                        logging.info(f"Updated trainees for form {form_id}")
+                        logging.info(f"Updated trainees for form {form_id}", extra={"performed_by": current_user.email})
                 except (json.JSONDecodeError, Exception) as e:
                     logging.error(f"Error processing trainees: {e}")
                     # Don't fail the form update for trainee errors
@@ -1079,7 +1081,7 @@ def get_employees():
 @login_required
 def api_lookup(entity_type):
     """Generic API endpoint to fetch lookup data for various entities."""
-    logging.info(f"Received API lookup request for entity: {entity_type}")
+    logging.info(f"Received API lookup request for entity: {entity_type}", extra={"performed_by": current_user.email})
     try:
         data = get_lookup_data(entity_type)
         if data is None: # get_lookup_data returns [] on error/not found, but explicit None check is safer
@@ -1420,7 +1422,7 @@ def export_claim5():
         wb.save(output)
         output.seek(0)
 
-        logging.info(f"Exported {len(approved_forms)} approved forms to Excel template with {len(personnel)} unique personnel.")
+        logging.info(f"Exported {len(approved_forms)} approved forms to Excel template with {len(personnel)} unique personnel.", extra={"performed_by": current_user.email})
         # Send the file to the user
         return send_file(
             output,

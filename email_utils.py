@@ -19,7 +19,7 @@ def init_mail(app):
     mail.init_app(app)
 
 
-def send_form_submission_notification(form_id, form_data, submitter_email):
+def send_form_submission_notification(form_id, form_data, submitter_email, app=None):
     """
     Send email notification when a training form is submitted.
     
@@ -27,7 +27,19 @@ def send_form_submission_notification(form_id, form_data, submitter_email):
         form_id (int): The ID of the submitted form
         form_data (dict): The form data containing training details
         submitter_email (str): Email of the person who submitted the form
+        app: Flask app instance (required when called from background threads)
     """
+    # Use app context if app is provided (for background threads)
+    if app:
+        with app.app_context():
+            _send_notification_with_context(form_id, form_data, submitter_email)
+    else:
+        # Called from within a request context
+        _send_notification_with_context(form_id, form_data, submitter_email)
+
+
+def _send_notification_with_context(form_id, form_data, submitter_email):
+    """Internal function that does the actual email sending within an app context"""
     try:
         # Skip sending emails for test user to prevent spam during automated testing
         if submitter_email == 'harry@test.com':
