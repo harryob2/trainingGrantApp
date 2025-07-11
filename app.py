@@ -212,10 +212,6 @@ def login():
         username = form.username.data
         password = form.password.data
 
-        # If username doesn't include domain, add it
-        if "@" not in username and app.config.get("LDAP_DOMAIN"):
-            username = f"{username}@{app.config['LDAP_DOMAIN']}"
-
         # Authenticate user against LDAP
         user = authenticate_user(username, password, app.config)
 
